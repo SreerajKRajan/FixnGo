@@ -1,0 +1,40 @@
+# Python-specific files
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+*.db
+*.sqlite3
+
+# Virtual Environment
+venv/
+.env/
+
+# Django-specific files
+*.log
+*.pot
+*.pyc
+*.pyo
+*.db
+*.sqlite3
+/static/
+media/
+
+# Test and coverage reports
+*.cover
+*.hypothesis/
+.coverage
+nosetests.xml
+test_*.xml
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.swp
+
+# OS-generated files
+Thumbs.db
+Desktop.ini
+
+# Environment file
+.env
