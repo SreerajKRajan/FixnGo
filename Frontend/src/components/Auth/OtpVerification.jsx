@@ -4,6 +4,7 @@ import * as Yup from "yup";
 import { useDispatch, useSelector } from "react-redux";
 import { otpVerification } from "../../store/authSlice";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner"; // Import Sonner for toast notifications
 
 const OtpSchema = Yup.object().shape({
   digit1: Yup.number().required("Required"),
@@ -17,8 +18,6 @@ export default function OtpVerification() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { loading, error, email } = useSelector((state) => state.auth);
-  console.log(email, "user's email");
-  
 
   useEffect(() => {
     inputRefs[0].current.focus();
@@ -44,16 +43,21 @@ export default function OtpVerification() {
 
   const handleSubmit = async (values) => {
     const otp = `${values.digit1}${values.digit2}${values.digit3}${values.digit4}`;
-    if (!email){
-        console.error("Emails is missing");
-        return;
-        
+    if (!email) {
+      console.error("Email is missing");
+      return;
     }
     const resultAction = await dispatch(otpVerification({ otp, email }));
 
     if (otpVerification.fulfilled.match(resultAction)) {
-      navigate("/login"); // Navigate to login page upon successful OTP verification
+      // Show success message
+      toast.success("OTP verified successfully! Redirecting to login...");
+      // Navigate to login page after a short delay (optional)
+      setTimeout(() => {
+        navigate("/login");
+      }, 2000); // Delay to allow the user to see the success message
     } else {
+      // Error handling after dispatch
       console.error("OTP Verification Failed:", resultAction.payload);
     }
   };
@@ -119,7 +123,10 @@ export default function OtpVerification() {
                 </div>
                 {error && (
                   <div className="text-center text-sm text-red-500">
-                    {error}
+                    {/* Dynamically display the error message from Redux store */}
+                    {error?.error === "Invalid OTP"
+                      ? "The OTP you entered is invalid. Please try again."
+                      : error?.error || "OTP Verification failed. Please try again."}
                   </div>
                 )}
               </Form>

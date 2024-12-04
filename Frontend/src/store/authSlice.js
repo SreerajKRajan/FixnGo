@@ -41,11 +41,20 @@ export const login = createAsyncThunk(
 
 
 const initialState = {
-  user: null,
-  email: null,
+  user: (() => {
+    const storedUser = localStorage.getItem("user");
+    try {
+      return storedUser ? JSON.parse(storedUser) : null;
+    } catch (e) {
+      console.error("Failed to parse user from localStorage:", e);
+      return null;
+    }
+  })(),
+    email: localStorage.getItem("email") || null,
   error: null,
   loading: false,
 };
+
 
 const authSlice = createSlice({
   name: "auth",
@@ -55,8 +64,10 @@ const authSlice = createSlice({
       state.user = null;
       state.email = null;
       state.error = null;
-      localStorage.removeItem("token"); // Clear token from localStorage if needed
-    },
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      localStorage.removeItem("email");
+    },    
   },
   extraReducers: (builder) => {
     builder
@@ -93,12 +104,18 @@ const authSlice = createSlice({
         state.user = action.payload.user;
         state.email = action.payload.email;
         state.error = null;
-        localStorage.setItem("token", action.payload.token); // Save token to localStorage
-      })
+      
+        localStorage.setItem("token", action.payload.token);
+        localStorage.setItem("user", JSON.stringify(action.payload.user));
+        localStorage.setItem("email", action.payload.email);
+      })      
       .addCase(login.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload || "Login failed";
+        state.error = action.payload.non_field_errors
+          ? action.payload.non_field_errors[0]
+          : "Login failed";
       });
+      
   },
 });
 

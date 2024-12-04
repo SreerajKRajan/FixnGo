@@ -6,6 +6,7 @@ import { Link } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { signup } from "../../store/authSlice";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 const SignupSchema = Yup.object().shape({
   username: Yup.string()
@@ -40,7 +41,7 @@ export default function Signup() {
     }
   };
 
-  const handleSignup = (values, { setSubmitting }) => {
+  const handleSignup = (values, { setSubmitting, setFieldError }) => {
     const userData = {
       username: values.username,
       email: values.email,
@@ -49,8 +50,26 @@ export default function Signup() {
     };
 
     dispatch(signup(userData)).then((response) => {
+      console.log("Full Response:", response);
+      console.log("Payload:", response.payload);
+      console.log("Error:", response.error);
+
       if (!response.error) {
+        toast.success("Signup successful! Please verify your OTP.");
         navigate("/otp_verification");
+      } else {
+        const errors = response.payload?.data || response.payload;
+        console.log("Errors from backend:", errors);
+
+        if (errors && typeof errors === "object") {
+          Object.keys(errors).forEach((field) => {
+            if (Array.isArray(errors[field])) {
+              setFieldError(field, errors[field][0]);
+            }
+          });
+        } else {
+          toast.error("Something went wrong. Please try again.");
+        }
       }
       setSubmitting(false);
     });
@@ -232,12 +251,6 @@ export default function Signup() {
                     className="mt-1 text-xs text-red-600"
                   />
                 </div>
-
-                {error && (
-                  <div className="text-xs text-red-600 text-center">
-                    {typeof error === "string" ? error : JSON.stringify(error)}
-                  </div>
-                )}
 
                 <div>
                   <button

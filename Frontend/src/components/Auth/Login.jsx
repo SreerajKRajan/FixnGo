@@ -5,6 +5,7 @@ import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
 import { Link, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { login } from "../../store/authSlice";
+import { toast } from "sonner"; // Import Sonner
 
 const LoginSchema = Yup.object().shape({
   email: Yup.string().email("Invalid email").required("Email is required"),
@@ -26,14 +27,17 @@ export default function Login() {
   const handleSubmit = async (values, { setSubmitting }) => {
     try {
       const response = await dispatch(login(values)).unwrap();
-      alert("Login successful!");
-      navigate("/home"); // Redirect to dashboard after login
+  
+      toast.success("Login successful!");
+      navigate("/home"); // Only navigate on success
     } catch (err) {
       console.error("Login failed:", err);
+      toast.error(err.non_field_errors ? err.non_field_errors[0] : "Login failed");
     } finally {
       setSubmitting(false);
     }
   };
+  
 
   return (
     <div className="min-h-screen bg-slate-200 flex flex-col justify-center py-2 sm:px-6 lg:px-8">
@@ -130,12 +134,6 @@ export default function Login() {
                     {loading ? "Logging in..." : "Log in"}
                   </button>
                 </div>
-
-                {error && (
-                  <div className="mt-2 text-xs text-center text-red-600">
-                    {error}
-                  </div>
-                )}
               </Form>
             )}
           </Formik>
