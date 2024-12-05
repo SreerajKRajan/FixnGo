@@ -17,6 +17,7 @@ class Workshop(AbstractBaseUser):
     location    = models.CharField(max_length=255)
     phone       = models.CharField(max_length=15, unique=True)
     is_verified = models.BooleanField(default=False)
+    is_approved = models.BooleanField(default=False)
     password    = models.CharField(max_length=255)
     is_active   = models.BooleanField(default=True)
     is_staff    = models.BooleanField(default=False)

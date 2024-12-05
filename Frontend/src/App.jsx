@@ -5,6 +5,7 @@ import LandingPage from "./components/LandingPage";
 import Home from "./components/User/Home";
 import OtpVerification from "./components/Auth/OtpVerification";
 import { PublicRoute, ProtectedRoute } from "./utils/RouteGuards";
+import AdminLogin from "./components/Admin/AdminLogin";
 
 function App() {
   return (
@@ -42,6 +43,12 @@ function App() {
               <ProtectedRoute>
                 <Home />
               </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/login"
+            element={
+                <AdminLogin />
             }
           />
         </Routes>

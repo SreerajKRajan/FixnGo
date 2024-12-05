@@ -65,6 +65,9 @@ class WorkshopLoginView(APIView):
             if workshop and workshop.check_password(password):
                 if not workshop.is_verified:
                     return Response({"message": "Workshop is not verified."}, status=status.HTTP_403_FORBIDDEN)
+                if not workshop.is_approved:
+                    return Response({"message": "Your account is awaiting admin approval."}, status=status.HTTP_403_FORBIDDEN)
+
                 token = WorkshopToken(workshop)
                 return Response({
                     "refresh": str(token),

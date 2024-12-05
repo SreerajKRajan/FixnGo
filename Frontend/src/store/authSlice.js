@@ -39,6 +39,19 @@ export const login = createAsyncThunk(
   }
 );
 
+export const adminLogin = createAsyncThunk(
+  "auth/adminLogin",
+  async (credentials, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.post("admin_side/login/", credentials);
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || "Admin login failed");
+    }
+  }
+);
+
+
 
 const initialState = {
   user: (() => {
@@ -114,6 +127,20 @@ const authSlice = createSlice({
         state.error = action.payload.non_field_errors
           ? action.payload.non_field_errors[0]
           : "Login failed";
+      })
+      .addCase(adminLogin.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(adminLogin.fulfilled, (state, action) => {
+        state.loading = false;
+        state.user = action.payload.admin;
+        state.error = null;
+        localStorage.setItem("adminToken", action.payload.token);
+        localStorage.setItem("admin", JSON.stringify(action.payload.admin));
+      })
+      .addCase(adminLogin.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || "Admin login failed";
       });
       
   },
