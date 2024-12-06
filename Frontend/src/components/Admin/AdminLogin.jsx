@@ -28,13 +28,13 @@ const AdminLogin = () => {
     try {
       const response = await dispatch(adminLogin(values)).unwrap();
       toast.success("Login successful!");
-      navigate("/admin/dashboard"); // Redirect to admin dashboard on success
+      navigate("/admin/dashboard");
     } catch (err) {
       console.error("Login failed:", err);
       toast.error(
         err.non_field_errors
           ? err.non_field_errors[0]
-          : "Login failed, please try again."
+          : err.detail || "Login failed, please try again."
       );
     } finally {
       setSubmitting(false);
@@ -126,10 +126,6 @@ const AdminLogin = () => {
                     className="mt-1 text-xs text-red-600"
                   />
                 </div>
-
-                {error && (
-                  <div className="text-xs text-red-600 mt-1">{error}</div>
-                )}
 
                 <div>
                   <button

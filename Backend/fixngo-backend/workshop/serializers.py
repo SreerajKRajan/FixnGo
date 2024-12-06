@@ -13,3 +13,8 @@ class WorkshopSignupSerializer(serializers.ModelSerializer):
 class WorkshopLoginSerializer(serializers.Serializer):
     email = serializers.EmailField()
     password = serializers.CharField()
+
+class WorkshopSerializer(serializers.Serializer):
+    class Meta:
+        model = Workshop
+        fields = ['name', 'email', 'location', 'phone', 'is_approved']

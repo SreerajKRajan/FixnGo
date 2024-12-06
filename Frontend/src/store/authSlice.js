@@ -12,7 +12,7 @@ export const signup = createAsyncThunk(
     } catch (error) {
       return rejectWithValue(error.response?.data || "Signup Failed");
     }
-  }
+  } 
 );
 
 export const otpVerification = createAsyncThunk(
@@ -46,7 +46,7 @@ export const adminLogin = createAsyncThunk(
       const response = await axiosInstance.post("admin_side/login/", credentials);
       return response.data;
     } catch (error) {
-      return rejectWithValue(error.response?.data || "Admin login failed");
+      return rejectWithValue(error.response?.data || { message: "Admin login failed" });
     }
   }
 );
@@ -130,6 +130,7 @@ const authSlice = createSlice({
       })
       .addCase(adminLogin.pending, (state) => {
         state.loading = true;
+        state.error = null;
       })
       .addCase(adminLogin.fulfilled, (state, action) => {
         state.loading = false;
@@ -140,7 +141,10 @@ const authSlice = createSlice({
       })
       .addCase(adminLogin.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload || "Admin login failed";
+        state.error =
+        action.payload?.non_field_errors?.[0] ||
+        action.payload?.detail ||
+        "Admin login failed";
       });
       
   },

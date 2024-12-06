@@ -1,4 +1,5 @@
 from rest_framework.views import APIView
+from rest_framework.generics import ListAPIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAdminUser
 from rest_framework import status
@@ -6,6 +7,13 @@ from workshop.models import Workshop
 from rest_framework.permissions import AllowAny
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
+from workshop.serializers import WorkshopSerializer
+
+
+class WorkshopListView(ListAPIView):
+    permission_classes = [IsAdminUser]
+    workshop = Workshop.objects.all()
+    serializer_class = WorkshopSerializer
 
 
 class AdminLoginView(APIView):
@@ -49,3 +57,23 @@ class ApproveWorkshopView(APIView):
         workshop.is_approved = True
         workshop.save()
         return Response({"message": "Workshop approved successfully."}, status=status.HTTP_200_OK)
+
+class RejectWorkhsopView(APIView):
+    permission_classes = [IsAdminUser]
+
+    def post(self, request):
+        workshop_id = request.data.get('workshop_id')
+        workshop = Workshop.objects.filter(id=workshop_id).first()
+        
+        if not workshop:
+            return Response({"error": "Workshop not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+        if not workshop.is_approved:
+            return Response({"message": "Workshop is already rejected."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        workshop.is_approved = False
+        workshop.save()
+        return Response({"message": "Workshop rejected successfully."}, status=status.HTTP_200_OK)
+    
+    
+        
