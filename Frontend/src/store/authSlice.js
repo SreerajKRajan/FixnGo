@@ -51,8 +51,6 @@ export const adminLogin = createAsyncThunk(
   }
 );
 
-
-
 const initialState = {
   user: (() => {
     const storedUser = localStorage.getItem("user");
@@ -67,7 +65,6 @@ const initialState = {
   error: null,
   loading: false,
 };
-
 
 const authSlice = createSlice({
   name: "auth",
