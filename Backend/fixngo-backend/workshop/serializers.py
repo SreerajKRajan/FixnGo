@@ -17,4 +17,4 @@ class WorkshopLoginSerializer(serializers.Serializer):
 class WorkshopSerializer(serializers.Serializer):
     class Meta:
         model = Workshop
-        fields = ['name', 'email', 'location', 'phone', 'is_approved']
+        fields = '__all__'

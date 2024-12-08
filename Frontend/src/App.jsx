@@ -6,6 +6,7 @@ import Home from "./components/User/Home";
 import OtpVerification from "./components/Auth/OtpVerification";
 import { PublicRoute, ProtectedRoute } from "./utils/RouteGuards";
 import AdminLogin from "./components/Admin/AdminLogin";
+import { AdminDashboard } from "./components/Admin/AdminDachboard";
 
 function App() {
   return (
@@ -45,10 +46,13 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route path="/admin/login" element={<AdminLogin />} />
           <Route
-            path="/admin/login"
+            path="/admin/dashboard"
             element={
-                <AdminLogin />
+              <ProtectedRoute role="admin">
+                <AdminDashboard />
+              </ProtectedRoute>
             }
           />
         </Routes>

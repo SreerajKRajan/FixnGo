@@ -12,7 +12,7 @@ from workshop.serializers import WorkshopSerializer
 
 class WorkshopListView(ListAPIView):
     permission_classes = [IsAdminUser]
-    workshop = Workshop.objects.all()
+    queryset = Workshop.objects.all()
     serializer_class = WorkshopSerializer
 
 

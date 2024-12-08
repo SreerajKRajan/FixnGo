@@ -15,7 +15,7 @@ class WorkshopSignupView(APIView):
     def post(self, request):
         serializer = WorkshopSignupSerializer(data=request.data)
         if serializer.is_valid():
-            workshop = serializer.save(is_verified=False)
+            workshop = serializer.save(is_verified=False, is_approved=False)
 
             otp_code = random.randint(1000, 9999)
             WorkshopOtp.objects.create(workshop=workshop, otp_code=otp_code)
@@ -27,7 +27,10 @@ class WorkshopSignupView(APIView):
                 [workshop.email],
                 fail_silently=False,
             )
-            return Response({"message": "Workshop created successfully. An OTP has been sent to your email for verification."}, status=status.HTTP_201_CREATED)
+            return Response({
+                "message": "Workshop created successfully. An OTP has been sent to your email for verification. "
+                           "Please wait for admin approval after verifying your OTP."
+            }, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -47,7 +50,9 @@ class WorkshopOtpVerificationView(APIView):
                 workshop.is_verified = True
                 workshop.save()
                 otp_entry.delete()
-                return Response({"message": "OTP verified successfully. You can now log in."}, status=status.HTTP_200_OK)
+                return Response({"message": "OTP verified successfully."
+                                 "Your account is awaiting admin approval."
+                                 }, status=status.HTTP_200_OK)
             else:
                 return Response({"message": "OTP has expired"}, status=status.HTTP_400_BAD_REQUEST)
         

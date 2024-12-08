@@ -8,9 +8,13 @@ export const PublicRoute = ({ children }) => {
   return token ? <Navigate to="/home" replace /> : children;
 };
 
-export const ProtectedRoute = ({ children }) => {
+export const ProtectedRoute = ({ children, role }) => {
   // Get token from Redux or localStorage
-  const token = useSelector((state) => state.auth.user?.token) || localStorage.getItem("token");
-  
-  return token ? children : <Navigate to="/login" replace />;
+  const userToken = useSelector((state) => state.auth.user?.token) || localStorage.getItem("token");
+  const adminToken = localStorage.getItem("adminToken");
+
+  // Decide token based on role
+  const token = role === "admin" ? adminToken : userToken;
+
+  return token ? children : <Navigate to={role === "admin" ? "/admin/login" : "/login"} replace />;
 };
