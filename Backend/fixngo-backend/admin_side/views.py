@@ -40,6 +40,14 @@ class AdminLoginView(APIView):
             }, status=status.HTTP_200_OK)
 
         return Response({"detail": "Invalid credentials or not an admin."}, status=status.HTTP_401_UNAUTHORIZED)
+    
+class AdminLogoutView(APIView):
+    permission_classes = [IsAdminUser]
+    
+    def post(self, request):
+        response = Response({"message": "Logout successful"}, status=200)
+        response.delete_cookie("jwt")
+        return response
 
 class ApproveWorkshopView(APIView):
     permission_classes = [IsAdminUser]
@@ -50,7 +58,10 @@ class ApproveWorkshopView(APIView):
 
         if not workshop:
             return Response({"error": "Workshop not found"}, status=status.HTTP_404_NOT_FOUND)
-
+        
+        if not workshop.is_verified:
+            return Response({"error": "Workshop is not verified"}, status=status.HTTP_400_BAD_REQUEST)
+        
         if workshop.is_approved:
             return Response({"message": "Workshop is already approved."}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -62,14 +73,18 @@ class RejectWorkhsopView(APIView):
     permission_classes = [IsAdminUser]
 
     def post(self, request):
+        print("Payload received:", request.data)
         workshop_id = request.data.get('workshop_id')
         workshop = Workshop.objects.filter(id=workshop_id).first()
         
         if not workshop:
             return Response({"error": "Workshop not found"}, status=status.HTTP_404_NOT_FOUND)
+    
+        if not workshop.is_verified:
+            return Response({"error": "Workshop is not verified"}, status=status.HTTP_400_BAD_REQUEST)
         
-        if not workshop.is_approved:
-            return Response({"message": "Workshop is already rejected."}, status=status.HTTP_400_BAD_REQUEST)
+        if not workshop.is_approved and workshop.is_verified:
+            return Response({"message": "Workshop is not approved yet, cannot reject."}, status=status.HTTP_400_BAD_REQUEST)
         
         workshop.is_approved = False
         workshop.save()

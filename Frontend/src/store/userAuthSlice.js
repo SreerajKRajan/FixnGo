@@ -2,8 +2,8 @@ import { createSlice } from "@reduxjs/toolkit";
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import axiosInstance from "../utils/axiosInstance";
 
-export const signup = createAsyncThunk(
-  "auth/signup",
+export const userSignup = createAsyncThunk(
+  "userAuth/userSignup",
   async (userData, { rejectWithValue }) => {
     try {
       const response = await axiosInstance.post("users/signup/", userData);
@@ -15,8 +15,8 @@ export const signup = createAsyncThunk(
   } 
 );
 
-export const otpVerification = createAsyncThunk(
-  "auth/otpVerification",
+export const userOtpVerification = createAsyncThunk(
+  "userAuth/userOtpVerification",
   async ({ otp, email }, { rejectWithValue }) => {
     try {
       const response = await axiosInstance.post("users/otp_verification/", { otp, email });
@@ -27,8 +27,8 @@ export const otpVerification = createAsyncThunk(
   }
 );
 
-export const login = createAsyncThunk(
-  "auth/login",
+export const userLogin = createAsyncThunk(
+  "userAuth/userLogin",
   async (credentials, { rejectWithValue }) => {
     try {
       const response = await axiosInstance.post("users/login/", credentials);
@@ -40,7 +40,7 @@ export const login = createAsyncThunk(
 );
 
 export const adminLogin = createAsyncThunk(
-  "auth/adminLogin",
+  "userAuth/adminLogin",
   async (credentials, { rejectWithValue }) => {
     try {
       const response = await axiosInstance.post("admin_side/login/", credentials);
@@ -50,6 +50,7 @@ export const adminLogin = createAsyncThunk(
     }
   }
 );
+
 
 const initialState = {
   user: (() => {
@@ -66,8 +67,8 @@ const initialState = {
   loading: false,
 };
 
-const authSlice = createSlice({
-  name: "auth",
+const userAuthSlice = createSlice({
+  name: "userAuth",
   initialState,
   reducers: {
     logout: (state) => {
@@ -81,35 +82,35 @@ const authSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      .addCase(signup.pending, (state) => {
+      .addCase(userSignup.pending, (state) => {
         state.loading = true;
       })
-      .addCase(signup.fulfilled, (state, action) => {
+      .addCase(userSignup.fulfilled, (state, action) => {
         state.loading = false;
         state.user = action.payload.user;
         state.email = action.payload.email;
         state.error = null;
       })
-      .addCase(signup.rejected, (state, action) => {
+      .addCase(userSignup.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload || "Signup failed";
       })
-      .addCase(otpVerification.pending, (state) => {
+      .addCase(userOtpVerification.pending, (state) => {
         state.loading = true;
       })
-      .addCase(otpVerification.fulfilled, (state, action) => {
+      .addCase(userOtpVerification.fulfilled, (state, action) => {
         state.loading = false;
         state.user = action.payload;
         state.error = null;
       })
-      .addCase(otpVerification.rejected, (state, action) => {
+      .addCase(userOtpVerification.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload || "An error occurred during OTP verification";
       })
-      .addCase(login.pending, (state) => {
+      .addCase(userLogin.pending, (state) => {
         state.loading = true;
       })
-      .addCase(login.fulfilled, (state, action) => {
+      .addCase(userLogin.fulfilled, (state, action) => {
         state.loading = false;
         state.user = action.payload.user;
         state.email = action.payload.email;
@@ -119,7 +120,7 @@ const authSlice = createSlice({
         localStorage.setItem("user", JSON.stringify(action.payload.user));
         localStorage.setItem("email", action.payload.email);
       })      
-      .addCase(login.rejected, (state, action) => {
+      .addCase(userLogin.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload.non_field_errors
           ? action.payload.non_field_errors[0]
@@ -148,5 +149,5 @@ const authSlice = createSlice({
 });
 
 export const { logout } =
-  authSlice.actions;
-export default authSlice.reducer;
+  userAuthSlice.actions;
+export default userAuthSlice.reducer;

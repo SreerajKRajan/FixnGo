@@ -2,19 +2,24 @@ import { Navigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 
 export const PublicRoute = ({ children }) => {
-  // Get token from Redux or localStorage
-  const token = useSelector((state) => state.auth.user?.token) || localStorage.getItem("token");
-  
-  return token ? <Navigate to="/home" replace /> : children;
-};
-
-export const ProtectedRoute = ({ children, role }) => {
-  // Get token from Redux or localStorage
-  const userToken = useSelector((state) => state.auth.user?.token) || localStorage.getItem("token");
+  const userToken = useSelector((state) => state.userAuth.user?.token) || localStorage.getItem("token");
   const adminToken = localStorage.getItem("adminToken");
 
-  // Decide token based on role
-  const token = role === "admin" ? adminToken : userToken;
+  // If either token exists, redirect to their respective dashboard
+  if (userToken) return <Navigate to="/home" replace />;
+  if (adminToken) return <Navigate to="/admin/dashboard" replace />;
+  
+  return children; // No token, proceed to public route
+};
 
-  return token ? children : <Navigate to={role === "admin" ? "/admin/login" : "/login"} replace />;
+
+export const ProtectedRoute = ({ children, role }) => {
+  const userToken = useSelector((state) => state.userAuth.user?.token) || localStorage.getItem("token");
+  const adminToken = localStorage.getItem("adminToken");
+
+  if (role === "admin") {
+    return adminToken ? children : <Navigate to="/admin/login" replace />;
+  }
+
+  return userToken ? children : <Navigate to="/login" replace />;
 };

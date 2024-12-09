@@ -4,7 +4,7 @@ import * as Yup from "yup";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
 import { Link } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { signup } from "../../store/authSlice";
+import { userSignup } from "../../store/userAuthSlice";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -25,13 +25,13 @@ const SignupSchema = Yup.object().shape({
     .required("Required"),
 });
 
-export default function Signup() {
+export default function UserSignup() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { loading, error } = useSelector((state) => state.auth);
+  const { loading, error } = useSelector((state) => state.userAuth);
 
   const togglePasswordVisibility = (field) => {
     if (field === "password") {
@@ -49,7 +49,7 @@ export default function Signup() {
       password: values.password,
     };
 
-    dispatch(signup(userData)).then((response) => {
+    dispatch(userSignup(userData)).then((response) => {
       console.log("Full Response:", response);
       console.log("Payload:", response.payload);
       console.log("Error:", response.error);

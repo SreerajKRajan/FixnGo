@@ -1,12 +1,15 @@
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
-import Login from "./components/Auth/Login";
-import Signup from "./components/Auth/Signup";
 import LandingPage from "./components/LandingPage";
 import Home from "./components/User/Home";
-import OtpVerification from "./components/Auth/OtpVerification";
 import { PublicRoute, ProtectedRoute } from "./utils/RouteGuards";
 import AdminLogin from "./components/Admin/AdminLogin";
 import { AdminDashboard } from "./components/Admin/AdminDachboard";
+import UserLogin from "./components/Auth/UserLogin";
+import UserSignup from "./components/Auth/UserSignup";
+import UserOtpVerification from "./components/Auth/UserOtpVerification";
+import WorkshopSignup from "./components/Auth/WorkshopSignup";
+import WorkshopOtpVerification from "./components/Auth/workshopOtpVerification";
+import WorkshopLogin from "./components/Auth/WorkshopLogin";
 
 function App() {
   return (
@@ -18,7 +21,7 @@ function App() {
             path="/login"
             element={
               <PublicRoute>
-                <Login />
+                <UserLogin />
               </PublicRoute>
             }
           />
@@ -26,7 +29,7 @@ function App() {
             path="/signup"
             element={
               <PublicRoute>
-                <Signup />
+                <UserSignup />
               </PublicRoute>
             }
           />
@@ -34,7 +37,7 @@ function App() {
             path="/otp_verification"
             element={
               <PublicRoute>
-                <OtpVerification />
+                <UserOtpVerification />
               </PublicRoute>
             }
           />
@@ -46,13 +49,44 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route path="/admin/login" element={<AdminLogin />} />
+          <Route
+            path="/admin/login"
+            element={
+              <PublicRoute>
+                <AdminLogin />{" "}
+              </PublicRoute>
+            }
+          />
           <Route
             path="/admin/dashboard"
             element={
               <ProtectedRoute role="admin">
                 <AdminDashboard />
               </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/workshop/signup"
+            element={
+              <PublicRoute>
+                <WorkshopSignup />
+              </PublicRoute>
+            }
+          />
+          <Route
+            path="/workshop/otp_verification"
+            element={
+              <PublicRoute>
+                <WorkshopOtpVerification />
+              </PublicRoute>
+            }
+          />
+          <Route
+            path="/workshop/login"
+            element={
+              <PublicRoute>
+                <WorkshopLogin />
+              </PublicRoute>
             }
           />
         </Routes>

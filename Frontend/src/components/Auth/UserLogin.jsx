@@ -4,7 +4,7 @@ import * as Yup from "yup";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
 import { Link, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { login } from "../../store/authSlice";
+import { userLogin } from "../../store/userAuthSlice";
 import { toast } from "sonner"; // Import Sonner
 
 const LoginSchema = Yup.object().shape({
@@ -14,11 +14,11 @@ const LoginSchema = Yup.object().shape({
     .required("Password is required"),
 });
 
-export default function Login() {
+export default function UserLogin() {
   const [showPassword, setShowPassword] = useState(false);
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { loading, error } = useSelector((state) => state.auth);
+  const { loading, error } = useSelector((state) => state.userAuth);
 
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
@@ -26,7 +26,7 @@ export default function Login() {
 
   const handleSubmit = async (values, { setSubmitting }) => {
     try {
-      const response = await dispatch(login(values)).unwrap();
+      const response = await dispatch(userLogin(values)).unwrap();
   
       toast.success("Login successful!");
       navigate("/home"); // Only navigate on success

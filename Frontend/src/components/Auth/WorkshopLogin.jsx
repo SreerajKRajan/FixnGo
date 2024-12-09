@@ -2,23 +2,23 @@ import React, { useState } from "react";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
+import { Link, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { useNavigate } from "react-router-dom";
-import { adminLogin } from "../../store/userAuthSlice";
+import { workshopLogin } from "../../store/workshopAuthSlice";
 import { toast } from "sonner";
 
-const AdminLoginSchema = Yup.object().shape({
+const LoginSchema = Yup.object().shape({
   email: Yup.string().email("Invalid email").required("Email is required"),
   password: Yup.string()
     .min(6, "Password must be at least 6 characters")
     .required("Password is required"),
 });
 
-const AdminLogin = () => {
+export default function WorkshopLogin() {
   const [showPassword, setShowPassword] = useState(false);
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { loading, error } = useSelector((state) => state.userAuth);
+  const { loading, error } = useSelector((state) => state.workshopAuth);
 
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
@@ -26,31 +26,29 @@ const AdminLogin = () => {
 
   const handleSubmit = async (values, { setSubmitting }) => {
     try {
-      const response = await dispatch(adminLogin(values)).unwrap();
+      const response = await dispatch(workshopLogin(values)).unwrap();
       toast.success("Login successful!");
-      navigate("/admin/dashboard");
+      navigate("/workshop/home"); // Redirect on successful login
     } catch (err) {
       console.error("Login failed:", err);
-      toast.error(
-        err.non_field_errors
-          ? err.non_field_errors[0]
-          : err.detail || "Login failed, please try again."
-      );
+      // Display specific backend error message if available
+      const errorMessage = err.message || "Login failed";
+      toast.error(errorMessage);
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col justify-center py-2 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-slate-200 flex flex-col justify-center py-2 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-sm">
         <div className="bg-white py-4 px-5 shadow sm:rounded-lg">
           <div className="sm:mx-auto sm:w-full sm:max-w-xs">
             <h2 className="mt-2 text-center text-2xl font-bold text-gray-900">
-              Admin Portal
+              Workshop Login
             </h2>
             <p className="mt-2 text-center text-xs text-gray-600">
-              Log in to manage FixnGo
+              Log in to access your FixNgo workshop account
             </p>
           </div>
 
@@ -59,7 +57,7 @@ const AdminLogin = () => {
               email: "",
               password: "",
             }}
-            validationSchema={AdminLoginSchema}
+            validationSchema={LoginSchema}
             onSubmit={handleSubmit}
           >
             {({ isSubmitting }) => (
@@ -77,7 +75,7 @@ const AdminLogin = () => {
                       name="email"
                       id="email"
                       className="appearance-none block w-full px-2 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-xs"
-                      placeholder="admin@example.com"
+                      placeholder="you@example.com"
                     />
                   </div>
                   <ErrorMessage
@@ -139,10 +137,20 @@ const AdminLogin = () => {
               </Form>
             )}
           </Formik>
+
+          <div className="mt-4">
+            <p className="text-center text-xs text-gray-600">
+              Don’t have an account?{" "}
+              <Link
+                to={"/workshop/signup"}
+                className="font-medium text-blue-600 hover:text-blue-500"
+              >
+                Sign up
+              </Link>
+            </p>
+          </div>
         </div>
       </div>
     </div>
   );
-};
-
-export default AdminLogin;
+}

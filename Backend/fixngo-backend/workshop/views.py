@@ -29,7 +29,8 @@ class WorkshopSignupView(APIView):
             )
             return Response({
                 "message": "Workshop created successfully. An OTP has been sent to your email for verification. "
-                           "Please wait for admin approval after verifying your OTP."
+                           "Please wait for admin approval after verifying your OTP.",
+                           "email": workshop.email,
             }, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -57,7 +58,6 @@ class WorkshopOtpVerificationView(APIView):
                 return Response({"message": "OTP has expired"}, status=status.HTTP_400_BAD_REQUEST)
         
         return Response({"error": "Invalid OTP"}, status=status.HTTP_400_BAD_REQUEST)
-
 
 
 class WorkshopLoginView(APIView):

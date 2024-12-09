@@ -14,7 +14,7 @@ class WorkshopLoginSerializer(serializers.Serializer):
     email = serializers.EmailField()
     password = serializers.CharField()
 
-class WorkshopSerializer(serializers.Serializer):
+class WorkshopSerializer(serializers.ModelSerializer):
     class Meta:
         model = Workshop
         fields = '__all__'

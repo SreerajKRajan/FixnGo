@@ -2,7 +2,7 @@ import React, { useRef, useEffect } from "react";
 import { Formik, Form, Field } from "formik";
 import * as Yup from "yup";
 import { useDispatch, useSelector } from "react-redux";
-import { otpVerification } from "../../store/authSlice";
+import { workshopOtpVerification } from "../../store/workshopAuthSlice";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner"; // Import Sonner for toast notifications
 
@@ -13,11 +13,13 @@ const OtpSchema = Yup.object().shape({
   digit4: Yup.number().required("Required"),
 });
 
-export default function OtpVerification() {
+export default function WorkshopOtpVerification() {
   const inputRefs = [useRef(null), useRef(null), useRef(null), useRef(null)];
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { loading, error, email } = useSelector((state) => state.auth);
+  const { loading, error, email } = useSelector((state) => state.workshopAuth);
+  console.log("Email from redux", email);
+  
 
   useEffect(() => {
     inputRefs[0].current.focus();
@@ -47,14 +49,14 @@ export default function OtpVerification() {
       console.error("Email is missing");
       return;
     }
-    const resultAction = await dispatch(otpVerification({ otp, email }));
+    const resultAction = await dispatch(workshopOtpVerification({ otp, email }));
 
-    if (otpVerification.fulfilled.match(resultAction)) {
+    if (workshopOtpVerification.fulfilled.match(resultAction)) {
       // Show success message
-      toast.success("OTP verified successfully! Redirecting to login...");
-      // Navigate to login page after a short delay (optional)
+      toast.success("OTP verified successfully! Awaiting admin approval...");
+      // Redirect to a pending approval page or dashboard
       setTimeout(() => {
-        navigate("/login");
+        navigate("/workshop/login");
       }, 2000); // Delay to allow the user to see the success message
     } else {
       // Error handling after dispatch
@@ -66,10 +68,10 @@ export default function OtpVerification() {
     <div className="min-h-screen bg-gray-100 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-          Verify Your Email
+          Verify Your Workshop Email
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600">
-          Enter the 4-digit code sent to your email
+          Enter the 4-digit code sent to your workshop email
         </p>
       </div>
 
@@ -103,7 +105,6 @@ export default function OtpVerification() {
                         }}
                         innerRef={inputRefs[index]}
                       />
-
                       {errors[`digit${digit}`] && touched[`digit${digit}`] && (
                         <div className="mt-1 text-xs text-red-500">
                           {errors[`digit${digit}`]}
@@ -123,7 +124,6 @@ export default function OtpVerification() {
                 </div>
                 {error && (
                   <div className="text-center text-sm text-red-500">
-                    {/* Dynamically display the error message from Redux store */}
                     {error?.error === "Invalid OTP"
                       ? "The OTP you entered is invalid. Please try again."
                       : error?.error || "OTP Verification failed. Please try again."}

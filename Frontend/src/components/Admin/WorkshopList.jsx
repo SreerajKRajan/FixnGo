@@ -9,6 +9,7 @@ import {
 } from "./ui/table";
 import { Button } from "./ui/button";
 import axiosInstance from "../../utils/axiosInstance";
+import { toast } from "sonner";  // Import Sonner for notifications
 
 export function WorkshopList() {
   const [workshops, setWorkshops] = useState([]);
@@ -38,6 +39,15 @@ export function WorkshopList() {
 
   // Approve a workshop
   const approveWorkshop = async (workshopId) => {
+    const workshop = workshops.find(w => w.id === workshopId);
+
+    // Check if the workshop is verified
+    if (!workshop.is_verified) {
+      // If not verified, show a toast message
+      toast.error("Workshop is not verified. Cannot approve.");
+      return;
+    }
+
     try {
       await axiosInstance.post("/admin_side/approve-workshop/", {
         workshop_id: workshopId,
@@ -55,7 +65,7 @@ export function WorkshopList() {
   };
 
   // Reject a workshop
-  const rejectWorkshop = async (workshopId) => {
+  const   rejectWorkshop = async (workshopId) => {
     try {
       await axiosInstance.post("/admin_side/reject-workshop/", {
         workshop_id: workshopId,
@@ -84,8 +94,7 @@ export function WorkshopList() {
           <TableRow>
             <TableHead>Name</TableHead>
             <TableHead>Email</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Approval</TableHead>
+            <TableHead>Verified</TableHead>
             <TableHead>Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -94,12 +103,11 @@ export function WorkshopList() {
             <TableRow key={workshop.id || index}>
               <TableCell>{workshop.name}</TableCell>
               <TableCell>{workshop.email}</TableCell>
-              <TableCell>{workshop.status}</TableCell>
               <TableCell>
-                {workshop.is_approved ? "Approved" : "Pending"}
+                {workshop.is_verified ? "Verified" : "Pending"}
               </TableCell>
               <TableCell>
-                {workshop.is_approved === false ? (
+                {workshop.is_approved === false && workshop.is_verified === true ? (
                   <div className="space-x-2">
                     <Button
                       onClick={() => approveWorkshop(workshop.id)}
@@ -116,6 +124,8 @@ export function WorkshopList() {
                       Reject
                     </Button>
                   </div>
+                ) : workshop.is_verified === false ? (
+                  <span>Workshop not verified</span>
                 ) : (
                   <span>Approved</span>
                 )}
