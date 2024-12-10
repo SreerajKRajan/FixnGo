@@ -34,7 +34,11 @@ export const userLogin = createAsyncThunk(
       const response = await axiosInstance.post("users/login/", credentials);
       return response.data;
     } catch (error) {
-      return rejectWithValue(error.response?.data || "Login Failed");
+      // Extract and return backend error
+      if (error.response && error.response.data) {
+        return rejectWithValue(error.response.data); // Send error to rejected case
+      }
+      return rejectWithValue({ detail: "Network error. Please try again." });
     }
   }
 );
@@ -121,10 +125,14 @@ const userAuthSlice = createSlice({
         localStorage.setItem("email", action.payload.email);
       })      
       .addCase(userLogin.rejected, (state, action) => {
+        console.log("Rejected action payload:", action.payload);
         state.loading = false;
-        state.error = action.payload.non_field_errors
-          ? action.payload.non_field_errors[0]
-          : "Login failed";
+        // Extract and store meaningful error message
+        state.error = 
+          action.payload?.error ||                // Custom backend error (e.g., "User is not verified")
+          action.payload?.non_field_errors?.[0] || // Validation errors
+          action.payload?.detail ||               // JWT errors
+          "Login failed. Please try again.";      // Default fallback message
       })
       .addCase(adminLogin.pending, (state) => {
         state.loading = true;

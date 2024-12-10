@@ -1,22 +1,69 @@
-import React, { useState } from 'react'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table'
-import { Button } from './ui/button'
-
-const dummyUsers = [
-  { id: 1, name: 'John Doe', email: 'john@example.com', status: 'Active' },
-  { id: 2, name: 'Jane Smith', email: 'jane@example.com', status: 'Blocked' },
-  { id: 3, name: 'Bob Johnson', email: 'bob@example.com', status: 'Active' },
-]
+import React, { useEffect, useState } from "react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "./ui/table";
+import { Button } from "./ui/button";
+import axiosInstance from "../../utils/axiosInstance";
+import { toast } from "sonner"; // Import Sonner for notifications
 
 export function UserList() {
-  const [users, setUsers] = useState(dummyUsers)
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const toggleUserStatus = (userId) => {
-    setUsers(users.map(user => 
-      user.id === userId 
-        ? { ...user, status: user.status === 'Active' ? 'Blocked' : 'Active' }
-        : user
-    ))
+  // Fetch users from backend
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const token = localStorage.getItem("token"); // Assuming the token is stored in localStorage
+        const response = await axiosInstance.get("/admin_side/user-list/", {
+          headers: {
+            Authorization: `Bearer ${token}`, // Include token in the request headers
+          },
+        });
+        console.log("Fetched Users:", response.data);
+        setUsers(response.data);
+        setLoading(false); // Set loading to false after data is fetched
+      } catch (error) {
+        console.error("Failed to fetch users:", error);
+        toast.error("Failed to fetch users. Please try again later.");
+        setLoading(false); // Ensure loading is false even on error
+      }
+    };
+
+    fetchUsers();
+  }, []);
+
+  // Toggle user status between Active and Blocked
+  const toggleUserStatus = async (userId) => {
+    try {
+      const user = users.find((u) => u.id === userId);
+      const newStatus = user.status === "Active" ? "Blocked" : "Active";
+
+      await axiosInstance.post("/admin_side/toggle-user-status/", {
+        user_id: userId,
+        status: newStatus,
+      });
+
+      setUsers((prev) =>
+        prev.map((u) =>
+          u.id === userId ? { ...u, is_active: !u.is_active } : u
+        )
+      );
+
+      toast.success(`User status updated to ${newStatus}.`);
+    } catch (error) {
+      console.error("Failed to update user status:", error);
+      toast.error("Failed to update user status. Please try again.");
+    }
+  };
+
+  if (loading) {
+    return <p>Loading users...</p>;
   }
 
   return (
@@ -25,7 +72,7 @@ export function UserList() {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Name</TableHead>
+            <TableHead>Username</TableHead>
             <TableHead>Email</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Action</TableHead>
@@ -34,15 +81,15 @@ export function UserList() {
         <TableBody>
           {users.map((user) => (
             <TableRow key={user.id}>
-              <TableCell>{user.name}</TableCell>
+              <TableCell>{user.username}</TableCell>
               <TableCell>{user.email}</TableCell>
-              <TableCell>{user.status}</TableCell>
+              <TableCell>{user.is_active ? "Active": "Blocked"}</TableCell>
               <TableCell>
                 <Button
                   onClick={() => toggleUserStatus(user.id)}
-                  variant={user.status === 'Active' ? 'destructive' : 'default'}
+                  variant={user.is_active ? "destructive" : "default"}
                 >
-                  {user.status === 'Active' ? 'Block' : 'Unblock'}
+                  {user.is_active ? "Block" : "Unblock"}
                 </Button>
               </TableCell>
             </TableRow>
@@ -50,6 +97,5 @@ export function UserList() {
         </TableBody>
       </Table>
     </div>
-  )
+  );
 }
-

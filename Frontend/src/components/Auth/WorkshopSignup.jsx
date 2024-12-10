@@ -6,6 +6,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { workshopSignup } from "../../store/workshopAuthSlice"; // Ensure workshopSignup handles email properly
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { Link } from "react-router-dom";
 
 const WorkshopSignupSchema = Yup.object().shape({
   name: Yup.string()
@@ -284,6 +285,17 @@ export default function WorkshopSignup() {
               </Form>
             )}
           </Formik>
+          <div className="mt-4">
+            <p className="text-center text-xs text-gray-600">
+              Already have an account?{" "}
+              <Link
+                to={"/workshop/login"}
+                className="font-medium text-blue-600 hover:text-blue-500"
+              >
+                Login
+              </Link>
+            </p>
+          </div>
         </div>
       </div>
     </div>

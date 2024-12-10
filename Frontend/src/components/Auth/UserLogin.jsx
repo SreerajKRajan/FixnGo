@@ -27,16 +27,26 @@ export default function UserLogin() {
   const handleSubmit = async (values, { setSubmitting }) => {
     try {
       const response = await dispatch(userLogin(values)).unwrap();
-  
       toast.success("Login successful!");
-      navigate("/home"); // Only navigate on success
-    } catch (err) {
-      console.error("Login failed:", err);
-      toast.error(err.non_field_errors ? err.non_field_errors[0] : "Login failed");
+      navigate("/home");
+    } catch (error) {
+      console.error("Login failed:", error);
+  
+      // Extract meaningful error message
+      const errorMessage = 
+        typeof error === "string" ? error : 
+        error?.error || 
+        error?.non_field_errors?.[0] || 
+        error?.detail || 
+        "Login failed. Please try again.";
+      
+      // Show error message using toast
+      toast.error(errorMessage);
     } finally {
       setSubmitting(false);
     }
   };
+  
   
 
   return (

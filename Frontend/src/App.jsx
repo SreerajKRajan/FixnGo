@@ -1,6 +1,6 @@
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import LandingPage from "./components/LandingPage";
-import Home from "./components/User/Home";
+import UserHomePage from "./components/User/UserHomePage";
 import { PublicRoute, ProtectedRoute } from "./utils/RouteGuards";
 import AdminLogin from "./components/Admin/AdminLogin";
 import { AdminDashboard } from "./components/Admin/AdminDachboard";
@@ -10,6 +10,8 @@ import UserOtpVerification from "./components/Auth/UserOtpVerification";
 import WorkshopSignup from "./components/Auth/WorkshopSignup";
 import WorkshopOtpVerification from "./components/Auth/workshopOtpVerification";
 import WorkshopLogin from "./components/Auth/WorkshopLogin";
+import WorkshopHomePage from "./components/Workshop/WorkshopHomePage";
+import NotFound from "./components/NotFound";
 
 function App() {
   return (
@@ -44,8 +46,8 @@ function App() {
           <Route
             path="/home"
             element={
-              <ProtectedRoute>
-                <Home />
+              <ProtectedRoute role="user">
+                <UserHomePage />
               </ProtectedRoute>
             }
           />
@@ -53,7 +55,7 @@ function App() {
             path="/admin/login"
             element={
               <PublicRoute>
-                <AdminLogin />{" "}
+                <AdminLogin />
               </PublicRoute>
             }
           />
@@ -89,6 +91,13 @@ function App() {
               </PublicRoute>
             }
           />
+          <Route
+            path="/workshop/home"
+            element={
+                <WorkshopHomePage />
+            }
+          />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </div>
     </Router>

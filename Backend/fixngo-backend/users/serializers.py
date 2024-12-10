@@ -33,4 +33,9 @@ class UserLoginSerializer(serializers.Serializer):
         else:
             raise serializers.ValidationError("Invalid email or password")
         return data
+    
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = '__all__'
 

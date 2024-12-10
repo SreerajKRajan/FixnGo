@@ -1,11 +1,19 @@
-import React, { useState } from 'react'
-import { Navbar } from './Navbar'
-import { DashboardContent } from './DashboardContent'
-import { UserList } from './UserList'
-import { WorkshopList } from './WorkshopList'
+import React, { useState, useEffect } from "react";
+import { Navbar } from "./Navbar";
+import { DashboardContent } from "./DashboardContent";
+import { UserList } from "./UserList";
+import { WorkshopList } from "./WorkshopList";
 
 export function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState('dashboard')
+  // Retrieve the active tab from localStorage or default to "dashboard"
+  const [activeTab, setActiveTab] = useState(
+    localStorage.getItem("adminActiveTab") || "dashboard"
+  );
+
+  // Update localStorage whenever the active tab changes
+  useEffect(() => {
+    localStorage.setItem("adminActiveTab", activeTab);
+  }, [activeTab]);
 
   return (
     <div className="flex h-screen bg-gray-100">
@@ -13,21 +21,21 @@ export function AdminDashboard() {
       <div className="flex flex-col flex-1 overflow-hidden">
         <Navbar />
         <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-6">
-          {activeTab === 'dashboard' && <DashboardContent />}
-          {activeTab === 'users' && <UserList />}
-          {activeTab === 'workshops' && <WorkshopList />}
+          {activeTab === "dashboard" && <DashboardContent />}
+          {activeTab === "users" && <UserList />}
+          {activeTab === "workshops" && <WorkshopList />}
         </main>
       </div>
     </div>
-  )
+  );
 }
 
 function Sidebar({ activeTab, setActiveTab }) {
   const navItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: '📊' },
-    { id: 'users', label: 'User List', icon: '👥' },
-    { id: 'workshops', label: 'Workshop List', icon: '🏢' },
-  ]
+    { id: "dashboard", label: "Dashboard", icon: "📊" },
+    { id: "users", label: "User List", icon: "👥" },
+    { id: "workshops", label: "Workshop List", icon: "🏢" },
+  ];
 
   return (
     <div className="w-64 bg-white shadow-md">
@@ -41,8 +49,8 @@ function Sidebar({ activeTab, setActiveTab }) {
             onClick={() => setActiveTab(item.id)}
             className={`flex items-center w-full px-4 py-2 text-sm font-medium ${
               activeTab === item.id
-                ? 'bg-gray-200 text-gray-900'
-                : 'text-gray-600 hover:bg-gray-100'
+                ? "bg-gray-200 text-gray-900"
+                : "text-gray-600 hover:bg-gray-100"
             }`}
           >
             <span className="mr-3">{item.icon}</span>
@@ -51,6 +59,5 @@ function Sidebar({ activeTab, setActiveTab }) {
         ))}
       </nav>
     </div>
-  )
+  );
 }
-
