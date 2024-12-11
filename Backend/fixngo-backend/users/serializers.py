@@ -26,13 +26,29 @@ class UserLoginSerializer(serializers.Serializer):
     def validate(self, data):
         email = data.get('email')
         password = data.get('password')
-
+    
+        # Manually retrieve the user first to check for block status
+        try:
+            user = User.objects.get(email=email)
+            if not user.is_active:
+                raise serializers.ValidationError("Your account is blocked. Please contact support.")
+        except User.DoesNotExist:
+            user = None
+    
+        # Authenticate the user
         user = authenticate(email=email, password=password)
-        if user and user.is_active:
-            data["user"] = user
-        else:
+    
+        # Check if the user exists
+        if not user:
             raise serializers.ValidationError("Invalid email or password")
+    
+        # Store the user instance in validated data
+        data["user"] = user
         return data
+
+
+
+
     
 class UserSerializer(serializers.ModelSerializer):
     class Meta:

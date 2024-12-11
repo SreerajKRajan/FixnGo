@@ -3,6 +3,7 @@ import { FaSearch, FaComments, FaVideo, FaUser } from "react-icons/fa";
 import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { logout } from "../../store/userAuthSlice";
+import { Link } from "react-router-dom";
 
 const UserHomePage = () => {
   const [activeTab, setActiveTab] = useState("map");
@@ -43,7 +44,12 @@ const UserHomePage = () => {
               <FaVideo />
             </button>
             <button className="p-2 rounded-full bg-blue-500 hover:bg-blue-400">
-              <FaUser />
+              <Link
+                to="/user-profile"
+                className="text-white flex items-center justify-center"
+              >
+                <FaUser size={20} />
+              </Link>
             </button>
             <button
               onClick={handleLogout}
@@ -83,7 +89,9 @@ const UserHomePage = () => {
           </button>
           <button
             className={`px-4 py-2 rounded-md ${
-              activeTab === "requests" ? "bg-blue-500 text-white" : "bg-gray-200"
+              activeTab === "requests"
+                ? "bg-blue-500 text-white"
+                : "bg-gray-200"
             }`}
             onClick={() => setActiveTab("requests")}
           >
@@ -107,7 +115,9 @@ const UserHomePage = () => {
             <div className="space-y-4">
               <div className="border-b pb-4">
                 <h3 className="font-semibold">Active Request: Flat Tire</h3>
-                <p className="text-sm text-gray-600">Workshop: Quick Fix Auto</p>
+                <p className="text-sm text-gray-600">
+                  Workshop: Quick Fix Auto
+                </p>
                 <p className="text-sm text-gray-600">Status: En route</p>
               </div>
               <div className="border-b pb-4">

@@ -29,10 +29,10 @@ const LandingPage = () => {
         <div className="container mx-auto flex justify-between items-center">
           <h1 className="text-3xl font-bold">FixNgo</h1>
           <nav>
-            <Link to="/signup" className="mr-4 hover:underline">
+            <Link to="/signup" className="mr-4">
               Sign up as User
             </Link>
-            <Link to="/workshop/signup" className="hover:underline">
+            <Link to="/workshop/signup">
               Sign up as Workshop
             </Link>
           </nav>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { FaWrench, FaMapMarkedAlt, FaComments, FaVideo, FaUser } from 'react-icons/fa';
 import { logout } from '../../store/workshopAuthSlice';
 import { useDispatch } from 'react-redux';
@@ -10,10 +10,23 @@ const WorkshopHomePage = () => {
   const navigate = useNavigate()
 
   const handleLogout = () => {
-    dispatch(logout)
+    dispatch(logout())
     navigate("/workshop/login")
-
   }
+
+  useEffect(() => {
+    window.history.pushState(null, "", window.location.href);
+    const handlePopState = () => {
+      window.history.pushState(null, "", window.location.href);
+    };
+  
+    window.addEventListener("popstate", handlePopState);
+  
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, []);
+  
 
   return (
     <div className="min-h-screen bg-gray-100">

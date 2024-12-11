@@ -54,7 +54,49 @@ class ToggleUserStatusView(APIView):
         user.save()
 
         return Response(
-            {"message": f"User status updated to {new_status}."},
+            {
+                "message": f"User status updated to {new_status}.",
+                "is_active": user.is_active,
+            },
+            status=status.HTTP_200_OK,
+        )
+        
+        
+class ToggleWorkshopStatusView(APIView):
+    permission_classes = [IsAdminUser]
+
+    def post(self, request):
+        workshop_id = request.data.get("workshop_id")
+        new_status = request.data.get("status")
+
+        if not workshop_id or not new_status:
+            return Response(
+                {"error": "Workshop ID and status are required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            workshop = Workshop.objects.get(id=workshop_id)
+        except Workshop.DoesNotExist:
+            return Response(
+                {"error": "Workshop not found."}, status=status.HTTP_404_NOT_FOUND
+            )
+
+        if new_status not in ["Active", "Blocked"]:
+            return Response(
+                {"error": "Invalid status value."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Update the user's status
+        workshop.is_active = new_status == "Active"
+        workshop.save()
+
+        return Response(
+            {
+                "message": f"Workshop status updated to {new_status}.",
+                "is_active": workshop.is_active,
+            },
             status=status.HTTP_200_OK,
         )
 

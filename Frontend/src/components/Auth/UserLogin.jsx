@@ -31,23 +31,20 @@ export default function UserLogin() {
       navigate("/home");
     } catch (error) {
       console.error("Login failed:", error);
-  
+
       // Extract meaningful error message
-      const errorMessage = 
-        typeof error === "string" ? error : 
-        error?.error || 
-        error?.non_field_errors?.[0] || 
-        error?.detail || 
-        "Login failed. Please try again.";
-      
+      const errorMessage =
+        error?.non_field_errors?.[0] ||
+        error?.error ||
+        error?.detail ||
+        (typeof error === "string" ? error : "Login failed. Please try again.");
+
       // Show error message using toast
       toast.error(errorMessage);
     } finally {
       setSubmitting(false);
     }
   };
-  
-  
 
   return (
     <div className="min-h-screen bg-slate-200 flex flex-col justify-center py-2 sm:px-6 lg:px-8">

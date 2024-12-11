@@ -37,6 +37,8 @@ export const workshopLogin = createAsyncThunk(
       const response = await axiosInstance.post("workshop/login/", credentials);
       return response.data; // Expecting data to include workshop info and email
     } catch (error) {
+      console.log("errrrrror", error);
+      
       return rejectWithValue(error.response?.data || "Login Failed");
     }
   }
@@ -49,7 +51,6 @@ const initialState = {
         return storedWorkshop ? JSON.parse(storedWorkshop) : null;
       } catch (e) {
         console.error("Failed to parse workshop from localStorage:", e);
-        localStorage.removeItem("workshop"); // Clean up invalid data
         return null;
       }
     })(),
@@ -108,28 +109,34 @@ const workshopAuthSlice = createSlice({
       })
       .addCase(workshopLogin.fulfilled, (state, action) => {
         state.loading = false;
-        state.workshop = action.payload.workshop || null;
+        state.workshop = action.payload.access || null;
         state.email = action.payload.email || null;
         state.error = null;
       
         // Save valid JSON to localStorage
         try {
-          if (action.payload.workshop) {
-            localStorage.setItem("workshop", JSON.stringify(action.payload.workshop));
+          if (action.payload.access) {
+            localStorage.setItem("workshop", JSON.stringify(action.payload.access));
           } else {
             localStorage.removeItem("workshop");
           }
       
-          localStorage.setItem("workshopToken", action.payload.token || "");
-          localStorage.setItem("workshopEmail", action.payload.email || "");
+          localStorage.setItem("workshopToken", action.payload.workshopToken || "");
+          localStorage.setItem("workshopEmail", action.payload.workshopEmail || "");
         } catch (error) {
           console.error("Failed to save workshop data to localStorage:", error);
         }
       })
       .addCase(workshopLogin.rejected, (state, action) => {
+        console.log("Action payload on rejected:", action.payload);
         state.loading = false;
-        state.error = action.payload || "Login failed";
+        // Safely handle backend error response or default error
+        state.error =
+          action.payload?.error ||
+          action.payload?.message || // Check alternative field if backend uses `message`
+          "Login failed";
       });
+      
   },
 });
 

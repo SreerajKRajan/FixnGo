@@ -115,6 +115,7 @@ const userAuthSlice = createSlice({
         state.loading = true;
       })
       .addCase(userLogin.fulfilled, (state, action) => {
+        console.log("User payload", action.payload);
         state.loading = false;
         state.user = action.payload.user;
         state.email = action.payload.email;
@@ -125,14 +126,14 @@ const userAuthSlice = createSlice({
         localStorage.setItem("email", action.payload.email);
       })      
       .addCase(userLogin.rejected, (state, action) => {
-        console.log("Rejected action payload:", action.payload);
+        console.log("Rejected action payload:", action.payload); // Debugging payload
         state.loading = false;
-        // Extract and store meaningful error message
-        state.error = 
-          action.payload?.error ||                // Custom backend error (e.g., "User is not verified")
-          action.payload?.non_field_errors?.[0] || // Validation errors
+        // Extract meaningful error message
+        state.error =
+          action.payload?.non_field_errors?.[0] || // Django-style errors
+          action.payload?.error ||                // Custom errors
           action.payload?.detail ||               // JWT errors
-          "Login failed. Please try again.";      // Default fallback message
+          "Login failed. Please try again.";      // Default fallback
       })
       .addCase(adminLogin.pending, (state) => {
         state.loading = true;

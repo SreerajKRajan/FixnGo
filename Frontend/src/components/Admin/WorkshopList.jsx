@@ -11,6 +11,27 @@ import { Button } from "./ui/button";
 import axiosInstance from "../../utils/axiosInstance";
 import { toast } from "sonner"; // Import Sonner for notifications
 
+// Helper function to handle state updates for items (block/unblock, approve/reject)
+const updateItemStatus = async (endpoint, itemId, currentStatus, setItems, successMessage) => {
+  try {
+    const response = await axiosInstance.post(endpoint, {
+      item_id: itemId,
+      status: !currentStatus,
+    });
+    setItems((prev) =>
+      prev.map((item) =>
+        item.id === itemId ? { ...item, is_active: response.data.is_active } : item
+      )
+    );
+    toast.success(successMessage || "Status updated successfully!");
+  } catch (error) {
+    console.error("Failed to update status:", error);
+    const errorMessage =
+      error.response?.data?.error || "Failed to update status. Please try again.";
+    toast.error(errorMessage);
+  }
+};
+
 export function WorkshopList() {
   const [workshops, setWorkshops] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -30,6 +51,7 @@ export function WorkshopList() {
       } catch (error) {
         console.error("Failed to fetch workshops:", error);
         setLoading(false); // Ensure loading is false even on error
+        toast.error("Failed to fetch workshops. Please try again later.");
       }
     };
 
@@ -86,32 +108,36 @@ export function WorkshopList() {
   };
 
   // Block/Unblock a workshop
-  const toggleBlockWorkshop = async (workshopId, isBlocked) => {
+  const toggleWorkshopStatus = async (workshopId) => {
     try {
-      await axiosInstance.post("/admin_side/block-unblock-workshop/", {
+      const workshop = workshops.find((w) => w.id === workshopId);
+      const newStatus = workshop.is_active ? "Blocked" : "Active";
+  
+      const response = await axiosInstance.post("/admin_side/toggle-workshop-status/", {
         workshop_id: workshopId,
-        block: !isBlocked,
+        status: newStatus,
       });
+  
+      // Update the specific user's status in state using the response from the backend
       setWorkshops((prev) =>
-        prev.map((workshop) =>
-          workshop.id === workshopId
-            ? { ...workshop, is_blocked: !isBlocked }
-            : workshop
+        prev.map((w) =>
+          w.id === workshopId ? { ...w, is_active: response.data.is_active } : w
         )
       );
-      toast.success(
-        isBlocked
-          ? "Workshop unblocked successfully!"
-          : "Workshop blocked successfully!"
-      );
+  
+      toast.success(response.data.message);
     } catch (error) {
-      console.error("Failed to toggle block/unblock:", error);
-      toast.error("Failed to update workshop status.");
+      console.error("Failed to update workshop status:", error);
+      toast.error("Failed to update workshop status. Please try again.");
     }
   };
 
   if (loading) {
     return <p>Loading workshops...</p>;
+  }
+
+  if (workshops.length === 0) {
+    return <p>No workshops found.</p>;
   }
 
   return (
@@ -127,8 +153,8 @@ export function WorkshopList() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {workshops.map((workshop, index) => (
-            <TableRow key={workshop.id || index}>
+          {workshops.map((workshop) => (
+            <TableRow key={workshop.id}>
               <TableCell>{workshop.name}</TableCell>
               <TableCell>{workshop.email}</TableCell>
               <TableCell>
@@ -141,14 +167,14 @@ export function WorkshopList() {
                     <div className="space-x-2">
                       <Button
                         onClick={() => approveWorkshop(workshop.id)}
-                        className="bg-green-500  hover:bg-green-600 text-white font-semibold px-1 py-1 rounded-md shadow-md hover:shadow-lg transition duration-200 ease-in-out"
+                        className="bg-green-500 hover:bg-green-600 text-white font-semibold px-1 py-1 rounded-md shadow-md hover:shadow-lg transition duration-200 ease-in-out"
                         size="sm"
                       >
                         Approve
                       </Button>
                       <Button
                         onClick={() => rejectWorkshop(workshop.id)}
-                        className="bg-red-500  hover:bg-red-600 text-white font-semibold px-1 py-1 rounded-md shadow-md hover:shadow-lg transition duration-200 ease-in-out"
+                        className="bg-red-500 hover:bg-red-600 text-white font-semibold px-1 py-1 rounded-md shadow-md hover:shadow-lg transition duration-200 ease-in-out"
                         size="sm"
                       >
                         Reject
@@ -161,13 +187,10 @@ export function WorkshopList() {
               </TableCell>
               <TableCell>
                 <Button
-                  onClick={() =>
-                    toggleBlockWorkshop(workshop.id, workshop.is_blocked)
-                  }
-                  variant={workshop.is_blocked ? "default" : "destructive"}
-                  size="sm"
+                  onClick={() => toggleWorkshopStatus(workshop.id)}
+                  variant={workshop.is_active ? "destructive" : "default"}
                 >
-                  {workshop.is_blocked ? "Unblock" : "Block"}
+                  {workshop.is_active ? "Block" : "Unblock"}
                 </Button>
               </TableCell>
             </TableRow>

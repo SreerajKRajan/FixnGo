@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, replace, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { workshopLogin } from "../../store/workshopAuthSlice";
 import { toast } from "sonner";
@@ -31,13 +31,18 @@ export default function WorkshopLogin() {
       navigate("/workshop/home"); // Redirect on successful login
     } catch (err) {
       console.error("Login failed:", err);
-      // Display specific backend error message if available
-      const errorMessage = err.message || "Login failed";
-      toast.error(errorMessage);
+  
+      // Safely extract error message from the backend response
+      const errorMessage =
+        err?.error || err?.message || "Login failed";
+      console.log("errormessage", errorMessage);
+  
+      toast.error(errorMessage); // Display the specific error message
     } finally {
       setSubmitting(false);
     }
   };
+  
 
   return (
     <div className="min-h-screen bg-slate-200 flex flex-col justify-center py-2 sm:px-6 lg:px-8">

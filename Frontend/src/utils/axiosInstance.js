@@ -7,25 +7,23 @@ const axiosInstance = axios.create({
 // Interceptor to add Authorization header dynamically
 axiosInstance.interceptors.request.use(
   (config) => {
-    // Determine the token based on request type
+    // Get tokens from localStorage
     const adminToken = localStorage.getItem("adminToken");
     const userToken = localStorage.getItem("token");
+    const workshopToken = localStorage.getItem("workshopToken");
 
-    // Check URL or headers to set appropriate token
-    if (config.url.includes("/admin")) {
-      if (adminToken) {
-        config.headers.Authorization = `Bearer ${adminToken}`;
-      }
-    } else {
-      if (userToken) {
-        config.headers.Authorization = `Bearer ${userToken}`;
-      }
+    // Add Authorization header based on the request URL
+    if (config.url.includes("/admin_side/") && adminToken) {
+      config.headers.Authorization = `Bearer ${adminToken}`;
+    } else if (config.url.includes("/workshop/") && workshopToken) {
+      config.headers.Authorization = `Bearer ${workshopToken}`;
+    } else if (config.url.includes("/users/") && userToken) {
+      config.headers.Authorization = `Bearer ${userToken}`;
     }
 
     return config;
   },
   (error) => Promise.reject(error)
 );
-
 
 export default axiosInstance;

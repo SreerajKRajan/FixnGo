@@ -12,6 +12,7 @@ import WorkshopOtpVerification from "./components/Auth/workshopOtpVerification";
 import WorkshopLogin from "./components/Auth/WorkshopLogin";
 import WorkshopHomePage from "./components/Workshop/WorkshopHomePage";
 import NotFound from "./components/NotFound";
+import UserProfile from "./components/User/UserProfile";
 
 function App() {
   return (
@@ -46,8 +47,16 @@ function App() {
           <Route
             path="/home"
             element={
-              <ProtectedRoute role="user">
+              <ProtectedRoute>
                 <UserHomePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/user-profile"
+            element={
+              <ProtectedRoute>
+                <UserProfile />
               </ProtectedRoute>
             }
           />
@@ -94,7 +103,9 @@ function App() {
           <Route
             path="/workshop/home"
             element={
+              <ProtectedRoute role="workshop">
                 <WorkshopHomePage />
+              </ProtectedRoute>
             }
           />
           <Route path="*" element={<NotFound />} />

@@ -19,21 +19,17 @@ export function UserList() {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const token = localStorage.getItem("token"); // Assuming the token is stored in localStorage
-        const response = await axiosInstance.get("/admin_side/user-list/", {
-          headers: {
-            Authorization: `Bearer ${token}`, // Include token in the request headers
-          },
-        });
+        const response = await axiosInstance.get("/admin_side/user-list/");
         console.log("Fetched Users:", response.data);
         setUsers(response.data);
-        setLoading(false); // Set loading to false after data is fetched
+        setLoading(false);
       } catch (error) {
         console.error("Failed to fetch users:", error);
         toast.error("Failed to fetch users. Please try again later.");
-        setLoading(false); // Ensure loading is false even on error
+        setLoading(false);
       }
     };
+    
 
     fetchUsers();
   }, []);
@@ -42,25 +38,27 @@ export function UserList() {
   const toggleUserStatus = async (userId) => {
     try {
       const user = users.find((u) => u.id === userId);
-      const newStatus = user.status === "Active" ? "Blocked" : "Active";
-
-      await axiosInstance.post("/admin_side/toggle-user-status/", {
+      const newStatus = user.is_active ? "Blocked" : "Active";
+  
+      const response = await axiosInstance.post("/admin_side/toggle-user-status/", {
         user_id: userId,
         status: newStatus,
       });
-
+  
+      // Update the specific user's status in state using the response from the backend
       setUsers((prev) =>
         prev.map((u) =>
-          u.id === userId ? { ...u, is_active: !u.is_active } : u
+          u.id === userId ? { ...u, is_active: response.data.is_active } : u
         )
       );
-
-      toast.success(`User status updated to ${newStatus}.`);
+  
+      toast.success(response.data.message);
     } catch (error) {
       console.error("Failed to update user status:", error);
       toast.error("Failed to update user status. Please try again.");
     }
   };
+  
 
   if (loading) {
     return <p>Loading users...</p>;
