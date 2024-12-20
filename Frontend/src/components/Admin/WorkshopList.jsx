@@ -12,7 +12,13 @@ import axiosInstance from "../../utils/axiosInstance";
 import { toast } from "sonner"; // Import Sonner for notifications
 
 // Helper function to handle state updates for items (block/unblock, approve/reject)
-const updateItemStatus = async (endpoint, itemId, currentStatus, setItems, successMessage) => {
+const updateItemStatus = async (
+  endpoint,
+  itemId,
+  currentStatus,
+  setItems,
+  successMessage
+) => {
   try {
     const response = await axiosInstance.post(endpoint, {
       item_id: itemId,
@@ -20,14 +26,17 @@ const updateItemStatus = async (endpoint, itemId, currentStatus, setItems, succe
     });
     setItems((prev) =>
       prev.map((item) =>
-        item.id === itemId ? { ...item, is_active: response.data.is_active } : item
+        item.id === itemId
+          ? { ...item, is_active: response.data.is_active }
+          : item
       )
     );
     toast.success(successMessage || "Status updated successfully!");
   } catch (error) {
     console.error("Failed to update status:", error);
     const errorMessage =
-      error.response?.data?.error || "Failed to update status. Please try again.";
+      error.response?.data?.error ||
+      "Failed to update status. Please try again.";
     toast.error(errorMessage);
   }
 };
@@ -112,19 +121,22 @@ export function WorkshopList() {
     try {
       const workshop = workshops.find((w) => w.id === workshopId);
       const newStatus = workshop.is_active ? "Blocked" : "Active";
-  
-      const response = await axiosInstance.post("/admin_side/toggle-workshop-status/", {
-        workshop_id: workshopId,
-        status: newStatus,
-      });
-  
+
+      const response = await axiosInstance.post(
+        "/admin_side/toggle-workshop-status/",
+        {
+          workshop_id: workshopId,
+          status: newStatus,
+        }
+      );
+
       // Update the specific user's status in state using the response from the backend
       setWorkshops((prev) =>
         prev.map((w) =>
           w.id === workshopId ? { ...w, is_active: response.data.is_active } : w
         )
       );
-  
+
       toast.success(response.data.message);
     } catch (error) {
       console.error("Failed to update workshop status:", error);
@@ -160,21 +172,23 @@ export function WorkshopList() {
               <TableCell>
                 {workshop.is_verified ? (
                   workshop.is_approved ? (
-                    <span className="text-green-500 font-semibold">Approved</span>
+                    <span className="text-green-500 font-semibold">
+                      Approved
+                    </span>
                   ) : workshop.rejected ? (
                     <span className="text-red-500 font-semibold">Rejected</span>
                   ) : (
                     <div className="space-x-2">
                       <Button
                         onClick={() => approveWorkshop(workshop.id)}
-                        className="bg-green-500 hover:bg-green-600 text-white font-semibold px-1 py-1 rounded-md shadow-md hover:shadow-lg transition duration-200 ease-in-out"
+                        className="bg-black text-white font-semibold px-1 py-1 rounded-md shadow-md hover:bg-gray-800 transition duration-200 ease-in-out"
                         size="sm"
                       >
                         Approve
                       </Button>
                       <Button
                         onClick={() => rejectWorkshop(workshop.id)}
-                        className="bg-red-500 hover:bg-red-600 text-white font-semibold px-1 py-1 rounded-md shadow-md hover:shadow-lg transition duration-200 ease-in-out"
+                        className="bg-black text-white font-semibold px-1 py-1 rounded-md shadow-md hover:bg-gray-800 transition duration-200 ease-in-out"
                         size="sm"
                       >
                         Reject
@@ -188,7 +202,7 @@ export function WorkshopList() {
               <TableCell>
                 <Button
                   onClick={() => toggleWorkshopStatus(workshop.id)}
-                  variant={workshop.is_active ? "destructive" : "default"}
+                  className="bg-black text-white font-semibold px-1 py-1 rounded-md shadow-md hover:bg-gray-800 transition duration-200 ease-in-out"
                 >
                   {workshop.is_active ? "Block" : "Unblock"}
                 </Button>

@@ -76,11 +76,11 @@ export default function UserSignup() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-200 flex flex-col justify-center py-2 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-white flex flex-col justify-center py-2 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-sm">
         <div className="bg-white py-4 px-5 shadow sm:rounded-lg">
           <div className="sm:mx-auto sm:w-full sm:max-w-xs">
-            <h2 className="mt-2 text-center text-2xl font-bold text-gray-900">
+            <h2 className="mt-2 text-center text-2xl font-bold text-black">
               Join FixNgo
             </h2>
             <p className="mt-2 text-center text-xs text-gray-600">
@@ -104,7 +104,7 @@ export default function UserSignup() {
                 <div>
                   <label
                     htmlFor="username"
-                    className="block text-xs font-medium text-gray-700"
+                    className="block text-xs font-medium text-black"
                   >
                     Username
                   </label>
@@ -127,7 +127,7 @@ export default function UserSignup() {
                 <div>
                   <label
                     htmlFor="email"
-                    className="block text-xs font-medium text-gray-700"
+                    className="block text-xs font-medium text-black"
                   >
                     Email address
                   </label>
@@ -150,7 +150,7 @@ export default function UserSignup() {
                 <div>
                   <label
                     htmlFor="phone"
-                    className="block text-xs font-medium text-gray-700"
+                    className="block text-xs font-medium text-black"
                   >
                     Phone Number
                   </label>
@@ -173,7 +173,7 @@ export default function UserSignup() {
                 <div>
                   <label
                     htmlFor="password"
-                    className="block text-xs font-medium text-gray-700"
+                    className="block text-xs font-medium text-black"
                   >
                     Password
                   </label>
@@ -213,7 +213,7 @@ export default function UserSignup() {
                 <div>
                   <label
                     htmlFor="confirmPassword"
-                    className="block text-xs font-medium text-gray-700"
+                    className="block text-xs font-medium text-black"
                   >
                     Confirm Password
                   </label>
@@ -256,7 +256,7 @@ export default function UserSignup() {
                   <button
                     type="submit"
                     disabled={isSubmitting || loading}
-                    className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-150 ease-in-out"
+                    className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-xs font-medium text-white bg-black hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black transition duration-150 ease-in-out"
                   >
                     {loading ? "Loading..." : "Sign up"}
                   </button>
@@ -269,7 +269,7 @@ export default function UserSignup() {
               Already have an account?{" "}
               <Link
                 to={"/login"}
-                className="font-medium text-blue-600 hover:text-blue-500"
+                className="font-medium text-black hover:text-gray-800"
               >
                 Sign in
               </Link>

@@ -121,7 +121,8 @@ const userAuthSlice = createSlice({
         state.email = action.payload.email;
         state.error = null;
       
-        localStorage.setItem("token", action.payload.token);
+        localStorage.setItem("token", action.payload.access);
+        localStorage.setItem("refreshToken", action.payload.refresh);
         localStorage.setItem("user", JSON.stringify(action.payload.user));
         localStorage.setItem("email", action.payload.email);
       })      
@@ -140,12 +141,24 @@ const userAuthSlice = createSlice({
         state.error = null;
       })
       .addCase(adminLogin.fulfilled, (state, action) => {
+        console.log("Admin payload", action.payload); // Check payload structure
         state.loading = false;
-        state.user = action.payload.admin;
+        state.admin = action.payload.admin;
         state.error = null;
-        localStorage.setItem("adminToken", action.payload.token);
-        localStorage.setItem("admin", JSON.stringify(action.payload.admin));
+      
+        // Store tokens in localStorage
+        const adminToken = action.payload.token;
+        const adminRefreshToken = action.payload.refresh;
+        const adminData = action.payload.admin;
+      
+        localStorage.setItem("adminToken", adminToken);
+        localStorage.setItem("adminRefreshToken", adminRefreshToken);
+        localStorage.setItem("admin", JSON.stringify(adminData));
+      
+        // Log the stored token for debugging
+        console.log("Admin token set to localstorage", adminToken); 
       })
+              
       .addCase(adminLogin.rejected, (state, action) => {
         state.loading = false;
         state.error =

@@ -1,3 +1,12 @@
+/* index.css */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+.btn {
+  @apply bg-button text-white hover:bg-gray-800 rounded px-4 py-2;
+}
+
+.page-background {
+  @apply bg-background;
+}

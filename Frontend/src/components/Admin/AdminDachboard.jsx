@@ -16,11 +16,11 @@ export function AdminDashboard() {
   }, [activeTab]);
 
   return (
-    <div className="flex h-screen bg-gray-100">
+    <div className="flex h-screen bg-white">
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
       <div className="flex flex-col flex-1 overflow-hidden">
         <Navbar />
-        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-6">
+        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-white p-6">
           {activeTab === "dashboard" && <DashboardContent />}
           {activeTab === "users" && <UserList />}
           {activeTab === "workshops" && <WorkshopList />}
@@ -38,19 +38,19 @@ function Sidebar({ activeTab, setActiveTab }) {
   ];
 
   return (
-    <div className="w-64 bg-white shadow-md">
+    <div className="w-64 bg-black text-white shadow-md">
       <div className="p-4">
-        <h2 className="text-2xl font-bold">Admin Panel</h2>
+        <h2 className="text-2xl font-bold text-white">Admin Panel</h2>
       </div>
       <nav className="mt-4">
         {navItems.map((item) => (
           <button
             key={item.id}
             onClick={() => setActiveTab(item.id)}
-            className={`flex items-center w-full px-4 py-2 text-sm font-medium ${
+            className={`flex items-center w-full px-4 py-2 text-sm font-medium rounded-md ${
               activeTab === item.id
-                ? "bg-gray-200 text-gray-900"
-                : "text-gray-600 hover:bg-gray-100"
+                ? "bg-white text-black"
+                : "text-gray-300 hover:bg-gray-800"
             }`}
           >
             <span className="mr-3">{item.icon}</span>

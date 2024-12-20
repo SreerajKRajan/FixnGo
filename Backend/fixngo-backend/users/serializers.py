@@ -47,11 +47,22 @@ class UserLoginSerializer(serializers.Serializer):
         return data
 
 
-
-
     
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = '__all__'
+
+    def update(self, instance, validated_data):
+        if 'profile_image' in validated_data:
+            if instance.profile_image:
+                instance.profile_image.delete(save=False)  # Safely delete old image
+            instance.profile_image = validated_data['profile_image']
+        
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        return instance
+
+
 

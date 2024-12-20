@@ -10,6 +10,8 @@ from django.contrib.auth import authenticate
 from workshop.serializers import WorkshopSerializer
 from users.models import User
 from users.serializers import UserSerializer
+from rest_framework_simplejwt.exceptions import TokenError
+
 
 
 class WorkshopListView(ListAPIView):
@@ -128,11 +130,17 @@ class AdminLoginView(APIView):
     
 class AdminLogoutView(APIView):
     permission_classes = [IsAdminUser]
-    
+
     def post(self, request):
-        response = Response({"message": "Logout successful"}, status=200)
-        response.delete_cookie("jwt")
-        return response
+        try:
+            refresh_token = request.data.get("refresh")
+            if refresh_token:
+                token = RefreshToken(refresh_token)
+                token.blacklist()  # Blacklist the refresh token
+            return Response({"message": "Logout successful"}, status=status.HTTP_200_OK)
+        except TokenError:
+            return Response({"detail": "Invalid token."}, status=status.HTTP_400_BAD_REQUEST)
+
 
 class ApproveWorkshopView(APIView):
     permission_classes = [IsAdminUser]

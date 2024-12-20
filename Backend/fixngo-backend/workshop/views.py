@@ -84,7 +84,7 @@ class WorkshopLoginView(APIView):
 
 class WorkshopLogoutView(APIView):
     def post(self, request):
-        refresh_token = request.data.get('refresh')
+        refresh_token = request.data.get('refresh_token')
         if refresh_token:
             token = RefreshToken(refresh_token)
             token.blacklist()

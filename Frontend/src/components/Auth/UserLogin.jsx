@@ -47,7 +47,7 @@ export default function UserLogin() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-200 flex flex-col justify-center py-2 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-white flex flex-col justify-center py-2 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-sm">
         <div className="bg-white py-4 px-5 shadow sm:rounded-lg">
           <div className="sm:mx-auto sm:w-full sm:max-w-xs">
@@ -81,7 +81,7 @@ export default function UserLogin() {
                       type="email"
                       name="email"
                       id="email"
-                      className="appearance-none block w-full px-2 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-xs"
+                      className="appearance-none block w-full px-2 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-black focus:border-black sm:text-xs"
                       placeholder="you@example.com"
                     />
                   </div>
@@ -104,7 +104,7 @@ export default function UserLogin() {
                       type={showPassword ? "text" : "password"}
                       name="password"
                       id="password"
-                      className="appearance-none block w-full pr-10 px-2 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-xs"
+                      className="appearance-none block w-full pr-10 px-2 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-black focus:border-black sm:text-xs"
                       placeholder="••••••••"
                     />
                     <button
@@ -136,7 +136,7 @@ export default function UserLogin() {
                   <button
                     type="submit"
                     disabled={isSubmitting || loading}
-                    className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-150 ease-in-out"
+                    className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-xs font-medium text-white bg-black hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black transition duration-150 ease-in-out"
                   >
                     {loading ? "Logging in..." : "Log in"}
                   </button>
@@ -150,7 +150,7 @@ export default function UserLogin() {
               Don’t have an account?{" "}
               <Link
                 to={"/signup"}
-                className="font-medium text-blue-600 hover:text-blue-500"
+                className="font-medium text-black hover:text-gray-800"
               >
                 Sign up
               </Link>

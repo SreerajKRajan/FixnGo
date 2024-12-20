@@ -73,7 +73,7 @@ export default function WorkshopSignup() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-200 flex flex-col justify-center py-2 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-white flex flex-col justify-center py-2 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-sm">
         <div className="bg-white py-4 px-5 shadow sm:rounded-lg">
           <div className="sm:mx-auto sm:w-full sm:max-w-xs">
@@ -277,7 +277,7 @@ export default function WorkshopSignup() {
                   <button
                     type="submit"
                     disabled={isSubmitting || loading}
-                    className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-150 ease-in-out"
+                    className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-xs font-medium text-white bg-black hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black transition duration-150 ease-in-out"
                   >
                     {loading ? "Loading..." : "Sign up"}
                   </button>

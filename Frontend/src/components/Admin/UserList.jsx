@@ -20,7 +20,6 @@ export function UserList() {
     const fetchUsers = async () => {
       try {
         const response = await axiosInstance.get("/admin_side/user-list/");
-        console.log("Fetched Users:", response.data);
         setUsers(response.data);
         setLoading(false);
       } catch (error) {
@@ -29,7 +28,6 @@ export function UserList() {
         setLoading(false);
       }
     };
-    
 
     fetchUsers();
   }, []);
@@ -39,29 +37,32 @@ export function UserList() {
     try {
       const user = users.find((u) => u.id === userId);
       const newStatus = user.is_active ? "Blocked" : "Active";
-  
+
       const response = await axiosInstance.post("/admin_side/toggle-user-status/", {
         user_id: userId,
         status: newStatus,
       });
-  
+
       // Update the specific user's status in state using the response from the backend
       setUsers((prev) =>
         prev.map((u) =>
           u.id === userId ? { ...u, is_active: response.data.is_active } : u
         )
       );
-  
+
       toast.success(response.data.message);
     } catch (error) {
       console.error("Failed to update user status:", error);
       toast.error("Failed to update user status. Please try again.");
     }
   };
-  
 
   if (loading) {
     return <p>Loading users...</p>;
+  }
+
+  if (users.length === 0) {
+    return <p>No users found.</p>;
   }
 
   return (
@@ -73,7 +74,7 @@ export function UserList() {
             <TableHead>Username</TableHead>
             <TableHead>Email</TableHead>
             <TableHead>Status</TableHead>
-            <TableHead>Action</TableHead>
+            <TableHead>Block/Unblock</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -81,11 +82,19 @@ export function UserList() {
             <TableRow key={user.id}>
               <TableCell>{user.username}</TableCell>
               <TableCell>{user.email}</TableCell>
-              <TableCell>{user.is_active ? "Active": "Blocked"}</TableCell>
+              <TableCell>
+                <span
+                  className={`font-semibold ${
+                    user.is_active ? "text-green-500" : "text-red-500"
+                  }`}
+                >
+                  {user.is_active ? "Active" : "Blocked"}
+                </span>
+              </TableCell>
               <TableCell>
                 <Button
                   onClick={() => toggleUserStatus(user.id)}
-                  variant={user.is_active ? "destructive" : "default"}
+                  className="bg-black text-white font-semibold px-1 py-1 rounded-md shadow-md hover:bg-gray-800 transition duration-200 ease-in-out"
                 >
                   {user.is_active ? "Block" : "Unblock"}
                 </Button>

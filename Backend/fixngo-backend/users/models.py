@@ -28,6 +28,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     email       = models.EmailField(unique=True)
     phone       = models.CharField(max_length=15, unique=True)
     password    = models.CharField(max_length=255)
+    profile_image_url = models.URLField(max_length=500)
     is_active   = models.BooleanField(default=True)
     is_staff    = models.BooleanField(default=False)
     is_superuser = models.BooleanField(default=False)  # This field is inherited from PermissionsMixin, but adding explicitly if needed

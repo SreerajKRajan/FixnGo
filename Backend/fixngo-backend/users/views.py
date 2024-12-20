@@ -1,13 +1,19 @@
 from rest_framework import status, permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from .serializers import UserSignupSerializer, UserLoginSerializer
+from .serializers import UserSignupSerializer, UserLoginSerializer, UserSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 import random
-from django.core.mail import send_mail
+from django.core.mail import EmailMultiAlternatives
 from django.utils import timezone
 from .models import User, Otp
 from datetime import timedelta
+import boto3
+from .s3_utils import upload_to_s3
+from django.conf import settings
+
+
+
 
 
 # Create your views here.
@@ -21,13 +27,65 @@ class UserSignupView(APIView):
             otp_code = random.randint(1000, 9999)
             otp = Otp.objects.create(user=user,otp_code=otp_code)
 
-            send_mail(
-                'Your otp code',
-                f'Your otp code is {otp_code}. It will expire in 10 minutes,',
-                'sreerajkrajan03@gmail.com',
-                [user.email],
-                fail_silently=False,
+            subject = "Your FixnGo OTP Code"
+            text_content = f"""
+            Hello {user.username},
+
+            Thank you for signing up with FixnGo! 
+
+            Your OTP code is: {otp_code}
+            It will expire in 10 minutes. Please use this code to complete your registration.
+
+            If you didn’t request this email, please ignore it.
+
+            Best regards,  
+            The FixnGo Team
+            """
+
+            html_content = f"""
+            <html>
+                <body style="font-family: Arial, sans-serif; line-height: 1.6;">
+                    <div style="max-width: 600px; margin: auto; border: 1px solid #ddd; padding: 20px; border-radius: 8px;">
+                        <h2 style="color: #4CAF50; text-align: center;">Welcome to FixnGo!</h2>
+                        <p>Hello <strong>{user.username}</strong>,</p>
+                        <p>Thank you for signing up with <strong>FixnGo</strong>!</p>
+                        <p style="font-size: 18px;">Your OTP code is:</p>
+                        <div style="text-align: center; margin: 20px 0;">
+                            <span style="
+                                display: inline-block;
+                                font-size: 24px;
+                                font-weight: bold;
+                                color: #ffffff;
+                                background-color: #4CAF50;
+                                padding: 10px 20px;
+                                border-radius: 5px;
+                                border: 1px solid #3e8e41;
+                            ">
+                                {otp_code}
+                            </span>
+                        </div>
+                        <p style="color: #777;">This OTP is valid for <strong>10 minutes</strong>.</p>
+                        <hr>
+                        <p>If you didn’t request this email, please ignore it.</p>
+                        <p>Best regards,</p>
+                        <p style="font-weight: bold;">The FixnGo Team</p>
+                    </div>
+                </body>
+            </html>
+            """
+
+            # Create email message
+            email = EmailMultiAlternatives(
+                subject=subject,
+                body=text_content,  # Plain text content as fallback
+                from_email="FixnGo Team <sreerajkrajan03@gmail.com>",
+                to=[user.email],  # Recipient's email
             )
+
+            # Attach HTML content
+            email.attach_alternative(html_content, "text/html")
+            email.send()
+            
             return Response({"message": "User created successfully. An OTP has been sent to your email for verification.", "email": user.email}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -56,7 +114,7 @@ class OtpVerificationView(APIView):
 
 
 class UserLoginView(APIView):
-    def post(sef, request):
+    def post(self, request):
         serializer = UserLoginSerializer(data=request.data)
         if serializer.is_valid():
             user = serializer.validated_data["user"]
@@ -68,8 +126,14 @@ class UserLoginView(APIView):
             return Response({
                 "refresh": str(refresh),
                 "access": str(refresh.access_token),
-                "message": "Login successful"
+                "message": "Login successful",
+                "user": {
+                    "id": user.id,
+                    "email": user.email,
+                    "username": user.username,
+                }
             }, status=status.HTTP_200_OK)
+
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 class UserLogoutView(APIView):
@@ -77,10 +141,44 @@ class UserLogoutView(APIView):
 
     def post(self, request):
         try:
-            refresh_token = request.data.get('refresh')
+            refresh_token = request.data.get('refresh_token')
             token = RefreshToken(refresh_token)
             token.blacklist()
             return Response({"message": "Logout successful"}, status=status.HTTP_205_RESET_CONTENT)
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        
+        
+
+class UserProfileView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        serializer = UserSerializer(user)
+        return Response(serializer.data)
+
+    def put(self, request):
+        if 'profile_image' in request.FILES:
+            profile_image = request.FILES['profile_image']
+            user = request.user
+    
+            try:
+                s3_file_path = f"media/profile_images/{user.id}/"
+                image_url = upload_to_s3(profile_image, s3_file_path)
+    
+                # Save the S3 URL to the user's profile
+                user.profile_image_url = image_url
+                user.save()
+            except Exception as e:
+                return Response({"error": f"Failed to upload image: {str(e)}"}, status=500)
+    
+        serializer = UserSerializer(request.user, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"message": "Profile updated successfully!"})
+    
+        return Response(serializer.errors, status=400)
+
+
 

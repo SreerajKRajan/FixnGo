@@ -107,22 +107,24 @@ const workshopAuthSlice = createSlice({
       .addCase(workshopLogin.pending, (state) => {
         state.loading = true;
       })
-      .addCase(workshopLogin.fulfilled, (state, action) => {
+      .addCase(workshopLogin.fulfilled, (state, action) => {        
         state.loading = false;
-        state.workshop = action.payload.access || null;
-        state.email = action.payload.email || null;
+        state.workshop = action.payload.workshop || null;  // Ensure workshop data is being set
+        state.email = action.payload.email || null;  // Ensure email is being set if necessary
         state.error = null;
       
         // Save valid JSON to localStorage
         try {
-          if (action.payload.access) {
-            localStorage.setItem("workshop", JSON.stringify(action.payload.access));
+          if (action.payload.workshop) {
+            localStorage.setItem("workshop", JSON.stringify(action.payload.workshop));
           } else {
             localStorage.removeItem("workshop");
           }
       
-          localStorage.setItem("workshopToken", action.payload.workshopToken || "");
-          localStorage.setItem("workshopEmail", action.payload.workshopEmail || "");
+          // Set both access and refresh tokens for the workshop
+          localStorage.setItem("workshopToken", action.payload.access || ""); // Workshop access token
+          localStorage.setItem("workshopRefreshToken", action.payload.refresh || ""); // Workshop refresh token
+          localStorage.setItem("workshopEmail", action.payload.email || ""); // If email is part of the response
         } catch (error) {
           console.error("Failed to save workshop data to localStorage:", error);
         }
