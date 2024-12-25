@@ -23,6 +23,7 @@ urlpatterns = [
     path('api/users/', include('users.urls')),
     path('api/admin_side/', include('admin_side.urls')),
     path('api/workshop/', include('workshop.urls')),
+    path('api/service/', include('service.urls')),
     
     # JWT Token Endpoints
     path('api/token/', jwt_views.TokenObtainPairView.as_view(), name='token_obtain_pair'),

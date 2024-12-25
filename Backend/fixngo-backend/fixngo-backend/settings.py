@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'users',
     'admin_side',
     'workshop',
+    'service',
 
 ]
 
@@ -82,6 +83,7 @@ AWS_STORAGE_BUCKET_NAME = config('AWS_STORAGE_BUCKET_NAME')
 AWS_S3_REGION_NAME = config('AWS_S3_REGION_NAME')
 AWS_MEDIA_LOCATION = config('AWS_MEDIA_LOCATION')
 AWS_STATIC_LOCATION = config('AWS_STATIC_LOCATION')
+AWS_QUERYSTRING_AUTH = config('AWS_QUERYSTRING_AUTH')
 
 # Media storage configuration
 DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
@@ -163,21 +165,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
-LOGGING_LEVEL = config('LOGGING_LEVEL', default='DEBUG')
-LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'handlers': {
-        'console': {
-            'class': 'logging.StreamHandler',
-        },
-    },
-    'root': {
-        'handlers': ['console'],
-        'level': LOGGING_LEVEL,
-    },
-}
 
 
 # Internationalization

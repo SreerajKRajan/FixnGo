@@ -3,6 +3,7 @@ import { Navbar } from "./Navbar";
 import { DashboardContent } from "./DashboardContent";
 import { UserList } from "./UserList";
 import { WorkshopList } from "./WorkshopList";
+import { ServiceList } from "./ServiceList";
 
 export function AdminDashboard() {
   // Retrieve the active tab from localStorage or default to "dashboard"
@@ -24,6 +25,7 @@ export function AdminDashboard() {
           {activeTab === "dashboard" && <DashboardContent />}
           {activeTab === "users" && <UserList />}
           {activeTab === "workshops" && <WorkshopList />}
+          {activeTab === "services" && <ServiceList />}
         </main>
       </div>
     </div>
@@ -35,6 +37,7 @@ function Sidebar({ activeTab, setActiveTab }) {
     { id: "dashboard", label: "Dashboard", icon: "📊" },
     { id: "users", label: "User List", icon: "👥" },
     { id: "workshops", label: "Workshop List", icon: "🏢" },
+    { id: "services", label: "Service Management", icon: "🛠️" },
   ];
 
   return (

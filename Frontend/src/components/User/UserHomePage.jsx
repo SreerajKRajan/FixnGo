@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import Header from "./Header";
 import SearchBar from "./SearchBar";
 import Tabs from "./Tabs";
-import MapPlaceholder from "./MapPlaceholder";
+import MapComponent from "./MapComponent";  // The map component that will be displayed
 import ServiceRequests from "./ServiceRequests";
 import Footer from "./Footer";
 import { useNavigate } from "react-router-dom";
@@ -10,8 +10,9 @@ import { useNavigate } from "react-router-dom";
 export default function UserHomePage() {
   const [activeTab, setActiveTab] = useState("map");
   const [isLoggedIn, setIsLoggedIn] = useState(true);
-  const navigate = useNavigate()
+  const navigate = useNavigate();
 
+  // Ensure that back navigation is handled properly
   useEffect(() => {
     window.history.pushState(null, "", window.location.href);
     const handlePopState = () => {
@@ -25,28 +26,34 @@ export default function UserHomePage() {
     };
   }, []);
 
+  // Handle logout and clean up session data
   const handleLogout = () => {
-    // Perform any necessary logout logic here (e.g., clear localStorage)
     localStorage.removeItem("token");
     localStorage.removeItem("refreshToken");
     setIsLoggedIn(false); // Set the logged-in state to false
-    navigate("/login")
-    // Additional actions if needed
+    navigate("/login");
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-white text-black">  {/* Set background to white and text to black */}      
+    <div className="min-h-screen flex flex-col bg-white text-black">
       {/* Main Content */}
       {isLoggedIn && <Header onLogout={handleLogout} />}
       <main className="flex-grow container mx-auto mt-8 px-4">
         <SearchBar />
         <Tabs activeTab={activeTab} setActiveTab={setActiveTab} />
-        {activeTab === "map" && <MapPlaceholder />}
+
+        {/* Tab content */}
+        {activeTab === "map" && (
+          <div className="h-[500px] sm:h-[700px] w-full">
+            {/* The map container now takes full height and width */}
+            <MapComponent />
+          </div>
+        )}
         {activeTab === "requests" && <ServiceRequests />}
       </main>
       
       {/* Footer */}
-      <Footer /> {/* Include Footer at the bottom */}
+      <Footer />
     </div>
   );
 }

@@ -3,7 +3,7 @@ import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
 import { useDispatch, useSelector } from "react-redux";
-import { workshopSignup } from "../../store/workshopAuthSlice"; // Ensure workshopSignup handles email properly
+import { workshopSignup } from "../../store/workshopAuthSlice";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
@@ -24,6 +24,21 @@ const WorkshopSignupSchema = Yup.object().shape({
   confirmPassword: Yup.string()
     .oneOf([Yup.ref("password"), null], "Passwords must match")
     .required("Required"),
+  document: Yup.mixed()
+    .required("Required")
+    .test(
+      "fileSize",
+      "File too large (Max: 2MB)",
+      (value) => !value || (value && value.size <= 2 * 1024 * 1024)
+    )
+    .test(
+      "fileType",
+      "Unsupported file format",
+      (value) =>
+        !value ||
+        (value &&
+          ["application/pdf", "image/jpeg", "image/png"].includes(value.type))
+    ),
 });
 
 export default function WorkshopSignup() {
@@ -43,15 +58,15 @@ export default function WorkshopSignup() {
   };
 
   const handleSignup = (values, { setSubmitting, setFieldError }) => {
-    const workshopData = {
-      name: values.name,
-      email: values.email, // Ensure email is included
-      phone: values.phone,
-      location: values.location,
-      password: values.password,
-    };
+    const formData = new FormData();
+    formData.append("name", values.name);
+    formData.append("email", values.email);
+    formData.append("phone", values.phone);
+    formData.append("location", values.location);
+    formData.append("password", values.password);
+    formData.append("document", values.document);
 
-    dispatch(workshopSignup(workshopData)).then((response) => {
+    dispatch(workshopSignup(formData)).then((response) => {
       if (!response.error) {
         toast.success("Signup successful! Please verify your OTP.");
         navigate("/workshop/otp_verification");
@@ -93,11 +108,12 @@ export default function WorkshopSignup() {
               location: "",
               password: "",
               confirmPassword: "",
+              document: null,
             }}
             validationSchema={WorkshopSignupSchema}
             onSubmit={handleSignup}
           >
-            {({ isSubmitting }) => (
+            {({ isSubmitting, setFieldValue }) => (
               <Form className="mt-4 space-y-4">
                 <div>
                   <label
@@ -186,6 +202,36 @@ export default function WorkshopSignup() {
                   </div>
                   <ErrorMessage
                     name="location"
+                    component="div"
+                    className="mt-1 text-xs text-red-600"
+                  />
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="document"
+                    className="block text-xs font-medium text-gray-700"
+                  >
+                    Upload Document
+                  </label>
+                  <div className="mt-1">
+                    <input
+                      type="file"
+                      name="document"
+                      id="document"
+                      className="block w-full text-sm text-gray-500
+                      file:mr-4 file:py-2 file:px-4
+                      file:rounded-md file:border-0
+                      file:text-sm file:font-semibold
+                      file:bg-black file:text-white
+                      hover:file:bg-gray-800"
+                      onChange={(event) =>
+                        setFieldValue("document", event.currentTarget.files[0])
+                      }
+                    />
+                  </div>
+                  <ErrorMessage
+                    name="document"
                     component="div"
                     className="mt-1 text-xs text-red-600"
                   />

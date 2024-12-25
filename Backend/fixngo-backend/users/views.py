@@ -9,11 +9,7 @@ from django.utils import timezone
 from .models import User, Otp
 from datetime import timedelta
 import boto3
-from .s3_utils import upload_to_s3
-from django.conf import settings
-
-
-
+from utils.s3_utils import upload_to_s3
 
 
 # Create your views here.

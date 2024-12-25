@@ -41,3 +41,19 @@ def upload_to_s3(image_file, s3_file_path):
     except Exception as e:
         print('S3 upload error:', e)
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+# Function to generate a pre-signed URL for S3 object
+def generate_presigned_url(object_key, expiration=3600):
+    """Generate a pre-signed URL to share an S3 object."""
+    try:
+        print(f"Object key passed to generate_presigned_url: {object_key}")
+        response = s3.generate_presigned_url(
+            'get_object',
+            Params={'Bucket': bucket_name, 'Key': object_key},
+            ExpiresIn=expiration,
+        )
+        print('Generated presigned URL:', response)
+        return response
+    except Exception as e:
+        print(f"Error generating presigned URL: {e}")
+        return Response({'error': 'Failed to generate pre-signed URL'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
