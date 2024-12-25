@@ -47,14 +47,19 @@ class WorkshopOtp(models.Model):
 
 
 class WorkshopService(models.Model):
-    workshop = models.ForeignKey(Workshop, related_name='services', on_delete=models.CASCADE)
-    admin_service = models.ForeignKey(Service, on_delete=models.SET_NULL, null=True, blank=True, related_name='workshop_services')
+    SERVICE_TYPE_CHOICES = [
+        ('admin', 'Admin Created'),
+        ('workshop', 'Workshop Created')
+    ]
+    
+    workshop = models.ForeignKey(Workshop, on_delete=models.CASCADE, related_name='workshop_services')
     name = models.CharField(max_length=255)
     description = models.TextField()
-    price = models.DecimalField(max_digits=10, decimal_places=2)
-    status = models.CharField(max_length=50, choices=[('pending', 'Pending'), ('approved', 'Approved'), ('rejected', 'Rejected')], default='pending')
+    base_price = models.DecimalField(max_digits=10, decimal_places=2)
+    is_approved = models.BooleanField(default=False)  # Approval status for services (either from admin or workshop)
+    service_type = models.CharField(max_length=20, choices=SERVICE_TYPE_CHOICES, default='workshop')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return self.name
+        return f"{self.workshop.name} - {self.name} ({'Approved' if self.is_approved else 'Pending'})"

@@ -30,10 +30,5 @@ class WorkshopSerializer(serializers.ModelSerializer):
 class WorkshopServiceSerializer(serializers.ModelSerializer):
     class Meta:
         model = WorkshopService
-        fields = ['id', 'name', 'description', 'price', 'status', 'created_at', 'updated_at']
-
-    def create(self, validated_data):
-        # Automatically set the workshop for the service being created
-        workshop = validated_data.get('workshop')
-        service = WorkshopService.objects.create(workshop=workshop, **validated_data)
-        return service
+        fields = ['id', 'workshop', 'name', 'description', 'base_price', 'is_approved', 'service_type', 'created_at', 'updated_at']
+        read_only_fields = ['workshop', 'is_approved', 'created_at', 'updated_at']

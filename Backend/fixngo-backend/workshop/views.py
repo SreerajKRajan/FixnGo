@@ -1,15 +1,20 @@
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from .serializers import WorkshopSignupSerializer, WorkshopLoginSerializer
+from .serializers import WorkshopSignupSerializer, WorkshopLoginSerializer, WorkshopServiceSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
-from .models import Workshop, WorkshopOtp
+from .models import Workshop, WorkshopOtp, WorkshopService
 from datetime import timedelta
 from django.utils import timezone
 import random
 from django.core.mail import EmailMultiAlternatives
 from .tokens import WorkshopToken
 from utils.s3_utils import upload_to_s3
+from .authentication import WorkshopJWTAuthentication
+from .permissions import IsWorkshopUser
+from service.models import Service
+from itertools import chain
+from service.serializers import ServiceSerializer
 
 
 class WorkshopSignupView(APIView):
@@ -171,3 +176,46 @@ class WorkshopLogoutView(APIView):
             token.blacklist()
             return Response({"message": "Logout successful"}, status=status.HTTP_205_RESET_CONTENT)
         return Response({"error": "No refresh token provided"}, status=status.HTTP_400_BAD_REQUEST)
+    
+    
+class WorkshopServiceCreateAPIView(APIView):
+    authentication_classes = [WorkshopJWTAuthentication]
+    permission_classes = [IsWorkshopUser]
+    
+    def post(self, request):
+        workshop = request.user  # The workshop making the request
+        
+        # Get data from the request
+        name = request.data.get('name')
+        description = request.data.get('description')
+        base_price = request.data.get('base_price')
+        
+        # Create a new workshop service
+        workshop_service = WorkshopService.objects.create(
+            workshop=workshop,
+            name=name,
+            description=description,
+            base_price=base_price,
+            service_type='workshop',  # Mark this as a workshop-created service
+        )
+        
+        return Response({"message": "Service added successfully, awaiting admin approval."}, status=status.HTTP_201_CREATED)
+
+
+class WorkshopServiceListAPIView(APIView):
+    authentication_classes = [WorkshopJWTAuthentication]
+    permission_classes = [IsWorkshopUser]
+    
+    def get(self, request):
+        # Fetch admin-created services
+        admin_services = Service.objects.all()
+        admin_services_serialized = ServiceSerializer(admin_services, many=True).data
+
+        # Fetch approved workshop services
+        workshop_services = WorkshopService.objects.filter(is_approved=True)
+        workshop_services_serialized = WorkshopServiceSerializer(workshop_services, many=True).data
+
+        # Combine both querysets
+        combined_services = list(chain(admin_services_serialized, workshop_services_serialized))
+
+        return Response(combined_services, status=status.HTTP_200_OK)

@@ -8,6 +8,7 @@ import * as Yup from "yup";
 
 export function ServiceList() {
   const [services, setServices] = useState([]);
+  const [pendingServices, setPendingServices] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [selectedService, setSelectedService] = useState(null);
@@ -25,7 +26,18 @@ export function ServiceList() {
       }
     };
 
+    const fetchPendingServices = async () => {
+      try {
+        const response = await axiosInstance.get("/service/pending-services/"); // Adjust endpoint as needed
+        setPendingServices(response.data);
+      } catch (error) {
+        console.error("Failed to fetch pending services:", error);
+        toast.error("Failed to fetch pending services. Please try again.");
+      }
+    };
+
     fetchServices();
+    fetchPendingServices();
   }, []);
 
   // Open Add Service Modal
@@ -84,6 +96,33 @@ export function ServiceList() {
     } catch (error) {
       console.error("Failed to delete service:", error);
       toast.error("Failed to delete service. Please try again.");
+    }
+  };
+
+  // Approve or Reject Service
+  const handleApproveService = async (serviceId) => {
+    try {
+      await axiosInstance.put(`/service/approve-service/${serviceId}/`);
+      setPendingServices((prev) =>
+        prev.filter((s) => s.id !== serviceId)
+      );
+      toast.success("Service approved successfully.");
+    } catch (error) {
+      console.error("Failed to approve service:", error);
+      toast.error("Failed to approve service. Please try again.");
+    }
+  };
+
+  const handleRejectService = async (serviceId) => {
+    try {
+      await axiosInstance.put(`/service/reject-service/${serviceId}/`);
+      setPendingServices((prev) =>
+        prev.filter((s) => s.id !== serviceId)
+      );
+      toast.success("Service rejected successfully.");
+    } catch (error) {
+      console.error("Failed to reject service:", error);
+      toast.error("Failed to reject service. Please try again.");
     }
   };
 
@@ -150,6 +189,40 @@ export function ServiceList() {
           </tbody>
         </table>
       )}
+
+      {/* Pending Services Section */}
+      <div className="mt-8">
+        <h3 className="text-xl font-semibold mb-4">Pending Services for Approval</h3>
+        {pendingServices.length === 0 ? (
+          <p>No services awaiting approval.</p>
+        ) : (
+          <ul className="space-y-4">
+            {pendingServices.map((service) => (
+              <li key={service.id} className="flex justify-between items-center border p-4 rounded-md">
+                <div>
+                  <p className="font-bold">{service.name}</p>
+                  <p>{service.description}</p>
+                </div>
+                <div className="space-x-4">
+                  <Button
+                    onClick={() => handleApproveService(service.id)}
+                    className="bg-green-500 text-white px-4 py-2 rounded-md"
+                  >
+                    Approve
+                  </Button>
+                  <Button
+                    onClick={() => handleRejectService(service.id)}
+                    className="bg-red-500 text-white px-4 py-2 rounded-md"
+                  >
+                    Reject
+                  </Button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
       {isModalOpen && (
         <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
           <Formik
@@ -233,6 +306,7 @@ export function ServiceList() {
           </Formik>
         </Modal>
       )}
+
       {deleteModalOpen && (
         <Modal
           isOpen={deleteModalOpen}
