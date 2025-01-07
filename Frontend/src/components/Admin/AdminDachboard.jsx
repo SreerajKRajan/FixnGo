@@ -6,12 +6,10 @@ import { WorkshopList } from "./WorkshopList";
 import { ServiceList } from "./ServiceList";
 
 export function AdminDashboard() {
-  // Retrieve the active tab from localStorage or default to "dashboard"
   const [activeTab, setActiveTab] = useState(
     localStorage.getItem("adminActiveTab") || "dashboard"
   );
 
-  // Update localStorage whenever the active tab changes
   useEffect(() => {
     localStorage.setItem("adminActiveTab", activeTab);
   }, [activeTab]);
@@ -25,7 +23,7 @@ export function AdminDashboard() {
           {activeTab === "dashboard" && <DashboardContent />}
           {activeTab === "users" && <UserList />}
           {activeTab === "workshops" && <WorkshopList />}
-          {activeTab === "services" && <ServiceList />}
+          {activeTab === "services" && <ServiceManagement />}
         </main>
       </div>
     </div>
@@ -61,6 +59,58 @@ function Sidebar({ activeTab, setActiveTab }) {
           </button>
         ))}
       </nav>
+    </div>
+  );
+}
+
+function ServiceManagement() {
+  const [activeSubTab, setActiveSubTab] = useState("serviceList");
+
+  const renderSubTabContent = () => {
+    if (activeSubTab === "serviceList") {
+      return <ServiceList />;
+    }
+    if (activeSubTab === "workshopServiceList") {
+      return <WorkshopServiceList />;
+    }
+    return null;
+  };
+
+  return (
+    <div>
+      <div className="flex space-x-4 mb-4">
+        <button
+          onClick={() => setActiveSubTab("serviceList")}
+          className={`px-4 py-2 text-sm font-medium rounded-md ${
+            activeSubTab === "serviceList"
+              ? "bg-black text-white"
+              : "bg-gray-200 text-black"
+          }`}
+        >
+          Service List
+        </button>
+        <button
+          onClick={() => setActiveSubTab("workshopServiceList")}
+          className={`px-4 py-2 text-sm font-medium rounded-md ${
+            activeSubTab === "workshopServiceList"
+              ? "bg-black text-white"
+              : "bg-gray-200 text-black"
+          }`}
+        >
+          Workshop Service List
+        </button>
+      </div>
+      <div>{renderSubTabContent()}</div>
+    </div>
+  );
+}
+
+function WorkshopServiceList() {
+  return (
+    <div>
+      <h2 className="text-xl font-bold mb-4">Workshop Service List</h2>
+      {/* Add logic to fetch and display workshop-specific services */}
+      <p>Workshop-specific services will be displayed here.</p>
     </div>
   );
 }

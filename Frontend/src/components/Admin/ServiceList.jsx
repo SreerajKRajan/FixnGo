@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { Modal, ModalHeader, ModalBody, ModalFooter } from "./ui/Modal";
-import { Button } from "./ui/button";
+import { Modal, ModalHeader, ModalBody, ModalFooter } from "../ui/Modal";
+import { Button } from "../ui/button";
 import { toast } from "sonner"; // For notifications
 import axiosInstance from "../../utils/axiosInstance";
 import { Formik, Form, Field, ErrorMessage } from "formik";
@@ -8,11 +8,8 @@ import * as Yup from "yup";
 
 export function ServiceList() {
   const [services, setServices] = useState([]);
-  const [pendingServices, setPendingServices] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [selectedService, setSelectedService] = useState(null);
-  const [serviceToDelete, setServiceToDelete] = useState(null);
 
   // Fetch services on component load
   useEffect(() => {
@@ -26,18 +23,7 @@ export function ServiceList() {
       }
     };
 
-    const fetchPendingServices = async () => {
-      try {
-        const response = await axiosInstance.get("/service/pending-services/"); // Adjust endpoint as needed
-        setPendingServices(response.data);
-      } catch (error) {
-        console.error("Failed to fetch pending services:", error);
-        toast.error("Failed to fetch pending services. Please try again.");
-      }
-    };
-
     fetchServices();
-    fetchPendingServices();
   }, []);
 
   // Open Add Service Modal
@@ -79,50 +65,20 @@ export function ServiceList() {
     }
   };
 
-  // Open Delete Confirmation Modal
-  const handleDeleteService = (service) => {
-    setServiceToDelete(service);
-    setDeleteModalOpen(true);
-  };
-
-  // Confirm Delete Service
-  const confirmDeleteService = async () => {
+  const toggleServiceStatus = async (service) => {
     try {
-      await axiosInstance.delete(`/service/services/${serviceToDelete.id}/`);
-      setServices((prev) => prev.filter((s) => s.id !== serviceToDelete.id));
-      setDeleteModalOpen(false);
-      setServiceToDelete(null);
-      toast.success("Service deleted successfully.");
-    } catch (error) {
-      console.error("Failed to delete service:", error);
-      toast.error("Failed to delete service. Please try again.");
-    }
-  };
-
-  // Approve or Reject Service
-  const handleApproveService = async (serviceId) => {
-    try {
-      await axiosInstance.put(`/service/approve-service/${serviceId}/`);
-      setPendingServices((prev) =>
-        prev.filter((s) => s.id !== serviceId)
+      const newStatus =
+        service.status === "available" ? "unavailable" : "available";
+      await axiosInstance.patch(`/service/services/${service.id}/`, {
+        status: newStatus,
+      });
+      setServices((prev) =>
+        prev.map((s) => (s.id === service.id ? { ...s, status: newStatus } : s))
       );
-      toast.success("Service approved successfully.");
+      toast.success(`Service marked as ${newStatus}.`);
     } catch (error) {
-      console.error("Failed to approve service:", error);
-      toast.error("Failed to approve service. Please try again.");
-    }
-  };
-
-  const handleRejectService = async (serviceId) => {
-    try {
-      await axiosInstance.put(`/service/reject-service/${serviceId}/`);
-      setPendingServices((prev) =>
-        prev.filter((s) => s.id !== serviceId)
-      );
-      toast.success("Service rejected successfully.");
-    } catch (error) {
-      console.error("Failed to reject service:", error);
-      toast.error("Failed to reject service. Please try again.");
+      console.error("Failed to update service status:", error);
+      toast.error("Failed to update service status. Please try again.");
     }
   };
 
@@ -157,6 +113,7 @@ export function ServiceList() {
               <th className="border border-gray-200 p-2">Name</th>
               <th className="border border-gray-200 p-2">Description</th>
               <th className="border border-gray-200 p-2">Base Price</th>
+              <th className="border border-gray-200 p-2">Status</th>
               <th className="border border-gray-200 p-2">Actions</th>
             </tr>
           </thead>
@@ -171,6 +128,10 @@ export function ServiceList() {
                   ₹{service.base_price}
                 </td>
                 <td className="border border-gray-200 p-2">
+                  {service.status.charAt(0).toUpperCase() +
+                    service.status.slice(1)}
+                </td>
+                <td className="border border-gray-200 p-2">
                   <Button
                     onClick={() => handleEditService(service)}
                     className="mr-2 bg-blue-500 text-white px-2 py-1 rounded-md"
@@ -178,10 +139,16 @@ export function ServiceList() {
                     Edit
                   </Button>
                   <Button
-                    onClick={() => handleDeleteService(service)}
-                    className="bg-red-500 text-white px-2 py-1 rounded-md"
+                    onClick={() => toggleServiceStatus(service)}
+                    className={`${
+                      service.status === "available"
+                        ? "bg-red-500"
+                        : "bg-green-500"
+                    } text-white px-2 py-1 rounded-md`}
                   >
-                    Delete
+                    {service.status === "available"
+                      ? "Mark Unavailable"
+                      : "Mark Available"}
                   </Button>
                 </td>
               </tr>
@@ -189,40 +156,6 @@ export function ServiceList() {
           </tbody>
         </table>
       )}
-
-      {/* Pending Services Section */}
-      <div className="mt-8">
-        <h3 className="text-xl font-semibold mb-4">Pending Services for Approval</h3>
-        {pendingServices.length === 0 ? (
-          <p>No services awaiting approval.</p>
-        ) : (
-          <ul className="space-y-4">
-            {pendingServices.map((service) => (
-              <li key={service.id} className="flex justify-between items-center border p-4 rounded-md">
-                <div>
-                  <p className="font-bold">{service.name}</p>
-                  <p>{service.description}</p>
-                </div>
-                <div className="space-x-4">
-                  <Button
-                    onClick={() => handleApproveService(service.id)}
-                    className="bg-green-500 text-white px-4 py-2 rounded-md"
-                  >
-                    Approve
-                  </Button>
-                  <Button
-                    onClick={() => handleRejectService(service.id)}
-                    className="bg-red-500 text-white px-4 py-2 rounded-md"
-                  >
-                    Reject
-                  </Button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-
       {isModalOpen && (
         <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
           <Formik
@@ -304,33 +237,6 @@ export function ServiceList() {
               </Form>
             )}
           </Formik>
-        </Modal>
-      )}
-
-      {deleteModalOpen && (
-        <Modal
-          isOpen={deleteModalOpen}
-          onClose={() => setDeleteModalOpen(false)}
-        >
-          <ModalHeader>Confirm Delete</ModalHeader>
-          <ModalBody>
-            Are you sure you want to delete the service{" "}
-            <strong>{serviceToDelete?.name}</strong>?
-          </ModalBody>
-          <ModalFooter>
-            <Button
-              onClick={confirmDeleteService}
-              className="bg-red-500 text-white px-4 py-2 rounded-md"
-            >
-              Delete
-            </Button>
-            <Button
-              onClick={() => setDeleteModalOpen(false)}
-              className="bg-gray-500 text-white px-4 py-2 rounded-md"
-            >
-              Cancel
-            </Button>
-          </ModalFooter>
         </Modal>
       )}
     </div>

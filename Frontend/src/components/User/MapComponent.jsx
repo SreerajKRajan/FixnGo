@@ -1,39 +1,48 @@
-import React, { useState, useRef, useEffect } from "react";
-import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from "react-leaflet"; // React-Leaflet imports
-import L from "leaflet";
+import React, { useEffect, useState } from "react";
+import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import "leaflet/dist/leaflet.css";
 
-const MapComponent = ({ setLocation }) => {
-  const [position, setPosition] = useState([51.505, -0.09]); // Default lat/lng
+const MapComponent = ({ userLocation, workshops }) => {
+  const [position, setPosition] = useState([51.505, -0.09]); // Default position
 
-  // This will allow us to capture the click event on the map
-  function LocationMarker() {
-    useMapEvents({
-      click(e) {
-        setPosition([e.latlng.lat, e.latlng.lng]);
-        setLocation(e.latlng); // Pass the selected location
-      }
-    });
+  useEffect(() => {
+    if (userLocation) {
+      setPosition([userLocation.lat, userLocation.lng]);
+    }
+  }, [userLocation]);
 
-    return position === null ? null : (
-      <Marker position={position}>
-        <Popup>You are here</Popup>
-      </Marker>
-    );
+  function ChangeView({ center }) {
+    const map = useMap();
+    map.setView(center, map.getZoom());
+    return null;
   }
 
   return (
-    // Ensure the MapContainer fills the available space
     <MapContainer
       center={position}
       zoom={13}
-      style={{ height: "100%", width: "100%" }} // Ensure it takes full size of the parent container
+      style={{ height: "100%", width: "100%" }}
       className="map-container"
     >
+      <ChangeView center={position} />
       <TileLayer
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
       />
-      <LocationMarker />
+      {userLocation && (
+        <Marker position={[userLocation.lat, userLocation.lng]}>
+          <Popup>You are here</Popup>
+        </Marker>
+      )}
+      {Array.isArray(workshops) &&
+        workshops.map((workshop, index) => (
+          <Marker
+            key={index}
+            position={[workshop.lat, workshop.lng]}
+          >
+            <Popup>{workshop.name}</Popup>
+          </Marker>
+        ))}
     </MapContainer>
   );
 };

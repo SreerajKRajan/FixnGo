@@ -1,11 +1,6 @@
 import React, { useEffect, useState } from "react";
-import {
-  FaWrench,
-  FaMapMarkedAlt,
-  FaComments,
-  FaVideo,
-  FaUser,
-} from "react-icons/fa";
+import WorkshopHeader from "@/components/Workshop/WorkshopHeader";
+import WorkshopFooter from "@/components/Workshop/WorkshopFooter";
 import { logout } from "../../store/workshopAuthSlice";
 import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
@@ -35,28 +30,7 @@ const WorkshopHomePage = () => {
 
   return (
     <div className="min-h-screen bg-white text-black">
-      <header className="bg-black text-white p-4">
-        <div className="container mx-auto flex justify-between items-center">
-          <h1 className="text-2xl font-bold">FixNgo Workshop</h1>
-          <div className="flex items-center space-x-4">
-            <button className="p-2 rounded-full bg-gray-800 hover:bg-gray-700 text-white">
-              <FaComments />
-            </button>
-            <button className="p-2 rounded-full bg-gray-800 hover:bg-gray-700 text-white">
-              <FaVideo />
-            </button>
-            <button className="p-2 rounded-full bg-gray-800 hover:bg-gray-700 text-white">
-              <FaUser />
-            </button>
-            <button
-              onClick={handleLogout}
-              className="bg-gray-500 text-white py-1 px-3 rounded-md hover:bg-gray-600 transition duration-300"
-            >
-              Logout
-            </button>
-          </div>
-        </div>
-      </header>
+      <WorkshopHeader onLogout={handleLogout} />
 
       <main className="container mx-auto mt-8 px-4">
         <div className="flex mb-4 space-x-4">
@@ -87,7 +61,9 @@ const WorkshopHomePage = () => {
             <h2 className="text-xl font-semibold mb-4">Service Requests</h2>
             <div className="space-y-4">
               <div className="border-b pb-4">
-                <h3 className="font-semibold">New Request: Engine Won't Start</h3>
+                <h3 className="font-semibold">
+                  New Request: Engine Won't Start
+                </h3>
                 <p className="text-sm text-gray-600">User: John Doe</p>
                 <p className="text-sm text-gray-600">Location: 123 Main St</p>
                 <div className="mt-2">
@@ -123,11 +99,7 @@ const WorkshopHomePage = () => {
         )}
       </main>
 
-      <footer className="bg-gray-800 text-white mt-16 py-8">
-        <div className="container mx-auto text-center">
-          <p>&copy; 2024 FixNgo. All rights reserved.</p>
-        </div>
-      </footer>
+      <WorkshopFooter />
     </div>
   );
 };

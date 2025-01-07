@@ -6,11 +6,11 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "./ui/table";
-import { Button } from "./ui/button";
+} from "../ui/Table";
+import { Button } from "../ui/button";
 import axiosInstance from "../../utils/axiosInstance";
 import { toast } from "sonner";
-import { Modal, ModalHeader, ModalBody, ModalFooter } from "./ui/Modal";
+import { Modal, ModalHeader, ModalBody, ModalFooter } from "../ui/Modal";
 
 export function WorkshopList() {
   const [workshops, setWorkshops] = useState([]);

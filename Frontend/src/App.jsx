@@ -14,6 +14,7 @@ import WorkshopHomePage from "./components/Workshop/WorkshopHomePage";
 import NotFound from "./components/NotFound";
 import UserProfile from "./components/User/UserProfile";
 import WorkshopServiceList from "./components/Workshop/WorkshopServiceList";
+import WorkshopServiceManagement from "./components/Workshop/ServiceManagement/WorkshopServiceManagement";
 
 function App() {
   return (
@@ -106,6 +107,14 @@ function App() {
             element={
               <ProtectedRoute role="workshop">
                 <WorkshopHomePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/workshop/services"
+            element={
+              <ProtectedRoute role="workshop">
+                <WorkshopServiceManagement />
               </ProtectedRoute>
             }
           />

@@ -8,7 +8,8 @@ import { useFormik } from "formik";
 import * as Yup from "yup";
 
 const WorkshopServiceList = () => {
-  const [services, setServices] = useState([]);
+  const [services, setServices] = useState([]); // Workshop services
+  const [adminServices, setAdminServices] = useState([]); // Admin services
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -21,12 +22,13 @@ const WorkshopServiceList = () => {
     navigate("/workshop/login");
   };
 
-  // Formik setup for creating new service
+  // Formik setup for creating a new service
   const formik = useFormik({
     initialValues: {
       name: "",
       description: "",
       base_price: "",
+      admin_service_id: "", // Field for selecting admin service
     },
     validationSchema: Yup.object({
       name: Yup.string().required("Service name is required"),
@@ -35,6 +37,7 @@ const WorkshopServiceList = () => {
         .required("Base price is required")
         .positive("Price must be a positive number")
         .integer("Price must be an integer"),
+      admin_service_id: Yup.string(), // Optional validation for admin service
     }),
     onSubmit: async (values) => {
       try {
@@ -49,7 +52,7 @@ const WorkshopServiceList = () => {
           }
         );
         setServices([...services, response.data]);
-        setIsModalOpen(false); // Close modal on successful creation
+        setIsModalOpen(false); // Close modal on success
         formik.resetForm(); // Reset form fields
       } catch (err) {
         setError("Failed to create service");
@@ -66,7 +69,8 @@ const WorkshopServiceList = () => {
             Authorization: `Bearer ${token}`,
           },
         });
-        setServices(response.data);
+        console.log("Fetched services:", response.data);
+        setServices(response.data.workshop_services); // Use the workshop services from the response
         setLoading(false);
       } catch (err) {
         setError("Failed to fetch services");
@@ -74,7 +78,17 @@ const WorkshopServiceList = () => {
       }
     };
 
+    const fetchAdminServices = async () => {
+      try {
+        const response = await axiosInstance.get("/service/services/");
+        setAdminServices(response.data); // Populate admin services
+      } catch (err) {
+        setError("Failed to fetch admin services");
+      }
+    };
+
     fetchServices();
+    fetchAdminServices();
   }, []);
 
   if (loading) return <p>Loading services...</p>;
@@ -121,11 +135,20 @@ const WorkshopServiceList = () => {
                 </tr>
               </thead>
               <tbody>
-                {services.map((service) => (
-                  <tr key={service.id} className="hover:bg-gray-100">
-                    <td className="border border-gray-300 p-2">{service.name}</td>
-                    <td className="border border-gray-300 p-2">{service.description}</td>
-                    <td className="border border-gray-300 p-2">₹{service.base_price}</td>
+                {services.map((service, index) => (
+                  <tr
+                    key={service.id || index} // Prefer `service.id`, fallback to `index` if `id` is unavailable
+                    className="hover:bg-gray-100"
+                  >
+                    <td className="border border-gray-300 p-2">
+                      {service.name}
+                    </td>
+                    <td className="border border-gray-300 p-2">
+                      {service.description}
+                    </td>
+                    <td className="border border-gray-300 p-2">
+                      ₹{service.base_price}
+                    </td>
                     <td
                       className={`border border-gray-300 p-2 ${
                         service.is_approved
@@ -141,6 +164,7 @@ const WorkshopServiceList = () => {
             </table>
           )}
         </div>
+
         {/* Create Service Button */}
         <div className="mt-4 text-right">
           <button
@@ -159,7 +183,10 @@ const WorkshopServiceList = () => {
             <h2 className="text-xl font-bold mb-4">Create New Service</h2>
             <form onSubmit={formik.handleSubmit}>
               <div className="mb-4">
-                <label className="block text-sm font-semibold mb-2" htmlFor="name">
+                <label
+                  className="block text-sm font-semibold mb-2"
+                  htmlFor="name"
+                >
                   Service Name
                 </label>
                 <input
@@ -169,11 +196,16 @@ const WorkshopServiceList = () => {
                   className="w-full p-2 border border-gray-300 rounded-md"
                 />
                 {formik.touched.name && formik.errors.name && (
-                  <div className="text-red-600 text-sm">{formik.errors.name}</div>
+                  <div className="text-red-600 text-sm">
+                    {formik.errors.name}
+                  </div>
                 )}
               </div>
               <div className="mb-4">
-                <label className="block text-sm font-semibold mb-2" htmlFor="description">
+                <label
+                  className="block text-sm font-semibold mb-2"
+                  htmlFor="description"
+                >
                   Description
                 </label>
                 <textarea
@@ -182,11 +214,16 @@ const WorkshopServiceList = () => {
                   className="w-full p-2 border border-gray-300 rounded-md"
                 />
                 {formik.touched.description && formik.errors.description && (
-                  <div className="text-red-600 text-sm">{formik.errors.description}</div>
+                  <div className="text-red-600 text-sm">
+                    {formik.errors.description}
+                  </div>
                 )}
               </div>
               <div className="mb-4">
-                <label className="block text-sm font-semibold mb-2" htmlFor="base_price">
+                <label
+                  className="block text-sm font-semibold mb-2"
+                  htmlFor="base_price"
+                >
                   Base Price (₹)
                 </label>
                 <input
@@ -196,10 +233,32 @@ const WorkshopServiceList = () => {
                   className="w-full p-2 border border-gray-300 rounded-md"
                 />
                 {formik.touched.base_price && formik.errors.base_price && (
-                  <div className="text-red-600 text-sm">{formik.errors.base_price}</div>
+                  <div className="text-red-600 text-sm">
+                    {formik.errors.base_price}
+                  </div>
                 )}
               </div>
-              <div className="flex justify-between">
+              <div className="mb-4">
+                <label
+                  className="block text-sm font-semibold mb-2"
+                  htmlFor="admin_service"
+                >
+                  Select Admin Service (Optional)
+                </label>
+                <select
+                  id="admin_service"
+                  {...formik.getFieldProps("admin_service_id")}
+                  className="w-full p-2 border border-gray-300 rounded-md"
+                >
+                  <option value="">-- Select a Service --</option>
+                  {adminServices.map((service) => (
+                    <option key={service.id} value={service.id}>
+                      {service.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex justify-end space-x-4">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
@@ -218,12 +277,6 @@ const WorkshopServiceList = () => {
           </div>
         </div>
       )}
-
-      <footer className="bg-gray-800 text-white mt-16 py-8">
-        <div className="container mx-auto text-center">
-          <p>&copy; 2024 FixNgo. All rights reserved.</p>
-        </div>
-      </footer>
     </div>
   );
 };

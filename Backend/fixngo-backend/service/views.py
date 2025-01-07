@@ -36,12 +36,13 @@ class ServiceDetailAPIView(APIView):
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def delete(self, request, pk):
+    def patch(self, request, pk):
         service = self.get_object(pk)
         if not service:
             return Response({"error": "Service not found"}, status=status.HTTP_404_NOT_FOUND)
-        service.delete()
-        return Response({"message": "Service deleted"}, status=status.HTTP_204_NO_CONTENT)
+        service.status = request.data.get('status', service.status)
+        service.save()
+        return Response({"message": f"Service marked as {service.status}."}, status=status.HTTP_200_OK)
     
 class AdminApproveWorkshopServiceAPIView(APIView):
     permission_classes = [IsAdminUser]

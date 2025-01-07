@@ -2,57 +2,48 @@ import React, { useState, useEffect } from "react";
 import Header from "./Header";
 import SearchBar from "./SearchBar";
 import Tabs from "./Tabs";
-import MapComponent from "./MapComponent";  // The map component that will be displayed
+import MapComponent from "./MapComponent";
 import ServiceRequests from "./ServiceRequests";
 import Footer from "./Footer";
+import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
 export default function UserHomePage() {
   const [activeTab, setActiveTab] = useState("map");
   const [isLoggedIn, setIsLoggedIn] = useState(true);
+  const [userLocation, setUserLocation] = useState(null); // Store user location
+  const [workshops, setWorkshops] = useState([]); // Store nearby workshops
   const navigate = useNavigate();
 
-  // Ensure that back navigation is handled properly
-  useEffect(() => {
-    window.history.pushState(null, "", window.location.href);
-    const handlePopState = () => {
-      window.history.pushState(null, "", window.location.href);
-    };
+  const handleLocationSelect = (location) => {
+    setUserLocation(location);
+    fetchNearbyWorkshops(location);
+  };
 
-    window.addEventListener("popstate", handlePopState);
-
-    return () => {
-      window.removeEventListener("popstate", handlePopState);
-    };
-  }, []);
-
-  // Handle logout and clean up session data
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("refreshToken");
-    setIsLoggedIn(false); // Set the logged-in state to false
-    navigate("/login");
+  const fetchNearbyWorkshops = async (location) => {
+    try {
+      const response = await axios.get(
+        `/api/users/workshops/nearby?lat=${location.lat}&lng=${location.lng}`
+      );
+      setWorkshops(response.data); // Store workshops data
+    } catch (error) {
+      console.error("Error fetching nearby workshops:", error);
+    }
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-white text-black">
-      {/* Main Content */}
-      {isLoggedIn && <Header onLogout={handleLogout} />}
+    <div className="min-h-screen flex flex-col bg-background text-black">
+      {isLoggedIn && <Header onLogout={() => navigate("/login")} />}
       <main className="flex-grow container mx-auto mt-8 px-4">
-        <SearchBar />
+        <SearchBar onLocationSelect={handleLocationSelect} />
         <Tabs activeTab={activeTab} setActiveTab={setActiveTab} />
-
-        {/* Tab content */}
         {activeTab === "map" && (
-          <div className="h-[500px] sm:h-[700px] w-full">
-            {/* The map container now takes full height and width */}
-            <MapComponent />
+          <div className="h-[calc(100vh-200px)] w-full">
+            <MapComponent userLocation={userLocation} workshops={workshops} />
           </div>
         )}
         {activeTab === "requests" && <ServiceRequests />}
       </main>
-      
-      {/* Footer */}
       <Footer />
     </div>
   );

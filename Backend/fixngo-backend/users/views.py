@@ -4,12 +4,15 @@ from rest_framework.views import APIView
 from .serializers import UserSignupSerializer, UserLoginSerializer, UserSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 import random
-from django.core.mail import EmailMultiAlternatives
 from django.utils import timezone
 from .models import User, Otp
 from datetime import timedelta
-import boto3
 from utils.s3_utils import upload_to_s3
+from django.core.mail import EmailMultiAlternatives
+from math import radians, sin, cos, sqrt, atan2
+from django.http import JsonResponse
+from workshop.models import Workshop
+
 
 
 # Create your views here.
@@ -84,6 +87,7 @@ class UserSignupView(APIView):
             
             return Response({"message": "User created successfully. An OTP has been sent to your email for verification.", "email": user.email}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
 
 class OtpVerificationView(APIView):
     def post(self, request):
@@ -177,4 +181,32 @@ class UserProfileView(APIView):
         return Response(serializer.errors, status=400)
 
 
+# Haversine formula to calculate the distance
+def calculate_distance(lat1, lon1, lat2, lon2):
+    R = 6371  # Earth radius in kilometers
+    dlat = radians(lat2 - lat1)
+    dlon = radians(lon2 - lon1)
+    a = sin(dlat / 2) ** 2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon / 2) ** 2
+    c = 2 * atan2(sqrt(a), sqrt(1 - a))
+    return R * c
 
+# View for fetching nearby workshops
+def get_nearby_workshops(request):
+    lat = float(request.GET.get('lat', 0))
+    lng = float(request.GET.get('lng', 0))
+    radius = float(request.GET.get('radius', 10))  # Radius in kilometers
+
+    workshops = Workshop.objects.filter(is_active=True)
+    nearby_workshops = []
+
+    for workshop in workshops:
+        distance = calculate_distance(lat, lng, workshop.latitude, workshop.longitude)
+        if distance <= radius:
+            nearby_workshops.append({
+                'name': workshop.name,
+                'lat': workshop.latitude,
+                'lng': workshop.longitude,
+                'distance': round(distance, 2),
+            })
+
+    return JsonResponse(nearby_workshops, safe=False)

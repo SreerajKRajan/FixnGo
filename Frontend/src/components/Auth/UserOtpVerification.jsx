@@ -52,10 +52,7 @@ export default function UserOtpVerification() {
     if (userOtpVerification.fulfilled.match(resultAction)) {
       // Show success message
       toast.success("OTP verified successfully! Redirecting to login...");
-      // Navigate to login page after a short delay (optional)
-      setTimeout(() => {
         navigate("/login");
-      }, 2000); // Delay to allow the user to see the success message
     } else {
       // Error handling after dispatch
       console.error("OTP Verification Failed:", resultAction.payload);

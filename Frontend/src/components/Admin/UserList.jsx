@@ -6,8 +6,8 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "./ui/table";
-import { Button } from "./ui/button";
+} from "../ui/Table";
+import { Button } from "../ui/button";
 import axiosInstance from "../../utils/axiosInstance";
 import { toast } from "sonner"; // Import Sonner for notifications
 

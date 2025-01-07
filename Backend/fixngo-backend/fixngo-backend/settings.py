@@ -92,6 +92,13 @@ MEDIA_URL = f'https://{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com/{AWS_MEDIA_LOCA
 STATIC_URL = f'https://{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com/{AWS_STATIC_LOCATION}/'
 
 
+# # Celery Configuration
+# CELERY_BROKER_URL = 'redis://localhost:6379/0'  # Use Redis as the message broker
+# CELERY_ACCEPT_CONTENT = ['json']
+# CELERY_TASK_SERIALIZER = 'json'
+# CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'  # Optional if you want to track task results
+# CELERY_TIMEZONE = 'UTC'  # Set timezone as required
+
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',

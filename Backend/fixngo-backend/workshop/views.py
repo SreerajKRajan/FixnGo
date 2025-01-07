@@ -184,19 +184,31 @@ class WorkshopServiceCreateAPIView(APIView):
     
     def post(self, request):
         workshop = request.user  # The workshop making the request
-        
-        # Get data from the request
+        admin_service_id = request.data.get('admin_service_id')        
         name = request.data.get('name')
         description = request.data.get('description')
         base_price = request.data.get('base_price')
         
-        # Create a new workshop service
-        workshop_service = WorkshopService.objects.create(
+        if admin_service_id:
+            try:
+                admin_service = Service.objects.get(id=admin_service_id)    
+                workshop_service = WorkshopService.objects.create(
+                    workshop=workshop,
+                    admin_service=admin_service,
+                    name=admin_service.name,
+                    description=admin_service.description,
+                    base_price=base_price,
+                    service_type='admin',
+                )
+            except Service.DoesNotExist:
+                return Response({"error": "Selected admin service does not exist."}, status=status.HTTP_404_NOT_FOUND)
+        else:
+            workshop_service = WorkshopService.objects.create(
             workshop=workshop,
             name=name,
             description=description,
             base_price=base_price,
-            service_type='workshop',  # Mark this as a workshop-created service
+            service_type='workshop',
         )
         
         return Response({"message": "Service added successfully, awaiting admin approval."}, status=status.HTTP_201_CREATED)
@@ -212,10 +224,10 @@ class WorkshopServiceListAPIView(APIView):
         admin_services_serialized = ServiceSerializer(admin_services, many=True).data
 
         # Fetch approved workshop services
-        workshop_services = WorkshopService.objects.filter(is_approved=True)
+        workshop_services = WorkshopService.objects.filter(workshop=request.user)
         workshop_services_serialized = WorkshopServiceSerializer(workshop_services, many=True).data
 
-        # Combine both querysets
-        combined_services = list(chain(admin_services_serialized, workshop_services_serialized))
-
-        return Response(combined_services, status=status.HTTP_200_OK)
+        return Response({
+                "admin_services": admin_services_serialized,
+                "workshop_services": workshop_services_serialized
+            }, status=status.HTTP_200_OK)

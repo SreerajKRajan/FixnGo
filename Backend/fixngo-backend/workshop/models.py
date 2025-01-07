@@ -27,6 +27,8 @@ class Workshop(AbstractBaseUser):
     password    = models.CharField(max_length=255)
     is_active   = models.BooleanField(default=True)
     is_staff    = models.BooleanField(default=False)
+    latitude = models.FloatField()  # Latitude of the workshop
+    longitude = models.FloatField()  # Longitude of the workshop
 
     objects = WorkshopManager()
 
@@ -53,10 +55,11 @@ class WorkshopService(models.Model):
     ]
     
     workshop = models.ForeignKey(Workshop, on_delete=models.CASCADE, related_name='workshop_services')
+    admin_service = models.ForeignKey(Service, on_delete=models.SET_NULL, null=True, blank=True, related_name='linked_workshop_services')
     name = models.CharField(max_length=255)
     description = models.TextField()
     base_price = models.DecimalField(max_digits=10, decimal_places=2)
-    is_approved = models.BooleanField(default=False)  # Approval status for services (either from admin or workshop)
+    is_approved = models.BooleanField(default=False)
     service_type = models.CharField(max_length=20, choices=SERVICE_TYPE_CHOICES, default='workshop')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
