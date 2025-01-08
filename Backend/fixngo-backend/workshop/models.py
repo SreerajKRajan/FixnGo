@@ -60,6 +60,7 @@ class WorkshopService(models.Model):
     description = models.TextField()
     base_price = models.DecimalField(max_digits=10, decimal_places=2)
     is_approved = models.BooleanField(default=False)
+    is_available = models.BooleanField(default=True)
     service_type = models.CharField(max_length=20, choices=SERVICE_TYPE_CHOICES, default='workshop')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

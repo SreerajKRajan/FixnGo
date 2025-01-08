@@ -11,35 +11,68 @@ import { Toaster } from "@/components/ui/Toaster";
 import { useToast } from "@/components/ui/use-toast";
 import WorkshopHeader from "@/components/Workshop/WorkshopHeader";
 import WorkshopFooter from "@/components/Workshop/WorkshopFooter";
+import axiosInstance from "../../../utils/axiosInstance";
 
 export default function WorkshopServiceManagement() {
+  const [activeTab, setActiveTab] = useState(() => {
+    return localStorage.getItem("activeTab") || "all";
+  });
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { toast } = useToast();
 
-  const handleAddService = () => {
-    toast({
-      title: "Service added successfully!",
-      description: "The service has been added to your list.",
-    });
+  const handleTabChange = (value) => {
+    setActiveTab(value);
+    localStorage.setItem("activeTab", value);
   };
 
-  const handleCreateCustomService = (serviceData) => {
-    setIsModalOpen(false);
-    toast({
-      title: "Custom service submitted for approval",
-      description: "We'll review your service and get back to you soon.",
-    });
+  const handleAddService = async (service) => {
+    try {
+      await axiosInstance.post("/workshop/services/", {
+        admin_service_id: service.id,
+        base_price: 100, // Example data
+      });
+      toast({
+        title: "Service added successfully!",
+        description: `The service "${service.name}" has been added to your list.`,
+      });
+    } catch (error) {
+      console.error("Error adding service:", error);
+      toast({
+        variant: "destructive",
+        title: "Failed to add service",
+        description: "An error occurred while adding the service.",
+      });
+    }
+  };
+
+  const handleCreateCustomService = async (serviceData) => {
+    try {
+      await axiosInstance.post("/workshop/services/", {
+        name: serviceData.serviceName,
+        description: serviceData.description,
+        base_price: serviceData.price,
+      });
+      setIsModalOpen(false);
+      toast({
+        title: "Custom service submitted for approval",
+        description: `The service "${serviceData.serviceName}" has been submitted for admin approval.`,
+      });
+    } catch (error) {
+      console.error("Error submitting custom service:", error);
+      toast({
+        variant: "destructive",
+        title: "Failed to submit custom service",
+        description: "An error occurred while submitting your service.",
+      });
+    }
   };
 
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Include WorkshopHeader */}
       <WorkshopHeader />
-
-      {/* Main Content */}
       <div className="flex-grow container mx-auto px-4 py-8">
         <ServiceHeader />
-        <Tabs defaultValue="all" className="mt-8">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="mt-8">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="all">All Services</TabsTrigger>
             <TabsTrigger value="global">Global Services</TabsTrigger>
@@ -69,8 +102,6 @@ export default function WorkshopServiceManagement() {
         />
         <Toaster />
       </div>
-
-      {/* Include WorkshopFooter */}
       <WorkshopFooter />
     </div>
   );

@@ -183,15 +183,19 @@ class WorkshopServiceCreateAPIView(APIView):
     permission_classes = [IsWorkshopUser]
     
     def post(self, request):
-        workshop = request.user  # The workshop making the request
-        admin_service_id = request.data.get('admin_service_id')        
+        workshop = request.user
+        admin_service_id = request.data.get('admin_service_id')
         name = request.data.get('name')
         description = request.data.get('description')
         base_price = request.data.get('base_price')
-        
+
         if admin_service_id:
             try:
-                admin_service = Service.objects.get(id=admin_service_id)    
+                admin_service = Service.objects.get(id=admin_service_id)
+                # Prevent duplicate addition of the same admin service
+                if WorkshopService.objects.filter(workshop=workshop, admin_service=admin_service).exists():
+                    return Response({"error": "This admin service is already added."}, status=status.HTTP_400_BAD_REQUEST)
+                
                 workshop_service = WorkshopService.objects.create(
                     workshop=workshop,
                     admin_service=admin_service,
@@ -200,18 +204,29 @@ class WorkshopServiceCreateAPIView(APIView):
                     base_price=base_price,
                     service_type='admin',
                 )
+                return Response({
+                    "message": "Admin service added successfully.",
+                    "service": WorkshopServiceSerializer(workshop_service).data,
+                }, status=status.HTTP_201_CREATED)
             except Service.DoesNotExist:
                 return Response({"error": "Selected admin service does not exist."}, status=status.HTTP_404_NOT_FOUND)
         else:
+            # Validate custom service creation fields
+            if not all([name, description, base_price]):
+                return Response({"error": "Name, description, and base price are required."}, status=status.HTTP_400_BAD_REQUEST)
+
             workshop_service = WorkshopService.objects.create(
-            workshop=workshop,
-            name=name,
-            description=description,
-            base_price=base_price,
-            service_type='workshop',
-        )
-        
-        return Response({"message": "Service added successfully, awaiting admin approval."}, status=status.HTTP_201_CREATED)
+                workshop=workshop,
+                name=name,
+                description=description,
+                base_price=base_price,
+                service_type='workshop',
+            )
+            return Response({
+                "message": "Workshop service created successfully, awaiting admin approval.",
+                "service": WorkshopServiceSerializer(workshop_service).data,
+            }, status=status.HTTP_201_CREATED)
+
 
 
 class WorkshopServiceListAPIView(APIView):
@@ -219,15 +234,62 @@ class WorkshopServiceListAPIView(APIView):
     permission_classes = [IsWorkshopUser]
     
     def get(self, request):
-        # Fetch admin-created services
-        admin_services = Service.objects.all()
-        admin_services_serialized = ServiceSerializer(admin_services, many=True).data
+        workshop = request.user
+        search_query = request.query_params.get('search', '').lower()
 
-        # Fetch approved workshop services
-        workshop_services = WorkshopService.objects.filter(workshop=request.user)
-        workshop_services_serialized = WorkshopServiceSerializer(workshop_services, many=True).data
+        # Admin services available to add (status = 'available')
+        admin_services_available = Service.objects.filter(
+            status='available'
+        ).exclude(
+            id__in=WorkshopService.objects.filter(
+                workshop=workshop, admin_service__isnull=False
+            ).values_list('admin_service_id', flat=True)
+        )
+
+        if search_query:
+            admin_services_available = admin_services_available.filter(name__icontains=search_query)
+
+        admin_services_available_serialized = ServiceSerializer(admin_services_available, many=True).data
+
+        # Admin services already added by workshop
+        admin_services_added = WorkshopService.objects.filter(
+            workshop=workshop, service_type='admin'
+        )
+        admin_services_added_serialized = WorkshopServiceSerializer(admin_services_added, many=True).data
+
+        # Workshop-created services with approval status
+        workshop_created_services = WorkshopService.objects.filter(
+            workshop=workshop, service_type='workshop'
+        )
+        workshop_created_services_serialized = WorkshopServiceSerializer(workshop_created_services, many=True).data
 
         return Response({
-                "admin_services": admin_services_serialized,
-                "workshop_services": workshop_services_serialized
-            }, status=status.HTTP_200_OK)
+            "message": "All global services have been added.",
+            "admin_services_available": admin_services_available_serialized,
+            "admin_services_added": admin_services_added_serialized,
+            "workshop_created_services": workshop_created_services_serialized,
+        }, status=status.HTTP_200_OK)
+
+
+class WorkshopServiceAvailabilityUpdateAPIView(APIView):
+    authentication_classes = [WorkshopJWTAuthentication]
+    permission_classes = [IsWorkshopUser]
+
+    def patch(self, request, pk):
+        try:
+            service = WorkshopService.objects.get(id=pk, workshop=request.user)
+            is_available = request.data.get("is_available")
+            if is_available is not None:
+                service.is_available = is_available
+                service.save()
+                return Response({
+                    "message": "Service availability updated successfully.",
+                    "service": WorkshopServiceSerializer(service).data,
+                }, status=status.HTTP_200_OK)
+            return Response({"error": "Invalid data."}, status=status.HTTP_400_BAD_REQUEST)
+        except WorkshopService.DoesNotExist:
+            return Response({"error": "Service not found."}, status=status.HTTP_404_NOT_FOUND)
+
+
+
+

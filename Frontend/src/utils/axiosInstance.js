@@ -12,14 +12,13 @@ axiosInstance.interceptors.request.use(
     const userToken = localStorage.getItem("token");
     const workshopToken = localStorage.getItem("workshopToken");
 
-
     // Add Authorization header based on the request URL
     if (config.url.includes("/admin_side/") && adminToken) {
-      config.headers.Authorization = `Bearer ${adminToken}`;
+      config.headers.Authorization = `Bearer ${adminToken}`; // Admin token for admin-related requests
     } else if (config.url.includes("/workshop/") && workshopToken) {
-      config.headers.Authorization = `Bearer ${workshopToken}`;
+      config.headers.Authorization = `Bearer ${workshopToken}`; // Workshop token for workshop-related requests
     } else if (config.url.includes("/users/") && userToken) {
-      config.headers.Authorization = `Bearer ${userToken}`;
+      config.headers.Authorization = `Bearer ${userToken}`; // User token for user-related requests
     }
 
     return config;
@@ -38,20 +37,33 @@ axiosInstance.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        // Get the refresh token from localStorage
-        const refreshToken = localStorage.getItem("refreshToken");
+        // Determine the type of token and refresh token based on the request URL
+        const isAdminRequest = originalRequest.url.includes("/admin_side/");
+        const isWorkshopRequest = originalRequest.url.includes("/workshop/");
+        
+        const tokenType = isAdminRequest
+          ? "adminToken"
+          : isWorkshopRequest
+          ? "workshopToken"
+          : "token"; // Default token for user requests
+
+        const refreshTokenType = isAdminRequest
+          ? "adminRefreshToken"
+          : isWorkshopRequest
+          ? "workshopRefreshToken"
+          : "refreshToken"; // Default refresh token for user requests
+
+        const refreshToken = localStorage.getItem(refreshTokenType);
 
         // If no refresh token exists, log the user out
         if (!refreshToken) {
-          localStorage.removeItem("token");
-          localStorage.removeItem("refreshToken");
-          localStorage.removeItem("user");
-          localStorage.removeItem("email");
+          localStorage.removeItem(tokenType);
+          localStorage.removeItem(refreshTokenType);
           return Promise.reject("No refresh token, user logged out");
         }
 
         // Call the refresh token endpoint
-        const response = await axiosInstance.post("token/refresh/", {
+        const response = await axios.post("http://127.0.0.1:8000/api/token/refresh/", {
           refresh: refreshToken,
         });
 
@@ -59,7 +71,7 @@ axiosInstance.interceptors.response.use(
         const { access } = response.data;
 
         // Store the new access token in localStorage
-        localStorage.setItem("token", access);
+        localStorage.setItem(tokenType, access);
 
         // Retry the original request with the new access token
         originalRequest.headers.Authorization = `Bearer ${access}`;
@@ -67,10 +79,20 @@ axiosInstance.interceptors.response.use(
 
       } catch (refreshError) {
         // If refreshing fails, log out the user and clear localStorage
-        localStorage.removeItem("token");
-        localStorage.removeItem("refreshToken");
-        localStorage.removeItem("user");
-        localStorage.removeItem("email");
+        const tokenType = originalRequest.url.includes("/admin_side/")
+          ? "adminToken"
+          : originalRequest.url.includes("/workshop/")
+          ? "workshopToken"
+          : "token";
+
+        const refreshTokenType = originalRequest.url.includes("/admin_side/")
+          ? "adminRefreshToken"
+          : originalRequest.url.includes("/workshop/")
+          ? "workshopRefreshToken"
+          : "refreshToken";
+
+        localStorage.removeItem(tokenType);
+        localStorage.removeItem(refreshTokenType);
         return Promise.reject(refreshError);
       }
     }

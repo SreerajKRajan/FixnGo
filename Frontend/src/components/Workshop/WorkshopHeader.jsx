@@ -21,7 +21,7 @@ const WorkshopHeader = ({ onLogout }) => {
             <FaUser />
           </button>
           <button
-            onClick={() => navigate("/workshop/service-list")}
+            onClick={() => navigate("/workshop/services")}
             className="bg-white text-black py-1 px-3 rounded-md hover:bg-gray-200 transition duration-300"
           >
             Service List

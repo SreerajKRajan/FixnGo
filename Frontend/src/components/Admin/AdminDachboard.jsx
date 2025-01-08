@@ -4,6 +4,7 @@ import { DashboardContent } from "./DashboardContent";
 import { UserList } from "./UserList";
 import { WorkshopList } from "./WorkshopList";
 import { ServiceList } from "./ServiceList";
+import { WorkshopServiceList } from "./WorkshopServiceList";
 
 export function AdminDashboard() {
   const [activeTab, setActiveTab] = useState(
@@ -67,13 +68,14 @@ function ServiceManagement() {
   const [activeSubTab, setActiveSubTab] = useState("serviceList");
 
   const renderSubTabContent = () => {
-    if (activeSubTab === "serviceList") {
-      return <ServiceList />;
+    switch (activeSubTab) {
+      case "serviceList":
+        return <ServiceList />;
+      case "workshopServiceList":
+        return <WorkshopServiceListComponent />;
+      default:
+        return null;
     }
-    if (activeSubTab === "workshopServiceList") {
-      return <WorkshopServiceList />;
-    }
-    return null;
   };
 
   return (
@@ -105,12 +107,11 @@ function ServiceManagement() {
   );
 }
 
-function WorkshopServiceList() {
+
+function WorkshopServiceListComponent() {
   return (
     <div>
-      <h2 className="text-xl font-bold mb-4">Workshop Service List</h2>
-      {/* Add logic to fetch and display workshop-specific services */}
-      <p>Workshop-specific services will be displayed here.</p>
+      <WorkshopServiceList />
     </div>
   );
 }

@@ -3,7 +3,8 @@ from rest_framework.response import Response
 from rest_framework import status
 from .models import Service
 from .serializers import ServiceSerializer
-from workshop.models import WorkshopService
+from workshop.serializers import WorkshopServiceSerializer
+from workshop.models import WorkshopService, Workshop
 from rest_framework.permissions import IsAdminUser
 
 class ServiceListCreateAPIView(APIView):
@@ -43,6 +44,34 @@ class ServiceDetailAPIView(APIView):
         service.status = request.data.get('status', service.status)
         service.save()
         return Response({"message": f"Service marked as {service.status}."}, status=status.HTTP_200_OK)
+    
+class WorkshopsWithPendingServicesAPIView(APIView):
+    permission_classes = [IsAdminUser]
+
+    def get(self, request):
+        workshops = (
+            Workshop.objects.filter(workshop_services__is_approved=False)
+            .distinct()
+            .values("id", "name", "email")  # Include relevant workshop details
+        )
+        return Response(workshops, status=status.HTTP_200_OK)
+    
+class PendingWorkshopServicesAPIView(APIView):
+    permission_classes = [IsAdminUser]
+
+    def get(self, request, workshop_id):
+        try:
+            workshop = Workshop.objects.get(id=workshop_id)
+        except Workshop.DoesNotExist:
+            return Response({"error": "Workshop not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        pending_services = WorkshopService.objects.filter(
+            workshop=workshop, is_approved=False
+        )
+        serializer = WorkshopServiceSerializer(pending_services, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
     
 class AdminApproveWorkshopServiceAPIView(APIView):
     permission_classes = [IsAdminUser]

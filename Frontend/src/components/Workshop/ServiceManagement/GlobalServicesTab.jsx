@@ -1,21 +1,58 @@
-import React, { useState } from "react"
-import { Input } from "@/components/ui/Input"
-import { Button } from "@/components/ui/Button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/Card"
-import { Search } from 'lucide-react'
-
-const globalServices = [
-  { id: "1", name: "Oil Change", description: "Basic oil change for all vehicle types" },
-  { id: "2", name: "Tire Rotation", description: "Rotate tires to ensure even wear" },
-  { id: "3", name: "Brake Inspection", description: "Comprehensive brake system check" },
-]
+import React, { useEffect, useState } from "react";
+import { Input } from "@/components/ui/Input";
+import { Button } from "@/components/ui/Button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/Card";
+import { Search } from "lucide-react";
+import axiosInstance from "../../../utils/axiosInstance";
 
 export function GlobalServicesTab({ onAddService }) {
-  const [searchTerm, setSearchTerm] = useState("")
+  const [searchTerm, setSearchTerm] = useState("");
+  const [globalServices, setGlobalServices] = useState([]);
+  const [message, setMessage] = useState(""); // New state for message
+  const [loading, setLoading] = useState(true);
 
-  const filteredServices = globalServices.filter((service) =>
-    service.name.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  useEffect(() => {
+    const fetchServices = async () => {
+      setLoading(true);
+      try {
+        const response = await axiosInstance.get("/workshop/services/list/", {
+          params: { search: searchTerm },
+        });
+        console.log("API Response:", response.data); // Debug response
+
+        const services = Array.isArray(response.data.admin_services_available)
+          ? response.data.admin_services_available
+          : [];
+        setGlobalServices(services);
+
+        // Check for the message in the API response
+        if (response.data.message) {
+          setMessage(response.data.message);
+        } else {
+          setMessage(""); // Clear the message if not present
+        }
+      } catch (error) {
+        console.error("Error fetching services:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchServices();
+  }, [searchTerm]);
+
+  const removeFromList = (id) => {
+    setGlobalServices((prevServices) =>
+      prevServices.filter((service) => service.id !== id)
+    );
+  };
 
   return (
     <div>
@@ -29,16 +66,32 @@ export function GlobalServicesTab({ onAddService }) {
           className="pl-10"
         />
       </div>
-      {filteredServices.length > 0 ? (
+      {loading ? (
+        <div className="text-center py-12">Loading...</div>
+      ) : globalServices.length > 0 ? (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {filteredServices.map((service) => (
-            <Card key={service.id} className="hover:shadow-lg transition-shadow duration-300">
+          {globalServices.map((service) => (
+            <Card
+              key={service.id}
+              className="hover:shadow-lg transition-shadow duration-300"
+            >
               <CardHeader>
                 <CardTitle>{service.name}</CardTitle>
                 <CardDescription>{service.description}</CardDescription>
+                <CardTitle>{service.base_price}</CardTitle>
               </CardHeader>
               <CardFooter>
-                <Button onClick={() => onAddService(service)} className="w-full">
+                <Button
+                  onClick={async () => {
+                    try {
+                      await onAddService(service); // Call the parent function to add the service
+                      removeFromList(service.id); // Immediately remove the service from the list
+                    } catch (error) {
+                      console.error("Error adding service:", error);
+                    }
+                  }}
+                  className="w-full"
+                >
                   Add Service
                 </Button>
               </CardFooter>
@@ -47,12 +100,11 @@ export function GlobalServicesTab({ onAddService }) {
         </div>
       ) : (
         <div className="text-center py-12">
-          <img src="/placeholder.svg" alt="No services found" className="mx-auto mb-4 w-48 h-48" />
-          <p className="text-xl font-semibold">No services found</p>
-          <p className="text-muted-foreground">Check back later for new services from the admin.</p>
+          {message || "No services found"}
         </div>
       )}
     </div>
-  )
+  );
 }
+
 

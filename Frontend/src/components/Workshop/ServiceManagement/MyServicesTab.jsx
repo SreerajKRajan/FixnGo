@@ -1,31 +1,37 @@
-import React, { useState } from "react"
+import React, { useEffect, useState } from "react"
+import axiosInstance from "@/utils/axiosInstance" // assuming you have axiosInstance setup
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/Table"
 import { Button } from "@/components/ui/Button"
 import { Badge } from "@/components/ui/Badge"
-import { Edit2, Trash2 } from 'lucide-react'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
-
-const initialServices = [
-  { id: "1", name: "Oil Change", type: "Global", status: "Approved" },
-  { id: "2", name: "Custom Detailing", type: "Custom", status: "Pending" },
-  { id: "3", name: "Engine Tuning", type: "Custom", status: "Rejected", rejectionReason: "Insufficient details provided" },
-]
 
 export function MyServicesTab() {
-  const [services, setServices] = useState(initialServices)
+  const [services, setServices] = useState([])
 
-  const handleDelete = (id) => {
-    setServices(services.filter((service) => service.id !== id))
+  useEffect(() => {
+    const fetchServices = async () => {
+      try {
+        const response = await axiosInstance.get("/workshop/services/list/") // adjust the URL
+        setServices(response.data.workshop_created_services)
+      } catch (error) {
+        console.error("Error fetching services:", error)
+      }
+    }
+    fetchServices()
+  }, [])
+
+  const toggleAvailability = async (id, isAvailable) => {
+    try {
+      const response = await axiosInstance.patch(`/workshop/services/${id}/availability/`, {
+        is_available: !isAvailable,
+      })
+      setServices((prevServices) =>
+        prevServices.map((service) =>
+          service.id === id ? { ...service, is_available: !isAvailable } : service
+        )
+      )
+    } catch (error) {
+      console.error("Error updating availability:", error)
+    }
   }
 
   return (
@@ -33,59 +39,42 @@ export function MyServicesTab() {
       <TableHeader>
         <TableRow>
           <TableHead>Service Name</TableHead>
-          <TableHead>Type</TableHead>
           <TableHead>Status</TableHead>
-          <TableHead className="text-right">Actions</TableHead>
+          <TableHead>Availability</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {services.map((service) => (
           <TableRow key={service.id}>
-            <TableCell className="font-medium">{service.name}</TableCell>
-            <TableCell>{service.type}</TableCell>
+            <TableCell>{service.name}</TableCell>
             <TableCell>
-              <Badge
-                variant={
-                  service.status === "Approved"
-                    ? "success"
-                    : service.status === "Pending"
-                    ? "warning"
-                    : "destructive"
-                }
-              >
-                {service.status}
-              </Badge>
-            </TableCell>
-            <TableCell className="text-right">
-              {service.type === "Custom" && (
-                <Button variant="ghost" size="sm" className="mr-2">
-                  <Edit2 className="h-4 w-4" />
-                </Button>
+              {service.is_approved ? (
+                <Badge variant="success">Approved</Badge>
+              ) : (
+                <div className="flex items-center">
+                  <div className="h-2 w-2 rounded-full bg-red-500 mr-2"></div>
+                  <span>Pending</span>
+                </div>
               )}
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="ghost" size="sm">
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This action cannot be undone. This will permanently delete the service from your list.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => handleDelete(service.id)}>Delete</AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+            </TableCell>
+            <TableCell>
+              {service.is_approved ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    toggleAvailability(service.id, service.is_available)
+                  }
+                >
+                  {service.is_available ? "Available" : "Unavailable"}
+                </Button>
+              ) : (
+                <span className="text-gray-500">Awaiting Approval</span>
+              )}
             </TableCell>
           </TableRow>
         ))}
       </TableBody>
     </Table>
-  )
+  );
 }
-

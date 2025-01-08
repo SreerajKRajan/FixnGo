@@ -7,7 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 
-const WorkshopServiceList = () => {
+const OldWorkshopServiceList = () => {
   const [services, setServices] = useState([]); // Workshop services
   const [adminServices, setAdminServices] = useState([]); // Admin services
   const [loading, setLoading] = useState(true);
@@ -281,4 +281,4 @@ const WorkshopServiceList = () => {
   );
 };
 
-export default WorkshopServiceList;
+export default OldWorkshopServiceList;
