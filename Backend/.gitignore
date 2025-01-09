@@ -9,6 +9,12 @@ __pycache__/
 # Virtual Environment
 env/
 
+# WSL virtual environment
+wsl_env/
+
+# related to redis
+dump.rdb
+
 # Django-specific files
 *.log
 *.pot

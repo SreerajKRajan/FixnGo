@@ -12,8 +12,7 @@ from django.core.mail import EmailMultiAlternatives
 from math import radians, sin, cos, sqrt, atan2
 from django.http import JsonResponse
 from workshop.models import Workshop
-
-
+from .tasks import send_otp_email
 
 # Create your views here.
 
@@ -24,7 +23,7 @@ class UserSignupView(APIView):
             user = serializer.save(is_verified=False)
 
             otp_code = random.randint(1000, 9999)
-            otp = Otp.objects.create(user=user,otp_code=otp_code)
+            otp = Otp.objects.create(user=user, otp_code=otp_code)
 
             subject = "Your FixnGo OTP Code"
             text_content = f"""
@@ -73,18 +72,9 @@ class UserSignupView(APIView):
             </html>
             """
 
-            # Create email message
-            email = EmailMultiAlternatives(
-                subject=subject,
-                body=text_content,  # Plain text content as fallback
-                from_email="FixnGo Team <sreerajkrajan03@gmail.com>",
-                to=[user.email],  # Recipient's email
-            )
+            # Call the Celery task for sending the email
+            send_otp_email.delay(subject, text_content, html_content, user.email)
 
-            # Attach HTML content
-            email.attach_alternative(html_content, "text/html")
-            email.send()
-            
             return Response({"message": "User created successfully. An OTP has been sent to your email for verification.", "email": user.email}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     

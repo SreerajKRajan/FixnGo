@@ -7,7 +7,6 @@ from .models import Workshop, WorkshopOtp, WorkshopService
 from datetime import timedelta
 from django.utils import timezone
 import random
-from django.core.mail import EmailMultiAlternatives
 from .tokens import WorkshopToken
 from utils.s3_utils import upload_to_s3
 from .authentication import WorkshopJWTAuthentication
@@ -15,6 +14,7 @@ from .permissions import IsWorkshopUser
 from service.models import Service
 from itertools import chain
 from service.serializers import ServiceSerializer
+from users.tasks import send_otp_email
 
 
 class WorkshopSignupView(APIView):
@@ -91,17 +91,8 @@ class WorkshopSignupView(APIView):
             </html>
             """
 
-            # Create email message
-            email = EmailMultiAlternatives(
-                subject=subject,
-                body=text_content,  # Plain text content as fallback
-                from_email="FixnGo Team <sreerajkrajan03@gmail.com>",
-                to=[workshop.email],  # Recipient's email
-            )
-
-            # Attach HTML content
-            email.attach_alternative(html_content, "text/html")
-            email.send()
+            # Call the Celery task to send OTP email
+            send_otp_email.delay(subject, text_content, html_content, workshop.email)
 
             return Response({
                 "message": "Workshop created successfully. An OTP has been sent to your email for verification. "
@@ -109,7 +100,6 @@ class WorkshopSignupView(APIView):
                 "email": workshop.email,
             }, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
 
 
 
