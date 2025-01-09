@@ -15,6 +15,9 @@ from service.models import Service
 from itertools import chain
 from service.serializers import ServiceSerializer
 from users.tasks import send_otp_email
+from django.utils.encoding import force_bytes
+from django.utils.http import urlsafe_base64_encode
+from django.contrib.auth.tokens import default_token_generator
 
 
 class WorkshopSignupView(APIView):
@@ -166,6 +169,55 @@ class WorkshopLogoutView(APIView):
             token.blacklist()
             return Response({"message": "Logout successful"}, status=status.HTTP_205_RESET_CONTENT)
         return Response({"error": "No refresh token provided"}, status=status.HTTP_400_BAD_REQUEST)
+    
+    
+class WorkshopForgotPasswordView(APIView):
+    def post(self, request):
+        email = request.data.get("email")
+        try:
+            workshop = Workshop.objects.get(email=email)
+        except Workshop.DoesNotExist:
+            return Response({"error": "Workshop with this email does not exist."}, status=status.HTTP_404_NOT_FOUND)
+
+        # Generate password reset token and URL
+        token = default_token_generator.make_token(workshop)
+        uid = urlsafe_base64_encode(force_bytes(workshop.pk))
+        reset_url = f"{request.build_absolute_uri('/reset-password/')}{uid}/{token}/"
+
+        # Email content
+        subject = "FixnGo Workshop Password Reset Request"
+        text_content = f"""
+        Hello {workshop.name},
+
+        We received a request to reset your password for your FixnGo workshop account.
+
+        You can reset your password using the link below:
+        {reset_url}
+
+        If you did not request this, please ignore this email.
+
+        Best regards,
+        The FixnGo Team
+        """
+        html_content = f"""
+        <html>
+            <body>
+                <h2>Workshop Password Reset Request</h2>
+                <p>Hello <strong>{workshop.name}</strong>,</p>
+                <p>We received a request to reset your password for your FixnGo workshop account.</p>
+                <p>You can reset your password using the link below:</p>
+                <a href="{reset_url}" style="background-color: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Reset Password</a>
+                <p>If you did not request this, please ignore this email.</p>
+                <p>Best regards,</p>
+                <p>The FixnGo Team</p>
+            </body>
+        </html>
+        """
+
+        # Trigger Celery task
+        send_otp_email.delay(subject, text_content, html_content, workshop.email)
+
+        return Response({"message": "Password reset email sent successfully."}, status=status.HTTP_200_OK)
     
     
 class WorkshopServiceCreateAPIView(APIView):

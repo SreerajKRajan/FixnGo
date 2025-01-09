@@ -2,23 +2,25 @@ import React, { useState } from "react";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
-import { Link, useNavigate } from "react-router-dom";
-import { useDispatch, useSelector } from "react-redux";
-import { userLogin } from "../../store/userAuthSlice";
 import { toast } from "sonner"; // Import Sonner
+import { useNavigate, useParams } from "react-router-dom";
+import { useDispatch } from "react-redux";
+import { resetPassword } from "../../store/userAuthSlice"; // Replace with your actual action
 
-const LoginSchema = Yup.object().shape({
-  email: Yup.string().email("Invalid email").required("Email is required"),
+const NewPasswordSchema = Yup.object().shape({
   password: Yup.string()
     .min(6, "Password must be at least 6 characters")
     .required("Password is required"),
+  confirmPassword: Yup.string()
+    .oneOf([Yup.ref("password"), null], "Passwords must match")
+    .required("Confirm Password is required"),
 });
 
-export default function UserLogin() {
+export default function UserCreateNewPassword() {
   const [showPassword, setShowPassword] = useState(false);
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { loading, error } = useSelector((state) => state.userAuth);
+  const { uidb64, token } = useParams(); // Assume token is passed via URL
 
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
@@ -26,20 +28,15 @@ export default function UserLogin() {
 
   const handleSubmit = async (values, { setSubmitting }) => {
     try {
-      const response = await dispatch(userLogin(values)).unwrap();
-      toast.success("Login successful!");
-      navigate("/home");
+      const response = await dispatch(
+        resetPassword({ uidb64, token, password: values.password, confirmPassword: values.confirmPassword })
+      ).unwrap();
+      toast.success("Password reset successful!");
+      navigate("/login");
     } catch (error) {
-      console.error("Login failed:", error);
-
-      // Extract meaningful error message
+      console.error("Password reset failed:", error);
       const errorMessage =
-        error?.non_field_errors?.[0] ||
-        error?.error ||
-        error?.detail ||
-        (typeof error === "string" ? error : "Login failed. Please try again.");
-
-      // Show error message using toast
+        error?.error || error?.detail || "Failed to reset password. Try again.";
       toast.error(errorMessage);
     } finally {
       setSubmitting(false);
@@ -52,52 +49,29 @@ export default function UserLogin() {
         <div className="bg-white py-4 px-5 shadow sm:rounded-lg">
           <div className="sm:mx-auto sm:w-full sm:max-w-xs">
             <h2 className="mt-2 text-center text-2xl font-bold text-gray-900">
-              Welcome Back
+              Reset Your Password
             </h2>
             <p className="mt-2 text-center text-xs text-gray-600">
-              Log in to access your FixNgo account
+              Create a new password for your FixNgo account
             </p>
           </div>
 
           <Formik
             initialValues={{
-              email: "",
               password: "",
+              confirmPassword: "",
             }}
-            validationSchema={LoginSchema}
+            validationSchema={NewPasswordSchema}
             onSubmit={handleSubmit}
           >
             {({ isSubmitting }) => (
               <Form className="mt-4 space-y-4">
                 <div>
                   <label
-                    htmlFor="email"
-                    className="block text-xs font-medium text-gray-700"
-                  >
-                    Email address
-                  </label>
-                  <div className="mt-1">
-                    <Field
-                      type="email"
-                      name="email"
-                      id="email"
-                      className="appearance-none block w-full px-2 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-black focus:border-black sm:text-xs"
-                      placeholder="you@example.com"
-                    />
-                  </div>
-                  <ErrorMessage
-                    name="email"
-                    component="div"
-                    className="mt-1 text-xs text-red-600"
-                  />
-                </div>
-
-                <div>
-                  <label
                     htmlFor="password"
                     className="block text-xs font-medium text-gray-700"
                   >
-                    Password
+                    New Password
                   </label>
                   <div className="mt-1 relative">
                     <Field
@@ -131,39 +105,42 @@ export default function UserLogin() {
                     className="mt-1 text-xs text-red-600"
                   />
                 </div>
-                <div className="text-right mt-1">
-                  <Link
-                    to="/forgot-password"
-                    className="text-xs text-black hover:text-gray-800 font-medium"
+
+                <div>
+                  <label
+                    htmlFor="confirmPassword"
+                    className="block text-xs font-medium text-gray-700"
                   >
-                    Forgot Password?
-                  </Link>
+                    Confirm New Password
+                  </label>
+                  <div className="mt-1">
+                    <Field
+                      type="password"
+                      name="confirmPassword"
+                      id="confirmPassword"
+                      className="appearance-none block w-full px-2 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-black focus:border-black sm:text-xs"
+                      placeholder="••••••••"
+                    />
+                  </div>
+                  <ErrorMessage
+                    name="confirmPassword"
+                    component="div"
+                    className="mt-1 text-xs text-red-600"
+                  />
                 </div>
 
                 <div>
                   <button
                     type="submit"
-                    disabled={isSubmitting || loading}
+                    disabled={isSubmitting}
                     className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-xs font-medium text-white bg-black hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black transition duration-150 ease-in-out"
                   >
-                    {loading ? "Logging in..." : "Log in"}
+                    {isSubmitting ? "Saving..." : "Save Password"}
                   </button>
                 </div>
               </Form>
             )}
           </Formik>
-
-          <div className="mt-4">
-            <p className="text-center text-xs text-gray-600">
-              Don’t have an account?{" "}
-              <Link
-                to={"/signup"}
-                className="font-medium text-black hover:text-gray-800"
-              >
-                Sign up
-              </Link>
-            </p>
-          </div>
         </div>
       </div>
     </div>

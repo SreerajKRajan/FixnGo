@@ -14,6 +14,8 @@ import WorkshopHomePage from "./components/Workshop/WorkshopHomePage";
 import NotFound from "./components/NotFound";
 import UserProfile from "./components/User/UserProfile";
 import WorkshopServiceManagement from "./components/Workshop/ServiceManagement/WorkshopServiceManagement";
+import UserForgotPassword from "./components/User/UserForgotPassword";
+import UserCreateNewPassword from "./components/User/UserCreateNewPassword";
 
 function App() {
   return (
@@ -26,6 +28,22 @@ function App() {
             element={
               <PublicRoute>
                 <UserLogin />
+              </PublicRoute>
+            }
+          />
+          <Route
+            path="/forgot-password"
+            element={
+              <PublicRoute>
+                <UserForgotPassword />
+              </PublicRoute>
+            }
+          />
+          <Route
+            path="/reset-password/:uidb64/:token"
+            element={
+              <PublicRoute>
+                <UserCreateNewPassword />
               </PublicRoute>
             }
           />

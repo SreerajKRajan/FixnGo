@@ -8,11 +8,15 @@ from django.utils import timezone
 from .models import User, Otp
 from datetime import timedelta
 from utils.s3_utils import upload_to_s3
-from django.core.mail import EmailMultiAlternatives
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.http import urlsafe_base64_encode
+from django.utils.encoding import force_bytes
 from math import radians, sin, cos, sqrt, atan2
 from django.http import JsonResponse
 from workshop.models import Workshop
 from .tasks import send_otp_email
+from django.utils.http import urlsafe_base64_decode
+
 
 # Create your views here.
 
@@ -139,6 +143,83 @@ class UserLogoutView(APIView):
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         
         
+class UserForgotPasswordView(APIView):
+    def post(self, request):
+        email = request.data.get("email")
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            return Response({"error": "User with this email does not exist."}, status=status.HTTP_404_NOT_FOUND)
+
+        # Generate password reset token and URL
+        token = default_token_generator.make_token(user)
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+        reset_url = f"{request.build_absolute_uri('http://localhost:5173/reset-password/')}{uid}/{token}/"
+
+        # Email content
+        subject = "FixnGo Password Reset Request"
+        text_content = f"""
+        Hello {user.username},
+
+        We received a request to reset your password for your FixnGo account.
+
+        You can reset your password using the link below:
+        {reset_url}
+
+        If you did not request this, please ignore this email.
+
+        Best regards,
+        The FixnGo Team
+        """
+        html_content = f"""
+        <html>
+            <body>
+                <h2>Password Reset Request</h2>
+                <p>Hello <strong>{user.username}</strong>,</p>
+                <p>We received a request to reset your password for your FixnGo account.</p>
+                <p>You can reset your password using the link below:</p>
+                <a href="{reset_url}" style="background-color: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Reset Password</a>
+                <p>If you did not request this, please ignore this email.</p>
+                <p>Best regards,</p>
+                <p>The FixnGo Team</p>
+            </body>
+        </html>
+        """
+
+        # Trigger Celery task
+        send_otp_email.delay(subject, text_content, html_content, user.email)
+
+        return Response({"message": "Password reset email sent successfully."}, status=status.HTTP_200_OK)
+    
+        
+class ResetPasswordView(APIView):
+    def post(self, request, uidb64, token):
+        try:
+            # Decode the user ID
+            uid = urlsafe_base64_decode(uidb64).decode()
+            user = User.objects.get(pk=uid)
+        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+            return Response({"error": "Invalid user ID."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Validate the token
+        if not default_token_generator.check_token(user, token):
+            return Response({"error": "Invalid or expired token."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Get the new password from the request
+        new_password = request.data.get("password")
+        confirm_password = request.data.get("confirm_password")
+
+        if not new_password or not confirm_password:
+            return Response({"error": "Password fields are required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if new_password != confirm_password:
+            return Response({"error": "Passwords do not match."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Update the password
+        user.set_password(new_password)
+        user.save()
+
+        return Response({"message": "Password reset successfully."}, status=status.HTTP_200_OK)
 
 class UserProfileView(APIView):
     permission_classes = [permissions.IsAuthenticated]
