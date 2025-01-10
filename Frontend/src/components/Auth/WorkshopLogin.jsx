@@ -33,8 +33,7 @@ export default function WorkshopLogin() {
       console.error("Login failed:", err);
 
       // Safely extract error message from the backend response
-      const errorMessage =
-        err?.error || err?.message || "Login failed";
+      const errorMessage = err?.error || err?.message || "Login failed";
       console.log("errormessage", errorMessage);
 
       toast.error(errorMessage); // Display the specific error message
@@ -127,6 +126,14 @@ export default function WorkshopLogin() {
                     component="div"
                     className="mt-1 text-xs text-red-600"
                   />
+                </div>
+                <div className="text-right mt-1">
+                  <Link
+                    to="/workshop/forgot-password"
+                    className="text-xs text-black hover:text-gray-800 font-medium"
+                  >
+                    Forgot Password?
+                  </Link>
                 </div>
 
                 <div>

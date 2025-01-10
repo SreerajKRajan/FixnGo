@@ -13,24 +13,26 @@ export function AllServicesTab() {
       try {
         const response = await axiosInstance.get("/workshop/services/list/");
         const {
-          admin_services_added,
-          workshop_created_services,
+          admin_services_available = [],
+          admin_services_added = [],
+          workshop_services_approved = [],
+          workshop_services_pending = [],
         } = response.data;
-
-        // Combine services into one array with a flag for their source and availability
+  
+        // Combine all services into one array with source and status
         const allServices = [
           ...admin_services_added.map((service) => ({
             ...service,
             source: "Admin",
-            isAvailable: service.is_available, // Use the backend-provided status
+            isAvailable: service.is_available,
           })),
-          ...workshop_created_services.map((service) => ({
+          ...workshop_services_approved.map((service) => ({
             ...service,
             source: "Custom",
-            isAvailable: service.is_available, // Use the backend-provided status
+            isAvailable: service.is_available,
           })),
         ];
-
+  
         setServices(allServices);
       } catch (error) {
         console.error("Error fetching services:", error);
@@ -38,9 +40,11 @@ export function AllServicesTab() {
         setLoading(false);
       }
     };
-
+  
     fetchServices();
   }, []);
+  
+  
 
   const toggleAvailability = async (id, isAvailable) => {
     try {
@@ -66,7 +70,6 @@ export function AllServicesTab() {
   if (services.length === 0) {
     return (
       <div className="text-center py-12">
-        <img src="/placeholder.svg" alt="No services found" className="mx-auto mb-4 w-48 h-48" />
         <p className="text-xl font-semibold">No services to display</p>
         <p className="text-muted-foreground">Start by adding or adopting services!</p>
       </div>
@@ -100,7 +103,7 @@ export function AllServicesTab() {
             <Switch
               checked={service.isAvailable}
               onCheckedChange={() => toggleAvailability(service.id, service.isAvailable)}
-              disabled={service.source === "Admin"}
+              // disabled={service.source === "Admin"}
             />
           </CardFooter>
         </Card>

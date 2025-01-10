@@ -44,6 +44,41 @@ export const workshopLogin = createAsyncThunk(
   }
 );
 
+export const forgotWorkshopPassword = createAsyncThunk(
+  "workshopAuth/forgotWorkshopPassword",
+  async (email, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.post("/workshop/forgot-password/", {
+        email,
+      });
+      return response.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data || "Error sending reset link");
+    }
+  }
+);
+
+export const workshopResetPassword = createAsyncThunk(
+  "workshopAuth/resetPassword",
+  async ({ uidb64, token, password, confirmPassword }, { rejectWithValue }) => {
+    console.log("Password:", password, "Confirm Password:", confirmPassword);
+    try {
+      const response = await axiosInstance.post(
+        `/workshop/reset-password/${uidb64}/${token}/`,
+        {
+          password: password,
+          confirm_password: confirmPassword,
+        }
+      );
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data || "Failed to reset workshop password. Try again."
+      );
+    }
+  }
+);
+
 const initialState = {
     workshop: (() => {
       const storedWorkshop = localStorage.getItem("workshop");
@@ -57,6 +92,7 @@ const initialState = {
     email: localStorage.getItem("workshopEmail") || null,
     error: null,
     loading: false,
+    successMessage: null,
   };
   
 const workshopAuthSlice = createSlice({
@@ -70,6 +106,10 @@ const workshopAuthSlice = createSlice({
       localStorage.removeItem("workshopToken");
       localStorage.removeItem("workshop");
       localStorage.removeItem("workshopEmail");
+    },
+    clearMessages: (state) => {
+      state.error = null;
+      state.successMessage = null;
     },
   },
   extraReducers: (builder) => {
@@ -137,10 +177,24 @@ const workshopAuthSlice = createSlice({
           action.payload?.error ||
           action.payload?.message || // Check alternative field if backend uses `message`
           "Login failed";
+      })
+      .addCase(workshopResetPassword.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(workshopResetPassword.fulfilled, (state, action) => {
+        state.loading = false;
+        state.successMessage =
+          action.payload.message || "Password reset successful!";
+        state.error = null;
+      })
+      .addCase(workshopResetPassword.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || "Workshop password reset failed.";
       });
       
   },
 });
 
-export const { logout } = workshopAuthSlice.actions;
+export const { logout, clearMessages } = workshopAuthSlice.actions;
 export default workshopAuthSlice.reducer;

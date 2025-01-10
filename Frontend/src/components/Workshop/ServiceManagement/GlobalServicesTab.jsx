@@ -100,11 +100,14 @@ export function GlobalServicesTab({ onAddService }) {
         </div>
       ) : (
         <div className="text-center py-12">
-          {message || "No services found"}
+          <p className="text-xl font-semibold">
+            No services available at the moment
+          </p>
+          <p className="text-muted-foreground">
+            Explore the opportunity to create your own services
+          </p>
         </div>
       )}
     </div>
   );
 }
-
-

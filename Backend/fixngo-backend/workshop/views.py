@@ -18,6 +18,7 @@ from users.tasks import send_otp_email
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 from django.contrib.auth.tokens import default_token_generator
+from django.utils.http import urlsafe_base64_decode
 
 
 class WorkshopSignupView(APIView):
@@ -182,7 +183,7 @@ class WorkshopForgotPasswordView(APIView):
         # Generate password reset token and URL
         token = default_token_generator.make_token(workshop)
         uid = urlsafe_base64_encode(force_bytes(workshop.pk))
-        reset_url = f"{request.build_absolute_uri('/reset-password/')}{uid}/{token}/"
+        reset_url = f"{request.build_absolute_uri('http://localhost:5173/workshop/reset-password/')}{uid}/{token}/"
 
         # Email content
         subject = "FixnGo Workshop Password Reset Request"
@@ -218,6 +219,37 @@ class WorkshopForgotPasswordView(APIView):
         send_otp_email.delay(subject, text_content, html_content, workshop.email)
 
         return Response({"message": "Password reset email sent successfully."}, status=status.HTTP_200_OK)
+
+
+class WorkshopResetPasswordView(APIView):
+    def post(self, request, uidb64, token):
+        try:
+            # Decode the workshop ID
+            uid = urlsafe_base64_decode(uidb64).decode()
+            workshop = Workshop.objects.get(pk=uid)  # Adjust to your Workshop model
+        except (TypeError, ValueError, OverflowError, Workshop.DoesNotExist):
+            return Response({"error": "Invalid workshop ID."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Validate the token
+        if not default_token_generator.check_token(workshop, token):
+            return Response({"error": "Invalid or expired token."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Get the new password from the request
+        new_password = request.data.get("password")
+        confirm_password = request.data.get("confirm_password")
+
+        if not new_password or not confirm_password:
+            return Response({"error": "Password fields are required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if new_password != confirm_password:
+            return Response({"error": "Passwords do not match."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Update the password
+        workshop.set_password(new_password)  # Assuming Workshop uses the same auth methods as User
+        workshop.save()
+
+        return Response({"message": "Password reset successfully."}, status=status.HTTP_200_OK)
+
     
     
 class WorkshopServiceCreateAPIView(APIView):
@@ -274,18 +306,18 @@ class WorkshopServiceCreateAPIView(APIView):
 class WorkshopServiceListAPIView(APIView):
     authentication_classes = [WorkshopJWTAuthentication]
     permission_classes = [IsWorkshopUser]
-    
+
     def get(self, request):
         workshop = request.user
-        search_query = request.query_params.get('search', '').lower()
+        search_query = request.query_params.get("search", "").lower()
 
         # Admin services available to add (status = 'available')
         admin_services_available = Service.objects.filter(
-            status='available'
+            status="available"
         ).exclude(
             id__in=WorkshopService.objects.filter(
                 workshop=workshop, admin_service__isnull=False
-            ).values_list('admin_service_id', flat=True)
+            ).values_list("admin_service_id", flat=True)
         )
 
         if search_query:
@@ -295,22 +327,32 @@ class WorkshopServiceListAPIView(APIView):
 
         # Admin services already added by workshop
         admin_services_added = WorkshopService.objects.filter(
-            workshop=workshop, service_type='admin'
+            workshop=workshop, service_type="admin"
         )
         admin_services_added_serialized = WorkshopServiceSerializer(admin_services_added, many=True).data
 
-        # Workshop-created services with approval status
-        workshop_created_services = WorkshopService.objects.filter(
-            workshop=workshop, service_type='workshop'
+        # Custom workshop services (approved and pending separately)
+        workshop_services_approved = WorkshopService.objects.filter(
+            workshop=workshop, service_type="workshop", is_approved=True
         )
-        workshop_created_services_serialized = WorkshopServiceSerializer(workshop_created_services, many=True).data
+        workshop_services_pending = WorkshopService.objects.filter(
+            workshop=workshop, service_type="workshop", is_approved=False
+        )
 
-        return Response({
-            "message": "All global services have been added.",
-            "admin_services_available": admin_services_available_serialized,
-            "admin_services_added": admin_services_added_serialized,
-            "workshop_created_services": workshop_created_services_serialized,
-        }, status=status.HTTP_200_OK)
+        workshop_services_approved_serialized = WorkshopServiceSerializer(workshop_services_approved, many=True).data
+        workshop_services_pending_serialized = WorkshopServiceSerializer(workshop_services_pending, many=True).data
+
+        return Response(
+            {
+                "message": "All services retrieved successfully.",
+                "admin_services_available": admin_services_available_serialized,
+                "admin_services_added": admin_services_added_serialized,
+                "workshop_services_approved": workshop_services_approved_serialized,
+                "workshop_services_pending": workshop_services_pending_serialized,
+            },
+            status=status.HTTP_200_OK,
+        )
+
 
 
 class WorkshopServiceAvailabilityUpdateAPIView(APIView):
@@ -319,18 +361,29 @@ class WorkshopServiceAvailabilityUpdateAPIView(APIView):
 
     def patch(self, request, pk):
         try:
+            # Fetch the service associated with the workshop
             service = WorkshopService.objects.get(id=pk, workshop=request.user)
             is_available = request.data.get("is_available")
+            
+            # Update service availability if valid data is provided
             if is_available is not None:
                 service.is_available = is_available
                 service.save()
+
+                # Serialize the updated service data
+                updated_service_data = WorkshopServiceSerializer(service).data
+
                 return Response({
                     "message": "Service availability updated successfully.",
-                    "service": WorkshopServiceSerializer(service).data,
+                    "service": updated_service_data,  # Return only the updated service
                 }, status=status.HTTP_200_OK)
+
             return Response({"error": "Invalid data."}, status=status.HTTP_400_BAD_REQUEST)
+
         except WorkshopService.DoesNotExist:
             return Response({"error": "Service not found."}, status=status.HTTP_404_NOT_FOUND)
+
+
 
 
 

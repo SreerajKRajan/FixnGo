@@ -108,53 +108,54 @@ export function ServiceList() {
         <p>No services found.</p>
       ) : (
         <table className="w-full border-collapse border border-gray-200 text-center">
-          <thead>
-            <tr>
-              <th className="border border-gray-200 p-2">Name</th>
-              <th className="border border-gray-200 p-2">Description</th>
-              <th className="border border-gray-200 p-2">Base Price</th>
-              <th className="border border-gray-200 p-2">Status</th>
-              <th className="border border-gray-200 p-2">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {services.map((service) => (
-              <tr key={service.id}>
-                <td className="border border-gray-200 p-2">{service.name}</td>
-                <td className="border border-gray-200 p-2">
-                  {service.description}
-                </td>
-                <td className="border border-gray-200 p-2">
-                  ₹{service.base_price}
-                </td>
-                <td className="border border-gray-200 p-2">
-                  {service.status.charAt(0).toUpperCase() +
-                    service.status.slice(1)}
-                </td>
-                <td className="border border-gray-200 p-2">
-                  <Button
+        <thead className="bg-gray-100">
+          <tr>
+            <th className="border border-gray-200 p-2">Name</th>
+            <th className="border border-gray-200 p-2">Description</th>
+            <th className="border border-gray-200 p-2">Base Price</th>
+            <th className="border border-gray-200 p-2">Status</th>
+            <th className="border border-gray-200 p-2">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {services.map((service) => (
+            <tr key={service.id} className="hover:bg-gray-50">
+              <td className="border border-gray-200 p-2">{service.name}</td>
+              <td
+                className="border border-gray-200 p-2 max-w-sm whitespace-normal break-words"
+              >
+                {service.description}
+              </td>
+              <td className="border border-gray-200 p-2">₹{service.base_price}</td>
+              <td className="border border-gray-200 p-2 capitalize">
+                {service.status}
+              </td>
+              <td className="border border-gray-200 p-2">
+                <div className="flex flex-col sm:flex-row justify-center items-center gap-2">
+                  <button
                     onClick={() => handleEditService(service)}
-                    className="mr-2 bg-blue-500 text-white px-2 py-1 rounded-md"
+                    className="bg-blue-500 text-white px-3 py-1 rounded-md hover:bg-blue-600 transition duration-200"
                   >
                     Edit
-                  </Button>
-                  <Button
+                  </button>
+                  <button
                     onClick={() => toggleServiceStatus(service)}
-                    className={`${
+                    className={`px-3 py-1 rounded-md text-white transition duration-200 ${
                       service.status === "available"
-                        ? "bg-red-500"
-                        : "bg-green-500"
-                    } text-white px-2 py-1 rounded-md`}
+                        ? "bg-red-500 hover:bg-red-600"
+                        : "bg-green-500 hover:bg-green-600"
+                    }`}
                   >
                     {service.status === "available"
                       ? "Mark Unavailable"
                       : "Mark Available"}
-                  </Button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>      
       )}
       {isModalOpen && (
         <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>

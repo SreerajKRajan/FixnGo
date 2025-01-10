@@ -19,7 +19,7 @@ export function WorkshopServiceList() {
     const fetchWorkshops = async () => {
       try {
         const response = await axiosInstance.get(
-          "/service/workshops-with-pending-services/",
+          "/service/workshop-services/pending/",
           {
             headers: {
               Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
@@ -40,7 +40,7 @@ export function WorkshopServiceList() {
   const fetchServicesForWorkshop = async (workshopId) => {
     try {
       const response = await axiosInstance.get(
-        `/service/workshop-services/pending/${workshopId}/`,
+        `/service/workshops-with-pending-services/${workshopId}/`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
@@ -88,9 +88,7 @@ export function WorkshopServiceList() {
         },
         data: { rejection_reason: reason }, // Send the rejection reason
       });
-      setServices((prev) =>
-        prev.filter((s) => s.id !== selectedService.id)
-      ); // Remove rejected service
+      setServices((prev) => prev.filter((s) => s.id !== selectedService.id)); // Remove rejected service
       setIsModalOpen(false);
       toast.success("Service rejected successfully.");
     } catch (error) {
@@ -98,7 +96,6 @@ export function WorkshopServiceList() {
       toast.error("Failed to reject service. Please try again.");
     }
   };
-  
 
   return (
     <div>
@@ -138,7 +135,7 @@ export function WorkshopServiceList() {
           ) : (
             <table className="w-full border-collapse border border-gray-200 text-center">
               <thead>
-                <tr>
+                <tr className="bg-gray-100">
                   <th className="border border-gray-200 p-2">Name</th>
                   <th className="border border-gray-200 p-2">Description</th>
                   <th className="border border-gray-200 p-2">Base Price</th>
@@ -147,32 +144,34 @@ export function WorkshopServiceList() {
               </thead>
               <tbody>
                 {services.map((service) => (
-                  <tr key={service.id}>
+                  <tr key={service.id} className="hover:bg-gray-50">
                     <td className="border border-gray-200 p-2">
                       {service.name}
                     </td>
-                    <td className="border border-gray-200 p-2">
+                    <td className="border border-gray-200 p-2 max-w-xs whitespace-normal break-words">
                       {service.description}
                     </td>
                     <td className="border border-gray-200 p-2">
                       ₹{service.base_price}
                     </td>
                     <td className="border border-gray-200 p-2">
-                      <Button
-                        onClick={() => approveService(service.id)}
-                        className="mr-2 bg-green-500 text-white px-2 py-1 rounded-md"
-                      >
-                        Approve
-                      </Button>
-                      <Button
-                        onClick={() => {
-                          setSelectedService(service);
-                          setIsModalOpen(true);
-                        }}
-                        className="bg-red-500 text-white px-2 py-1 rounded-md"
-                      >
-                        Reject
-                      </Button>
+                      <div className="flex justify-center gap-2">
+                        <button
+                          onClick={() => approveService(service.id)}
+                          className="bg-green-500 text-white px-3 py-1 rounded-md hover:bg-green-600 transition duration-200"
+                        >
+                          Approve
+                        </button>
+                        <button
+                          onClick={() => {
+                            setSelectedService(service);
+                            setIsModalOpen(true);
+                          }}
+                          className="bg-red-500 text-white px-3 py-1 rounded-md hover:bg-red-600 transition duration-200"
+                        >
+                          Reject
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

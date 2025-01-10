@@ -7,6 +7,6 @@ urlpatterns = [
     path('services/<int:pk>/', ServiceDetailAPIView.as_view(), name='service-detail'),
     path('workshop/<int:pk>/approve/', AdminApproveWorkshopServiceAPIView.as_view(), name='admin-service-approve'),
     path('workshop/<int:pk>/reject/', AdminApproveWorkshopServiceAPIView.as_view(), name='admin-service-reject'),
-    path('workshop-services/pending/<int:workshop_id>/', PendingWorkshopServicesAPIView.as_view(), name='pending-workshop-services'),
-    path('workshops-with-pending-services/', WorkshopsWithPendingServicesAPIView.as_view(), name='workshops-with-pending-services'),
+    path('workshops-with-pending-services/<int:workshop_id>/', WorkshopsWithPendingServicesAPIView.as_view(), name='workshops-with-pending-services'),
+    path('workshop-services/pending/', PendingWorkshopServicesAPIView.as_view(), name='pending-workshop-services'),
 ]

@@ -45,7 +45,7 @@ class ServiceDetailAPIView(APIView):
         service.save()
         return Response({"message": f"Service marked as {service.status}."}, status=status.HTTP_200_OK)
     
-class WorkshopsWithPendingServicesAPIView(APIView):
+class PendingWorkshopServicesAPIView(APIView):
     permission_classes = [IsAdminUser]
 
     def get(self, request):
@@ -56,7 +56,7 @@ class WorkshopsWithPendingServicesAPIView(APIView):
         )
         return Response(workshops, status=status.HTTP_200_OK)
     
-class PendingWorkshopServicesAPIView(APIView):
+class WorkshopsWithPendingServicesAPIView(APIView):
     permission_classes = [IsAdminUser]
 
     def get(self, request, workshop_id):
@@ -65,11 +65,13 @@ class PendingWorkshopServicesAPIView(APIView):
         except Workshop.DoesNotExist:
             return Response({"error": "Workshop not found"}, status=status.HTTP_404_NOT_FOUND)
 
+        # Filter custom services of the workshop that are pending approval
         pending_services = WorkshopService.objects.filter(
-            workshop=workshop, is_approved=False
+            workshop=workshop, is_approved=False, admin_service_id__isnull=True
         )
         serializer = WorkshopServiceSerializer(pending_services, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
 
 
     
