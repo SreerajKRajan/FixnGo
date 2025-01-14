@@ -6,12 +6,22 @@ from .serializers import ServiceSerializer
 from workshop.serializers import WorkshopServiceSerializer
 from workshop.models import WorkshopService, Workshop
 from rest_framework.permissions import IsAdminUser
+from rest_framework.pagination import PageNumberPagination
+
+
+class ServicePagination(PageNumberPagination):
+    page_size = 5  # Number of items per page
+    page_size_query_param = 'limit'  # Allows clients to override the page size
+    max_page_size = 100  # Max number of items per page
+
 
 class ServiceListCreateAPIView(APIView):
     def get(self, request):
-        services = Service.objects.all()
-        serializer = ServiceSerializer(services, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        services = Service.objects.order_by("-created_at")
+        paginator = ServicePagination()
+        result_page = paginator.paginate_queryset(services, request)
+        serializer = ServiceSerializer(result_page, many=True)
+        return paginator.get_paginated_response(serializer.data)
 
     def post(self, request):
         serializer = ServiceSerializer(data=request.data)
@@ -68,7 +78,7 @@ class WorkshopsWithPendingServicesAPIView(APIView):
         # Filter custom services of the workshop that are pending approval
         pending_services = WorkshopService.objects.filter(
             workshop=workshop, is_approved=False, admin_service_id__isnull=True
-        )
+        ).order_by("-created_at")
         serializer = WorkshopServiceSerializer(pending_services, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 

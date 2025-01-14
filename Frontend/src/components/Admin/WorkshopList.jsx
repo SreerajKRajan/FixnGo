@@ -1,13 +1,18 @@
 import React, { useEffect, useState } from "react";
 import {
   Table,
-  TableBody,
-  TableCell,
-  TableHead,
   TableHeader,
+  TableColumn,
+  TableBody,
   TableRow,
-} from "../ui/Table";
-import { Button } from "../ui/button";
+  TableCell,
+  Button,
+  Dropdown,
+  DropdownTrigger,
+  DropdownMenu,
+  DropdownItem,
+  Chip,
+} from "@nextui-org/react";
 import axiosInstance from "../../utils/axiosInstance";
 import { toast } from "sonner";
 import { Modal, ModalHeader, ModalBody, ModalFooter } from "../ui/Modal";
@@ -19,7 +24,6 @@ export function WorkshopList() {
   const [selectedWorkshop, setSelectedWorkshop] = useState(null);
   const [rejectReason, setRejectReason] = useState("");
 
-  // Fetch workshops from backend
   useEffect(() => {
     const fetchWorkshops = async () => {
       try {
@@ -79,13 +83,10 @@ export function WorkshopList() {
 
   const rejectWorkshop = async (workshopId, reason) => {
     try {
-      const response = await axiosInstance.post(
-        "/admin_side/reject-workshop/",
-        {
-          workshop_id: workshopId,
-          rejection_reason: reason,
-        }
-      );
+      await axiosInstance.post("/admin_side/reject-workshop/", {
+        workshop_id: workshopId,
+        rejection_reason: reason,
+      });
       setWorkshops((prev) =>
         prev.map((workshop) =>
           workshop.id === workshopId
@@ -142,86 +143,105 @@ export function WorkshopList() {
   }
 
   return (
-    <div>
-      <h2 className="text-2xl font-bold mb-4">Workshop List</h2>
-      <div className="overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Location</TableHead>
-              <TableHead>Document</TableHead>
-              <TableHead>Approval</TableHead>
-              <TableHead>Block/Unblock</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {workshops.map((workshop) => (
-              <TableRow key={workshop.id}>
-                <TableCell>{workshop.name}</TableCell>
-                <TableCell>{workshop.email}</TableCell>
-                <TableCell>{workshop.location}</TableCell>
-                <TableCell>
-                  <a
-                    href={workshop.document}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-500 underline"
-                  >
-                    View Document
-                  </a>
-                </TableCell>
-                <TableCell>
-                  {workshop.is_verified ? (
-                    workshop.is_approved ? (
-                      <span className="text-green-500 font-semibold">
-                        Approved
-                      </span>
-                    ) : workshop.rejected ? (
-                      <span className="text-red-500 font-semibold">
-                        Rejected
-                      </span>
-                    ) : (
-                      <div className="space-x-2">
-                        <Button
-                          onClick={() => approveWorkshop(workshop.id)}
-                          className="bg-black text-white px-2 py-1 rounded"
+    <div className="p-6 bg-gray-100 rounded-lg shadow-md">
+      <h2 className="text-3xl font-bold mb-6 text-center text-gray-800">
+        Workshop List
+      </h2>
+      <Table
+        aria-label="Workshop Table"
+        shadow={true}
+        selectionMode="none"
+        className="max-w-full bg-white rounded-lg overflow-hidden shadow-lg"
+      >
+        <TableHeader>
+          <TableColumn>Name</TableColumn>
+          <TableColumn>Email</TableColumn>
+          <TableColumn>Location</TableColumn>
+          <TableColumn>Document</TableColumn>
+          <TableColumn>Approval</TableColumn>
+          <TableColumn>Status</TableColumn>
+        </TableHeader>
+        <TableBody>
+          {workshops.map((workshop) => (
+            <TableRow key={workshop.id} className="hover:bg-gray-100">
+              <TableCell className="text-gray-800 font-medium">
+                {workshop.name}
+              </TableCell>
+              <TableCell className="text-gray-600">{workshop.email}</TableCell>
+              <TableCell className="text-gray-600">{workshop.location}</TableCell>
+              <TableCell>
+                <a
+                  href={workshop.document}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-500 underline"
+                >
+                  View Document
+                </a>
+              </TableCell>
+              <TableCell>
+                {workshop.is_verified ? (
+                  workshop.is_approved ? (
+                    <Chip color="success" className="capitalize">
+                      Approved
+                    </Chip>
+                  ) : workshop.rejected ? (
+                    <Chip color="danger" className="capitalize">
+                      Rejected
+                    </Chip>
+                  ) : (
+                    <Dropdown>
+                      <DropdownTrigger>
+                        <Button auto flat color="primary">
+                          Actions
+                        </Button>
+                      </DropdownTrigger>
+                      <DropdownMenu>
+                        <DropdownItem
+                          key="approve"
+                          onPress={() => approveWorkshop(workshop.id)}
                         >
                           Approve
-                        </Button>
-                        <Button
-                          onClick={() => openRejectModal(workshop)}
-                          className="bg-black text-white px-2 py-1 rounded"
+                        </DropdownItem>
+                        <DropdownItem
+                          key="reject"
+                          color="danger"
+                          onPress={() => openRejectModal(workshop)}
                         >
                           Reject
-                        </Button>
-                      </div>
-                    )
-                  ) : (
-                    <span>Not Verified</span>
-                  )}
-                </TableCell>
-                <TableCell>
-                  <Button
-                    onClick={() => toggleWorkshopStatus(workshop.id)}
-                    className="bg-black text-white px-2 py-1 rounded"
-                  >
-                    {workshop.is_active ? "Block" : "Unblock"}
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+                        </DropdownItem>
+                      </DropdownMenu>
+                    </Dropdown>
+                  )
+                ) : (
+                  <span className="text-red-500 font-medium">
+                    Not Verified
+                  </span>
+                )}
+              </TableCell>
+              <TableCell>
+                <Button
+                  color={workshop.is_active ? "danger" : "success"}
+                  onPress={() => toggleWorkshopStatus(workshop.id)}
+                >
+                  {workshop.is_active ? "Block" : "Unblock"}
+                </Button>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
 
       {rejectModalOpen && (
-        <Modal isOpen={rejectModalOpen} onClose={() => setRejectModalOpen(false)}>
+        <Modal
+          isOpen={rejectModalOpen}
+          onClose={() => setRejectModalOpen(false)}
+          className="p-6"
+        >
           <ModalHeader>Reject Workshop</ModalHeader>
           <ModalBody>
             <textarea
-              className="w-full p-2 border rounded"
+              className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-400"
               placeholder="Enter reason for rejection"
               value={rejectReason}
               onChange={(e) => setRejectReason(e.target.value)}
@@ -229,7 +249,7 @@ export function WorkshopList() {
           </ModalBody>
           <ModalFooter>
             <Button
-              onClick={() => {
+              onPress={() => {
                 if (selectedWorkshop && rejectReason.trim()) {
                   rejectWorkshop(selectedWorkshop.id, rejectReason);
                   setRejectModalOpen(false);
@@ -237,13 +257,16 @@ export function WorkshopList() {
                   toast.error("Please provide a rejection reason.");
                 }
               }}
-              className="bg-black text-white px-2 py-1 rounded"
+              color="danger"
+              auto
             >
               Submit
             </Button>
             <Button
-              onClick={() => setRejectModalOpen(false)}
-              className="ml-2 bg-gray-300 px-2 py-1 rounded"
+              auto
+              flat
+              color="default"
+              onPress={() => setRejectModalOpen(false)}
             >
               Cancel
             </Button>
@@ -253,3 +276,4 @@ export function WorkshopList() {
     </div>
   );
 }
+ 

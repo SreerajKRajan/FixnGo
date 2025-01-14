@@ -318,7 +318,7 @@ class WorkshopServiceListAPIView(APIView):
             id__in=WorkshopService.objects.filter(
                 workshop=workshop, admin_service__isnull=False
             ).values_list("admin_service_id", flat=True)
-        )
+        ).order_by("-created_at")
 
         if search_query:
             admin_services_available = admin_services_available.filter(name__icontains=search_query)
@@ -328,16 +328,16 @@ class WorkshopServiceListAPIView(APIView):
         # Admin services already added by workshop
         admin_services_added = WorkshopService.objects.filter(
             workshop=workshop, service_type="admin"
-        )
+        ).order_by("-created_at")
         admin_services_added_serialized = WorkshopServiceSerializer(admin_services_added, many=True).data
 
         # Custom workshop services (approved and pending separately)
         workshop_services_approved = WorkshopService.objects.filter(
             workshop=workshop, service_type="workshop", is_approved=True
-        )
+        ).order_by("-created_at")
         workshop_services_pending = WorkshopService.objects.filter(
             workshop=workshop, service_type="workshop", is_approved=False
-        )
+        ).order_by("-created_at")
 
         workshop_services_approved_serialized = WorkshopServiceSerializer(workshop_services_approved, many=True).data
         workshop_services_pending_serialized = WorkshopServiceSerializer(workshop_services_pending, many=True).data

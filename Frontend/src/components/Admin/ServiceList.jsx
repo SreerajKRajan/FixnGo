@@ -1,48 +1,74 @@
 import React, { useState, useEffect } from "react";
+import {
+  Table,
+  TableHeader,
+  TableColumn,
+  TableBody,
+  TableRow,
+  TableCell,
+  Button,
+  Chip,
+} from "@nextui-org/react";
 import { Modal, ModalHeader, ModalBody, ModalFooter } from "../ui/Modal";
-import { Button } from "../ui/button";
-import { toast } from "sonner"; // For notifications
 import axiosInstance from "../../utils/axiosInstance";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
+import { toast } from "sonner";
+import { FiEdit } from "react-icons/fi";
+import { Pagination } from "@nextui-org/pagination";
+
 
 export function ServiceList() {
   const [services, setServices] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedService, setSelectedService] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(() =>{
+      // Try to get the page number from localStorage (if any)
+  const savedPage = localStorage.getItem("currentPage");
+  return savedPage ? parseInt(savedPage) : 1;  // Default to page 1 if not found
+  });
+  const [totalPages, setTotalPages] = useState(1); // For total pages
 
-  // Fetch services on component load
   useEffect(() => {
-    const fetchServices = async () => {
+    const fetchServices = async (page = 1) => {
       try {
-        const response = await axiosInstance.get("/service/services/");
-        setServices(response.data);
+        const response = await axiosInstance.get(`/service/services/?page=${page}`);
+        setServices(response.data.results); // Update the list with current page data
+        const totalItems = response.data.count; // Total count of items
+        const pageSize = 5; // Number of items per page (set by your backend)
+  
+        // Calculate the total pages dynamically, ensuring no extra page
+        const totalPages = Math.max(1, Math.ceil(totalItems / pageSize)); // Ensure at least 1 page
+        setTotalPages(totalPages);  // Set total pages
+        setLoading(false);  // Set loading to false after data fetch
       } catch (error) {
         console.error("Failed to fetch services:", error);
         toast.error("Failed to fetch services. Please try again.");
+        setLoading(false);
       }
     };
 
-    fetchServices();
-  }, []);
+    fetchServices(currentPage);
+  }, [currentPage]);
 
-  // Open Add Service Modal
+  useEffect(() => {
+  localStorage.setItem("currentPage", currentPage);
+}, [currentPage]);
+
   const handleAddService = () => {
     setSelectedService(null);
     setIsModalOpen(true);
   };
 
-  // Open Edit Service Modal
   const handleEditService = (service) => {
     setSelectedService(service);
     setIsModalOpen(true);
   };
 
-  // Handle Save Service (Add/Edit)
   const saveService = async (values, { resetForm }) => {
     try {
       if (selectedService) {
-        // Update service
         const response = await axiosInstance.put(
           `/service/services/${selectedService.id}/`,
           values
@@ -52,7 +78,6 @@ export function ServiceList() {
         );
         toast.success("Service updated successfully.");
       } else {
-        // Add new service
         const response = await axiosInstance.post("/service/services/", values);
         setServices((prev) => [...prev, response.data]);
         toast.success("Service added successfully.");
@@ -82,7 +107,6 @@ export function ServiceList() {
     }
   };
 
-  // Formik validation schema
   const serviceSchema = Yup.object().shape({
     name: Yup.string().required("Service name is required"),
     description: Yup.string()
@@ -93,70 +117,87 @@ export function ServiceList() {
       .min(1, "Base price must be greater than 0"),
   });
 
+  if (loading) {
+    return <p>Loading services...</p>;
+  }
+
+  if (services.length === 0) {
+    return <p>No services found.</p>;
+  }
+
   return (
-    <div>
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-2xl font-bold">Service List</h2>
-        <Button
-          onClick={handleAddService}
-          className="bg-black text-white font-semibold px-4 py-2 rounded-md shadow-md hover:bg-gray-800 transition duration-200 ease-in-out"
-        >
+    <div className="p-6 bg-gray-100 rounded-lg shadow-md">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-3xl font-bold text-gray-800">Service List</h2>
+        <Button color="primary" onPress={handleAddService}>
           Add Service
         </Button>
       </div>
-      {services.length === 0 ? (
-        <p>No services found.</p>
-      ) : (
-        <table className="w-full border-collapse border border-gray-200 text-center">
-        <thead className="bg-gray-100">
-          <tr>
-            <th className="border border-gray-200 p-2">Name</th>
-            <th className="border border-gray-200 p-2">Description</th>
-            <th className="border border-gray-200 p-2">Base Price</th>
-            <th className="border border-gray-200 p-2">Status</th>
-            <th className="border border-gray-200 p-2">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
+
+      <Table
+        aria-label="Service Table"
+        shadow={true}
+        selectionMode="none"
+        className="max-w-full bg-white rounded-lg overflow-hidden shadow-lg"
+      >
+        <TableHeader>
+          <TableColumn>Name</TableColumn>
+          <TableColumn>Description</TableColumn>
+          <TableColumn>Base Price</TableColumn>
+          <TableColumn>Status</TableColumn>
+          <TableColumn>Actions</TableColumn>
+        </TableHeader>
+        <TableBody>
           {services.map((service) => (
-            <tr key={service.id} className="hover:bg-gray-50">
-              <td className="border border-gray-200 p-2">{service.name}</td>
-              <td
-                className="border border-gray-200 p-2 max-w-sm whitespace-normal break-words"
-              >
+            <TableRow key={service.id} className="hover:bg-gray-100">
+              <TableCell className="text-gray-800 font-medium">
+                {service.name}
+              </TableCell>
+              <TableCell className="text-gray-600 max-w-md">
                 {service.description}
-              </td>
-              <td className="border border-gray-200 p-2">₹{service.base_price}</td>
-              <td className="border border-gray-200 p-2 capitalize">
-                {service.status}
-              </td>
-              <td className="border border-gray-200 p-2">
-                <div className="flex flex-col sm:flex-row justify-center items-center gap-2">
-                  <button
+              </TableCell>
+              <TableCell className="text-gray-600">
+                ₹{service.base_price}
+              </TableCell>
+              <TableCell>
+                <Chip
+                  color={service.status === "available" ? "success" : "danger"}
+                >
+                  {service.status === "available" ? "Available" : "Unavailable"}
+                </Chip>
+              </TableCell>
+              <TableCell>
+                <div className="flex gap-2">
+                  <FiEdit
+                    className="text-black cursor-pointer"
+                    size={27}
                     onClick={() => handleEditService(service)}
-                    className="bg-blue-500 text-white px-3 py-1 rounded-md hover:bg-blue-600 transition duration-200"
+                  />
+                  <Button
+                    color={
+                      service.status === "available" ? "danger" : "success"
+                    }
+                    size="sm"
+                    onPress={() => toggleServiceStatus(service)}
                   >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => toggleServiceStatus(service)}
-                    className={`px-3 py-1 rounded-md text-white transition duration-200 ${
-                      service.status === "available"
-                        ? "bg-red-500 hover:bg-red-600"
-                        : "bg-green-500 hover:bg-green-600"
-                    }`}
-                  >
-                    {service.status === "available"
-                      ? "Mark Unavailable"
-                      : "Mark Available"}
-                  </button>
+                    {service.status === "available" ? "Block" : "Unblock"}
+                  </Button>
                 </div>
-              </td>
-            </tr>
+              </TableCell>
+            </TableRow>
           ))}
-        </tbody>
-      </table>      
-      )}
+        </TableBody>
+      </Table>
+
+      <div className="mt-6 flex justify-center">
+      <Pagination
+        total={totalPages}
+        initialPage={1}
+        page={currentPage}
+        onChange={(page) => setCurrentPage(page)}
+      />
+    </div>
+
       {isModalOpen && (
         <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
           <Formik
@@ -221,17 +262,10 @@ export function ServiceList() {
                   </div>
                 </ModalBody>
                 <ModalFooter>
-                  <Button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="bg-green-500 text-white px-4 py-2 rounded-md"
-                  >
+                  <Button type="submit" disabled={isSubmitting} color="success">
                     {isSubmitting ? "Saving..." : "Save"}
                   </Button>
-                  <Button
-                    onClick={() => setIsModalOpen(false)}
-                    className="bg-gray-500 text-white px-4 py-2 rounded-md"
-                  >
+                  <Button color="danger" onPress={() => setIsModalOpen(false)}>
                     Cancel
                   </Button>
                 </ModalFooter>

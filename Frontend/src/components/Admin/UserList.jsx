@@ -1,15 +1,16 @@
 import React, { useEffect, useState } from "react";
 import {
   Table,
-  TableBody,
-  TableCell,
-  TableHead,
   TableHeader,
+  TableColumn,
+  TableBody,
   TableRow,
-} from "../ui/Table";
-import { Button } from "../ui/button";
+  TableCell,
+  Button,
+  Chip,
+} from "@nextui-org/react";
 import axiosInstance from "../../utils/axiosInstance";
-import { toast } from "sonner"; // Import Sonner for notifications
+import { toast } from "sonner";
 
 export function UserList() {
   const [users, setUsers] = useState([]);
@@ -43,7 +44,6 @@ export function UserList() {
         status: newStatus,
       });
 
-      // Update the specific user's status in state using the response from the backend
       setUsers((prev) =>
         prev.map((u) =>
           u.id === userId ? { ...u, is_active: response.data.is_active } : u
@@ -66,35 +66,38 @@ export function UserList() {
   }
 
   return (
-    <div>
-      <h2 className="text-2xl font-bold mb-4">User List</h2>
-      <Table>
+    <div className="p-6 bg-gray-100 rounded-lg shadow-md">
+      <h2 className="text-3xl font-bold mb-6 text-center text-gray-800">
+        User List
+      </h2>
+      <Table
+        aria-label="User Table"
+        shadow={true}
+        selectionMode="none"
+        className="max-w-full bg-white rounded-lg overflow-hidden shadow-lg"
+      >
         <TableHeader>
-          <TableRow>
-            <TableHead>Username</TableHead>
-            <TableHead>Email</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Block/Unblock</TableHead>
-          </TableRow>
+          <TableColumn>Username</TableColumn>
+          <TableColumn>Email</TableColumn>
+          <TableColumn>Status</TableColumn>
+          <TableColumn>Actions</TableColumn>
         </TableHeader>
         <TableBody>
           {users.map((user) => (
-            <TableRow key={user.id}>
-              <TableCell>{user.username}</TableCell>
-              <TableCell>{user.email}</TableCell>
+            <TableRow key={user.id} className="hover:bg-gray-100">
+              <TableCell className="text-gray-800 font-medium">
+                {user.username}
+              </TableCell>
+              <TableCell className="text-gray-600">{user.email}</TableCell>
               <TableCell>
-                <span
-                  className={`font-semibold ${
-                    user.is_active ? "text-green-500" : "text-red-500"
-                  }`}
-                >
+                <Chip color={user.is_active ? "success" : "danger"}>
                   {user.is_active ? "Active" : "Blocked"}
-                </span>
+                </Chip>
               </TableCell>
               <TableCell>
                 <Button
-                  onClick={() => toggleUserStatus(user.id)}
-                  className="bg-black text-white font-semibold px-1 py-1 rounded-md shadow-md hover:bg-gray-800 transition duration-200 ease-in-out"
+                  color={user.is_active ? "danger" : "success"}
+                  onPress={() => toggleUserStatus(user.id)}
                 >
                   {user.is_active ? "Block" : "Unblock"}
                 </Button>

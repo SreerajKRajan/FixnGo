@@ -1,4 +1,5 @@
 const { fontFamily } = require("tailwindcss/defaultTheme")
+const {nextui} = require("@nextui-org/react");
 
 /** @type {import('tailwindcss').Config} */
 module.exports = {
@@ -6,6 +7,7 @@ module.exports = {
   content: [
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
+    "./node_modules/@nextui-org/theme/dist/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
     container: {
@@ -79,5 +81,6 @@ module.exports = {
     "h-[calc(100vh-200px)]",
     "h-[calc(100vh-300px)]",
   ],
-  plugins: [require("tailwindcss-animate")],
+  darkMode: "class",
+  plugins: [require("tailwindcss-animate"),nextui()],
 }
