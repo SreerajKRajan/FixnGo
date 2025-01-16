@@ -7,6 +7,7 @@ import { workshopSignup } from "../../store/workshopAuthSlice";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
+import axios from "axios";
 
 const WorkshopSignupSchema = Yup.object().shape({
   name: Yup.string()
@@ -44,6 +45,7 @@ const WorkshopSignupSchema = Yup.object().shape({
 export default function WorkshopSignup() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [locationError, setLocationError] = useState("");
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -57,7 +59,44 @@ export default function WorkshopSignup() {
     }
   };
 
-  const handleSignup = (values, { setSubmitting, setFieldError }) => {
+  // Function to validate location via geocoding API (OpenStreetMap/Nominatim)
+  const validateLocation = async (location) => {
+    try {
+      const response = await axios.get(
+        `https://nominatim.openstreetmap.org/search`,
+        {
+          params: {
+            q: location,
+            format: "json",
+            addressdetails: 1,
+            limit: 1,
+          },
+        }
+      );
+
+      if (response.data.length === 0) {
+        setLocationError("Invalid location. Please enter a valid location.");
+        return false; // Location is not valid
+      }
+
+      // Location is valid
+      setLocationError("");
+      return true;
+    } catch (error) {
+      setLocationError("Unable to validate location. Please try again.");
+      return false;
+    }
+  };
+
+  const handleSignup = async (values, { setSubmitting, setFieldError }) => {
+    // Validate location before form submission
+    const isLocationValid = await validateLocation(values.location);
+
+    if (!isLocationValid) {
+      setSubmitting(false);
+      return;
+    }
+
     const formData = new FormData();
     formData.append("name", values.name);
     formData.append("email", values.email);
@@ -200,6 +239,11 @@ export default function WorkshopSignup() {
                       placeholder="Enter location"
                     />
                   </div>
+                  {locationError && (
+                    <div className="mt-1 text-xs text-red-600">
+                      {locationError}
+                    </div>
+                  )}
                   <ErrorMessage
                     name="location"
                     component="div"

@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from utils.s3_utils import generate_presigned_url
 from .models import Workshop, WorkshopService
+from .utils import get_coordinates
 
 class WorkshopSignupSerializer(serializers.ModelSerializer):
     class Meta:
@@ -11,8 +12,15 @@ class WorkshopSignupSerializer(serializers.ModelSerializer):
         }
 
     def create(self, validated_data):
+        location = validated_data.get('location')
+        latitude, longitude = get_coordinates(location)
+        if not latitude or not longitude:
+            raise serializers.ValidationError({"location": "Invalid location. Please provide a valid address."})
         # Pop the password and hash it before saving
         password = validated_data.pop('password')
+        validated_data['latitude'] = latitude
+        validated_data['longitude'] = longitude
+        # Save the workshop instance
         workshop = Workshop(**validated_data)
         workshop.set_password(password)  # Hash the password
         workshop.save()

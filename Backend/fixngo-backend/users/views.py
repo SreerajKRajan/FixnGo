@@ -16,6 +16,7 @@ from django.http import JsonResponse
 from workshop.models import Workshop
 from .tasks import send_otp_email
 from django.utils.http import urlsafe_base64_decode
+from workshop.utils import haversine
 
 
 # Create your views here.
@@ -252,32 +253,31 @@ class UserProfileView(APIView):
         return Response(serializer.errors, status=400)
 
 
-# Haversine formula to calculate the distance
-def calculate_distance(lat1, lon1, lat2, lon2):
-    R = 6371  # Earth radius in kilometers
-    dlat = radians(lat2 - lat1)
-    dlon = radians(lon2 - lon1)
-    a = sin(dlat / 2) ** 2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon / 2) ** 2
-    c = 2 * atan2(sqrt(a), sqrt(1 - a))
-    return R * c
+class NearbyWorkshopsView(APIView):
+    def get(self, request):
+        try:
+            # Get user's latitude and longitude from query parameters
+            user_lat = float(request.query_params.get('latitude'))
+            user_lon = float(request.query_params.get('longitude'))
+        except (TypeError, ValueError):
+            return Response({"error": "Invalid latitude or longitude"}, status=400)
 
-# View for fetching nearby workshops
-def get_nearby_workshops(request):
-    lat = float(request.GET.get('lat', 0))
-    lng = float(request.GET.get('lng', 0))
-    radius = float(request.GET.get('radius', 10))  # Radius in kilometers
+        # Fetch all workshops
+        workshops = Workshop.objects.all()
 
-    workshops = Workshop.objects.filter(is_active=True)
-    nearby_workshops = []
-
-    for workshop in workshops:
-        distance = calculate_distance(lat, lng, workshop.latitude, workshop.longitude)
-        if distance <= radius:
-            nearby_workshops.append({
-                'name': workshop.name,
-                'lat': workshop.latitude,
-                'lng': workshop.longitude,
-                'distance': round(distance, 2),
+        # Calculate distances using the Haversine formula
+        workshop_distances = []
+        for workshop in workshops:
+            distance = haversine(user_lat, user_lon, workshop.latitude, workshop.longitude)
+            workshop_distances.append({
+                "name": workshop.name,
+                "email": workshop.email,
+                "phone": workshop.phone,
+                "location": workshop.location,
+                "distance": round(distance, 2),  # Round distance to 2 decimal places
             })
 
-    return JsonResponse(nearby_workshops, safe=False)
+        # Sort workshops by distance and limit to nearest 10
+        sorted_workshops = sorted(workshop_distances, key=lambda x: x["distance"])[:10]
+
+        return Response(sorted_workshops, status=200)

@@ -19,6 +19,8 @@ class Workshop(AbstractBaseUser):
     name        = models.CharField(max_length=150, unique=True)
     email       = models.EmailField(unique=True)
     location    = models.CharField(max_length=255)
+    latitude = models.FloatField(null=True, blank=True)
+    longitude = models.FloatField(null=True, blank=True)
     phone       = models.CharField(max_length=15, unique=True)
     document = models.FileField(max_length=500, validators=[FileExtensionValidator(allowed_extensions=['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png'])])
     rejection_reason = models.TextField(blank=True, null=True)
@@ -30,7 +32,6 @@ class Workshop(AbstractBaseUser):
     is_staff    = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     
-
     objects = WorkshopManager() 
 
     USERNAME_FIELD = 'email'
