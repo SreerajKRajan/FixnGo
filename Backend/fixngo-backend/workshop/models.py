@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 from django.core.validators import FileExtensionValidator
 from service.models import Service
+from django.utils import timezone
 
 
 class WorkshopManager(BaseUserManager):
@@ -27,10 +28,10 @@ class Workshop(AbstractBaseUser):
     password    = models.CharField(max_length=255)
     is_active   = models.BooleanField(default=True)
     is_staff    = models.BooleanField(default=False)
-    latitude = models.FloatField()  # Latitude of the workshop
-    longitude = models.FloatField()  # Longitude of the workshop
+    created_at = models.DateTimeField(auto_now_add=True)
+    
 
-    objects = WorkshopManager()
+    objects = WorkshopManager() 
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['name', 'location', 'phone', 'document']

@@ -11,61 +11,26 @@ from workshop.serializers import WorkshopSerializer
 from users.models import User
 from users.serializers import UserSerializer
 from rest_framework_simplejwt.exceptions import TokenError
-from utils.s3_utils import generate_presigned_url
+from rest_framework.pagination import PageNumberPagination
 
+class CommonPagination(PageNumberPagination):
+    page_size = 5  # Default number of items per page
+    page_size_query_param = 'page_size'
+    max_page_size = 100  # Maximum number of items per page
 
 
 class WorkshopListView(ListAPIView):
     permission_classes = [IsAdminUser]
-    queryset = Workshop.objects.filter(is_verified=True)
+    queryset = Workshop.objects.filter(is_verified=True).order_by("-created_at")
     serializer_class = WorkshopSerializer
-
-    def list(self, request, *args, **kwargs):
-        workshops = self.get_queryset()
-        data = []
-    
-        for workshop in workshops:
-            # Correct the document key to only include the relative path
-            full_document_path = workshop.document.name
-            base_url = "https://fixngo-images.s3.eu-north-1.amazonaws.com/"
-            document_key = full_document_path.replace(base_url, "")  # Strip the base URL if present
-    
-            # Debugging: Print the corrected document key
-            print(f"Corrected Document key for workshop {workshop.id}: {document_key}")
-    
-            try:
-                # Generate the pre-signed URL for the document
-                presigned_url = generate_presigned_url(document_key)
-    
-                # Debugging: Print the generated presigned URL
-                print(f"Presigned URL for workshop {workshop.id}: {presigned_url}")
-    
-                # Append the presigned URL and other workshop details to the response data
-                workshop_data = {
-                    'id': workshop.id,
-                    'name': workshop.name,
-                    'email': workshop.email,
-                    'location': workshop.location,
-                    'document': presigned_url,
-                    'is_verified': workshop.is_verified,
-                    'is_approved': workshop.is_approved,
-                    'is_active': workshop.is_active,
-                }
-    
-                data.append(workshop_data)
-            except Exception as e:
-                print(f"Error generating presigned URL for workshop {workshop.id}: {e}")
-                return Response({'error': 'Failed to fetch workshop details'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
-        return Response(data)
+    pagination_class = CommonPagination
 
 
-
-    
 class UserListView(ListAPIView):
     permission_classes = [IsAdminUser]
     queryset = User.objects.filter(is_superuser=False, is_verified=True)
     serializer_class = UserSerializer
+    pagination_class = CommonPagination
     
     
 class ToggleUserStatusView(APIView):
@@ -189,6 +154,7 @@ class RejectWorkhsopView(APIView):
             return Response({"error": "Workshop is not verified"}, status=status.HTTP_400_BAD_REQUEST)
         
         workshop.is_approved = False
+        workshop.approval_status = 'rejected'
         workshop.rejection_reason = rejection_reason
         workshop.save()
         return Response({"message": "Workshop rejected successfully."}, status=status.HTTP_200_OK)

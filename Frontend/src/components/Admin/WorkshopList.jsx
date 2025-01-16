@@ -12,6 +12,7 @@ import {
   DropdownMenu,
   DropdownItem,
   Chip,
+  Pagination
 } from "@nextui-org/react";
 import axiosInstance from "../../utils/axiosInstance";
 import { toast } from "sonner";
@@ -23,23 +24,28 @@ export function WorkshopList() {
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
   const [selectedWorkshop, setSelectedWorkshop] = useState(null);
   const [rejectReason, setRejectReason] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   useEffect(() => {
-    const fetchWorkshops = async () => {
+    const fetchWorkshops = async (page) => {
       try {
         const token = localStorage.getItem("token");
-        const response = await axiosInstance.get("/admin_side/workshop-list/", {
+        const response = await axiosInstance.get(`/admin_side/workshop-list/?page=${page}`  , {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         });
 
-        const updatedWorkshops = response.data.map((workshop) => ({
+        // Map response data and set state
+        const { results, count } = response.data;
+        const updatedWorkshops = results.map((workshop) => ({
           ...workshop,
           rejected: Boolean(workshop.rejection_reason),
         }));
 
         setWorkshops(updatedWorkshops);
+        setTotalPages(Math.ceil(count / 5)); // Assuming 5 items per page
         setLoading(false);
       } catch (error) {
         console.error("Failed to fetch workshops:", error);
@@ -48,8 +54,13 @@ export function WorkshopList() {
       }
     };
 
-    fetchWorkshops();
-  }, []);
+    fetchWorkshops(currentPage);
+  }, [currentPage]);
+
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
 
   const approveWorkshop = async (workshopId) => {
     const workshop = workshops.find((w) => w.id === workshopId);
@@ -147,90 +158,92 @@ export function WorkshopList() {
       <h2 className="text-3xl font-bold mb-6 text-center text-gray-800">
         Workshop List
       </h2>
-      <Table
-        aria-label="Workshop Table"
-        shadow={true}
-        selectionMode="none"
-        className="max-w-full bg-white rounded-lg overflow-hidden shadow-lg"
-      >
-        <TableHeader>
-          <TableColumn>Name</TableColumn>
-          <TableColumn>Email</TableColumn>
-          <TableColumn>Location</TableColumn>
-          <TableColumn>Document</TableColumn>
-          <TableColumn>Approval</TableColumn>
-          <TableColumn>Status</TableColumn>
-        </TableHeader>
-        <TableBody>
-          {workshops.map((workshop) => (
-            <TableRow key={workshop.id} className="hover:bg-gray-100">
-              <TableCell className="text-gray-800 font-medium">
-                {workshop.name}
-              </TableCell>
-              <TableCell className="text-gray-600">{workshop.email}</TableCell>
-              <TableCell className="text-gray-600">{workshop.location}</TableCell>
-              <TableCell>
-                <a
-                  href={workshop.document}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-500 underline"
-                >
-                  View Document
-                </a>
-              </TableCell>
-              <TableCell>
-                {workshop.is_verified ? (
-                  workshop.is_approved ? (
-                    <Chip color="success" className="capitalize">
-                      Approved
-                    </Chip>
-                  ) : workshop.rejected ? (
-                    <Chip color="danger" className="capitalize">
-                      Rejected
-                    </Chip>
-                  ) : (
-                    <Dropdown>
-                      <DropdownTrigger>
-                        <Button auto flat color="primary">
-                          Actions
-                        </Button>
-                      </DropdownTrigger>
-                      <DropdownMenu>
-                        <DropdownItem
-                          key="approve"
-                          onPress={() => approveWorkshop(workshop.id)}
-                        >
-                          Approve
-                        </DropdownItem>
-                        <DropdownItem
-                          key="reject"
-                          color="danger"
-                          onPress={() => openRejectModal(workshop)}
-                        >
-                          Reject
-                        </DropdownItem>
-                      </DropdownMenu>
-                    </Dropdown>
-                  )
-                ) : (
-                  <span className="text-red-500 font-medium">
-                    Not Verified
-                  </span>
-                )}
-              </TableCell>
-              <TableCell>
-                <Button
-                  color={workshop.is_active ? "danger" : "success"}
-                  onPress={() => toggleWorkshopStatus(workshop.id)}
-                >
-                  {workshop.is_active ? "Block" : "Unblock"}
+<Table>
+<TableHeader>
+  <TableColumn>Name</TableColumn>
+  <TableColumn>Email</TableColumn>
+  <TableColumn>Location</TableColumn>
+  <TableColumn>Document</TableColumn>
+  <TableColumn>Approval</TableColumn>
+  <TableColumn>Status</TableColumn>
+</TableHeader>
+<TableBody>
+  {workshops.map((workshop) => (
+    <TableRow key={workshop.id} className="hover:bg-gray-100">
+      <TableCell className="text-gray-800 font-medium">
+        {workshop.name}
+      </TableCell>
+      <TableCell className="text-gray-600">{workshop.email}</TableCell>
+      <TableCell className="text-gray-600">{workshop.location}</TableCell>
+      <TableCell>
+        <a
+          href={workshop.document}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-500 underline"
+        >
+          View Document
+        </a>
+      </TableCell>
+      <TableCell>
+        {workshop.is_verified ? (
+          workshop.is_approved ? (
+            <Chip color="success" className="capitalize">
+              Approved
+            </Chip>
+          ) : workshop.approval_status === "rejected" ? (
+            <Chip color="danger" className="capitalize">
+              Rejected
+            </Chip>
+          ) : (
+            <Dropdown>
+              <DropdownTrigger>
+                <Button auto flat color="primary">
+                  Actions
                 </Button>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+              </DropdownTrigger>
+              <DropdownMenu>
+                <DropdownItem
+                  key="approve"
+                  onPress={() => approveWorkshop(workshop.id)}
+                >
+                  Approve
+                </DropdownItem>
+                <DropdownItem
+                  key="reject"
+                  color="danger"
+                  onPress={() => openRejectModal(workshop)}
+                >
+                  Reject
+                </DropdownItem>
+              </DropdownMenu>
+            </Dropdown>
+          )
+        ) : (
+          <span className="text-red-500 font-medium">Not Verified</span>
+        )}
+      </TableCell>
+      <TableCell>
+        <Button
+          color={workshop.is_active ? "danger" : "success"}
+          onPress={() => toggleWorkshopStatus(workshop.id)}
+          isDisabled={workshop.approval_status === "rejected"}
+        >
+          {workshop.is_active ? "Block" : "Unblock"}
+        </Button>
+      </TableCell>
+    </TableRow>
+  ))}
+</TableBody>
+</Table>
+
+      <div className="mt-4 flex justify-center">
+        <Pagination
+          total={totalPages}
+          initialPage={currentPage}
+          onChange={handlePageChange}
+        />
+      </div>
 
       {rejectModalOpen && (
         <Modal

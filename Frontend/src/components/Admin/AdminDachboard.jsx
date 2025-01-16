@@ -65,7 +65,13 @@ function Sidebar({ activeTab, setActiveTab }) {
 }
 
 function ServiceManagement() {
-  const [activeSubTab, setActiveSubTab] = useState("serviceList");
+  const [activeSubTab, setActiveSubTab] = useState(
+    localStorage.getItem("adminActiveSubTab") || "serviceList"
+  );
+
+  useEffect(() => {
+    localStorage.setItem("adminActiveSubTab", activeSubTab);
+  }, [activeSubTab]);
 
   const renderSubTabContent = () => {
     switch (activeSubTab) {
@@ -106,7 +112,6 @@ function ServiceManagement() {
     </div>
   );
 }
-
 
 function WorkshopServiceListComponent() {
   return (

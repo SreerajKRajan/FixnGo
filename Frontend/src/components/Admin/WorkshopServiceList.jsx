@@ -9,6 +9,7 @@ import {
   Button,
   Card,
   CardBody,
+  Pagination,
 } from "@nextui-org/react";
 import { Modal, ModalHeader, ModalBody, ModalFooter } from "../ui/Modal";
 import { toast } from "sonner";
@@ -23,6 +24,9 @@ export function WorkshopServiceList() {
   const [selectedService, setSelectedService] = useState(null);
   const [selectedWorkshop, setSelectedWorkshop] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1); // State to track current page
+  const [totalServices, setTotalServices] = useState(0); // To keep track of the total number of services
+  const [itemsPerPage] = useState(5); // Define how many items per page you want
 
   useEffect(() => {
     const fetchWorkshops = async () => {
@@ -47,22 +51,40 @@ export function WorkshopServiceList() {
     fetchWorkshops();
   }, []);
 
-  const fetchServicesForWorkshop = async (workshopId) => {
+  const fetchServicesForWorkshop = async (workshopId, page = 1) => {
     try {
       const response = await axiosInstance.get(
         `/service/workshops-with-pending-services/${workshopId}/`,
         {
+          params: {
+            page,
+            page_size: itemsPerPage,
+          },
           headers: {
             Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
           },
         }
       );
+      console.log(response.data);
+
       setSelectedWorkshop(workshops.find((w) => w.id === workshopId));
-      setServices(response.data);
+      // Ensure services are set to the results array
+      if (Array.isArray(response.data.results)) {
+        setServices(response.data.results); // Update to use the `results` array
+      } else {
+        console.error("Unexpected response format:", response.data);
+        setServices([]); // Fallback to an empty array
+      }
+      setTotalServices(response.data.count);
     } catch (error) {
       console.error("Failed to fetch services:", error);
       toast.error("Failed to fetch services. Please try again.");
     }
+  };
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+    fetchServicesForWorkshop(selectedWorkshop.id, page); // Fetch services for the selected workshop and page
   };
 
   const approveService = async (serviceId) => {
@@ -93,7 +115,7 @@ export function WorkshopServiceList() {
       <h2 className="text-3xl font-bold mb-6 text-gray-800">
         Workshop Service Management
       </h2>
-      
+
       {!selectedWorkshop ? (
         <Card className="bg-white">
           <CardBody>
@@ -127,13 +149,13 @@ export function WorkshopServiceList() {
           >
             ← Back to Workshop List
           </Button>
-          
+
           <Card className="bg-white">
             <CardBody>
               <h3 className="text-xl font-semibold mb-4">
                 Pending Services for {selectedWorkshop.name}
               </h3>
-              
+
               {services.length === 0 ? (
                 <p>No pending services found.</p>
               ) : (
@@ -189,6 +211,14 @@ export function WorkshopServiceList() {
               )}
             </CardBody>
           </Card>
+          <div className="flex justify-center mt-4">
+            <Pagination
+              aria-label="Pagination for services"
+              total={Math.ceil(totalServices / itemsPerPage)} // Calculate total pages
+              initialPage={currentPage}
+              onChange={handlePageChange} // Handle page change
+            />
+          </div>
         </div>
       )}
 
@@ -197,7 +227,9 @@ export function WorkshopServiceList() {
           <Formik
             initialValues={{ rejection_reason: "" }}
             validationSchema={Yup.object({
-              rejection_reason: Yup.string().required("Rejection reason is required"),
+              rejection_reason: Yup.string().required(
+                "Rejection reason is required"
+              ),
             })}
             onSubmit={async (values, { setSubmitting }) => {
               try {
@@ -205,11 +237,15 @@ export function WorkshopServiceList() {
                   url: `/service/workshop/${selectedService.id}/reject/`,
                   method: "DELETE",
                   headers: {
-                    Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
+                    Authorization: `Bearer ${localStorage.getItem(
+                      "adminToken"
+                    )}`,
                   },
                   data: { rejection_reason: values.rejection_reason },
                 });
-                setServices((prev) => prev.filter((s) => s.id !== selectedService.id));
+                setServices((prev) =>
+                  prev.filter((s) => s.id !== selectedService.id)
+                );
                 setIsModalOpen(false);
                 toast.success("Service rejected successfully.");
               } catch (error) {
@@ -241,17 +277,10 @@ export function WorkshopServiceList() {
                   </div>
                 </ModalBody>
                 <ModalFooter>
-                  <Button
-                    type="submit"
-                    color="danger"
-                    disabled={isSubmitting}
-                  >
+                  <Button type="submit" color="danger" disabled={isSubmitting}>
                     {isSubmitting ? "Rejecting..." : "Reject"}
                   </Button>
-                  <Button
-                    color="default"
-                    onPress={() => setIsModalOpen(false)}
-                  >
+                  <Button color="default" onPress={() => setIsModalOpen(false)}>
                     Cancel
                   </Button>
                 </ModalFooter>

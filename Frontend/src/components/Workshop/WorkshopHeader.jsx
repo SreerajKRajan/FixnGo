@@ -2,9 +2,17 @@
 import React from "react";
 import { FaComments, FaVideo, FaUser } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
+import { logout } from "../../store/workshopAuthSlice";
+import { useDispatch } from "react-redux";
 
-const WorkshopHeader = ({ onLogout }) => {
+const WorkshopHeader = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+
+  const handleLogout = () =>{
+    dispatch(logout())
+    navigate("/workshop/login")
+  }
 
   return (
     <header className="bg-black text-white p-4">
@@ -27,7 +35,7 @@ const WorkshopHeader = ({ onLogout }) => {
             Service List
           </button>
           <button
-            onClick={onLogout}
+            onClick={handleLogout}
             className="bg-gray-500 text-white py-1 px-3 rounded-md hover:bg-gray-600 transition duration-300"
           >
             Logout
