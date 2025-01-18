@@ -255,27 +255,42 @@ class UserProfileView(APIView):
 
 class NearbyWorkshopsView(APIView):
     def get(self, request):
+        user_lat = request.GET.get('latitude')
+        user_lon = request.GET.get('longitude')
+        print(f"lat {user_lat} and lon {user_lon}")
+        
+        if not user_lat or not user_lon:
+            return Response({"error": "Latitude or longitude are required."}, status=400)
+        
         try:
             # Get user's latitude and longitude from query parameters
-            user_lat = float(request.query_params.get('latitude'))
-            user_lon = float(request.query_params.get('longitude'))
+            user_lat = float(user_lat)
+            user_lon = float(user_lon)
+
         except (TypeError, ValueError):
             return Response({"error": "Invalid latitude or longitude"}, status=400)
 
         # Fetch all workshops
-        workshops = Workshop.objects.all()
+        workshops = Workshop.objects.filter(is_active=True, is_approved=True)
 
         # Calculate distances using the Haversine formula
         workshop_distances = []
         for workshop in workshops:
-            distance = haversine(user_lat, user_lon, workshop.latitude, workshop.longitude)
-            workshop_distances.append({
-                "name": workshop.name,
-                "email": workshop.email,
-                "phone": workshop.phone,
-                "location": workshop.location,
-                "distance": round(distance, 2),  # Round distance to 2 decimal places
-            })
+            if workshop.latitude is None or workshop.longitude is None:
+                continue
+            try:
+                distance = haversine(user_lat, user_lon, workshop.latitude, workshop.longitude)
+                workshop_distances.append({
+                    "name": workshop.name,
+                    "email": workshop.email,
+                    "phone": workshop.phone,
+                    "location": workshop.location,
+                    "latitude": workshop.latitude,
+                    "longitude": workshop.longitude,
+                    "distance": round(distance, 2),  # Round distance to 2 decimal places
+                })
+            except ValueError:
+                continue
 
         # Sort workshops by distance and limit to nearest 10
         sorted_workshops = sorted(workshop_distances, key=lambda x: x["distance"])[:10]

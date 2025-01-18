@@ -10,7 +10,11 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@bradgarropy/next-link": "^1.1.0",
+    "@changey/react-leaflet-markercluster": "^4.0.0-rc1",
     "@heroicons/react": "^2.2.0",
+    "@heroui/react": "^2.6.13",
+    "@heroui/tabs": "^2.2.7",
     "@nextui-org/react": "^2.6.11",
     "@nextui-org/table": "^2.2.8",
     "@radix-ui/react-alert-dialog": "^1.1.4",

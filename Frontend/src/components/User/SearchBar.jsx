@@ -2,6 +2,9 @@ import React, { useState, useCallback } from "react";
 import axios from "axios";
 import debounce from "lodash.debounce";
 import { FaLocationCrosshairs } from "react-icons/fa6";
+import { Input, Button, Card, Dropdown } from "@nextui-org/react";
+import { MapPin, Search } from 'lucide-react';
+
 
 const SearchBar = ({ onLocationSelect }) => {
   const [query, setQuery] = useState("");
@@ -51,11 +54,10 @@ const SearchBar = ({ onLocationSelect }) => {
           const { latitude, longitude } = position.coords;
           onLocationSelect({ lat: latitude, lng: longitude });
   
-          // Reverse Geocoding to get location name
           try {
             const response = await axios.get(
               `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&addressdetails=1`,
-              { headers: { "Accept-Language": "en" } } // Force English language
+              { headers: { "Accept-Language": "en" } }
             );
             setQuery(response.data.display_name || "Your Location");
           } catch (error) {
@@ -72,23 +74,28 @@ const SearchBar = ({ onLocationSelect }) => {
       alert("Geolocation is not supported by your browser.");
     }
   };
-  
 
   return (
-    <div className="relative">
-      <input
-        type="text"
+    <div className="relative max-w-md mx-auto mt-8">
+    <Card className="p-4 shadow-lg rounded-xl">
+      <Input
+        aria-label="Location Search"
         value={query}
         onChange={handleSearchChange}
-        placeholder="Enter your location"
-        className="w-full p-2 border rounded"
+        startContent={<Search size={18} />}
+        endContent={
+          <Button isIconOnly size="sm" variant="flat">
+            <MapPin size={18} />
+          </Button>
+        }
+        placeholder="Search your location"
       />
       {suggestions.length > 0 && (
-        <ul className="absolute bg-white border mt-1 w-full z-10 max-h-60 overflow-auto">
+        <ul className="absolute bg-white border mt-2 w-full z-10 max-h-60 overflow-auto rounded-lg shadow-lg">
           {suggestions.map((suggestion, index) => (
             <li
               key={index}
-              className="p-2 hover:bg-gray-200 cursor-pointer"
+              className="p-3 hover:bg-gray-100 cursor-pointer rounded-lg"
               onClick={() => handleSuggestionClick(suggestion)}
             >
               {suggestion.display_name}
@@ -96,15 +103,18 @@ const SearchBar = ({ onLocationSelect }) => {
           ))}
         </ul>
       )}
-      <button
-        className="mt-2 px-4 py-2 bg-red-500 text-white rounded shadow-md hover:bg-red-600 transition duration-300 ease-in-out flex items-center justify-center gap-2"
+      <Button
         onClick={detectCurrentLocation}
+        color="default"
+        icon={<FaLocationCrosshairs />}
+        className="mt-4 w-full"
       >
-        <FaLocationCrosshairs />
         Detect Current Location
-      </button>
-    </div>
+      </Button>
+    </Card>
+  </div>
   );
 };
 
 export default SearchBar;
+

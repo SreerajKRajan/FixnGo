@@ -16,6 +16,9 @@ def haversine(lat1, lon1, lat2, lon2):
     """
     Calculate the great-circle distance between two points on the Earth's surface.
     """
+    if None in(lat1, lon1, lat2, lon2):
+        raise ValueError("All coordinates must be valid number.")
+    
     R = 6371.0  # Earth's radius in kilometers
 
     # Convert degrees to radians

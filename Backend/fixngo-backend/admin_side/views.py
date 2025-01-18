@@ -128,6 +128,7 @@ class ApproveWorkshopView(APIView):
             return Response({"message": "Workshop is already approved."}, status=status.HTTP_400_BAD_REQUEST)
 
         workshop.is_approved = True
+        workshop.approval_status = "approved"
         workshop.save()
         return Response({"message": "Workshop approved successfully."}, status=status.HTTP_200_OK)
 
