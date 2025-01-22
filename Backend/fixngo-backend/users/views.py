@@ -1,7 +1,8 @@
 from rest_framework import status, permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from .serializers import UserSignupSerializer, UserLoginSerializer, UserSerializer
+from rest_framework.generics import ListAPIView, RetrieveAPIView
+from .serializers import UserSignupSerializer, UserLoginSerializer, UserSerializer, ServiceRequestSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 import random
 from django.utils import timezone
@@ -13,10 +14,14 @@ from django.utils.http import urlsafe_base64_encode
 from django.utils.encoding import force_bytes
 from math import radians, sin, cos, sqrt, atan2
 from django.http import JsonResponse
-from workshop.models import Workshop
+from workshop.models import Workshop, WorkshopService
 from .tasks import send_otp_email
 from django.utils.http import urlsafe_base64_decode
 from workshop.utils import haversine
+from workshop.serializers import WorkshopSerializer, WorkshopServiceSerializer
+from datetime import datetime
+from itertools import chain
+
 
 
 # Create your views here.
@@ -296,3 +301,67 @@ class NearbyWorkshopsView(APIView):
         sorted_workshops = sorted(workshop_distances, key=lambda x: x["distance"])[:10]
 
         return Response(sorted_workshops, status=200)
+
+class UserWorkshopsListView(ListAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    queryset = Workshop.objects.filter(is_active=True, is_approved=True, approval_status="approved")
+    serializer_class = WorkshopSerializer
+    
+class UserWorkshopDetailView(RetrieveAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    queryset = Workshop.objects.filter(is_active=True, is_approved=True, approval_status="approved")
+    serializer_class = WorkshopSerializer
+    lookup_field = "id"
+
+    def retrieve(self, request, *args, **kwargs):
+        workshop = self.get_object()
+        workshop_data = self.get_serializer(workshop).data
+
+        # Fetch workshop services approved
+        workshop_services_approved = WorkshopService.objects.filter(
+            workshop=workshop, service_type="workshop", is_approved=True, is_available=True
+        ).order_by("-created_at")
+        workshop_services_approved_serialized = WorkshopServiceSerializer(workshop_services_approved, many=True).data
+
+        # Fetch admin services added
+        admin_services_added = WorkshopService.objects.filter(
+            workshop=workshop, service_type="admin", is_available=True
+        ).order_by("-created_at")
+        admin_services_added_serialized = WorkshopServiceSerializer(admin_services_added, many=True).data
+
+        # Combine and sort services
+        combined_services = sorted(
+            chain(workshop_services_approved_serialized, admin_services_added_serialized),
+            key=lambda service: datetime.strptime(service['created_at'], '%Y-%m-%dT%H:%M:%S.%fZ'),
+            reverse=True
+        )
+
+        return Response({
+            "workshop": workshop_data,
+            "services": combined_services
+        })
+        
+        
+class ServiceRequestAPIView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def post(self, request, *args, **kwargs):
+        workshop_id = kwargs.get('workshop_id')
+        service_id = kwargs.get('service_id')
+        
+        try:
+            workshop = Workshop.objects.get(id=workshop_id)
+            workshop_service = WorkshopService.objects.get(id=service_id)
+        except (Workshop.DoesNotExist, WorkshopService.DoesNotExist):
+            return Response({"detail": "Workshop or WorkshopService not found."}, status=status.HTTP_404_NOT_FOUND)
+        
+        data = request.data.copy()
+        data['user'] = request.user.id
+        data['workshop'] = workshop.id
+        data['workshop_service'] = workshop_service.id
+        
+        serializer = ServiceRequestSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

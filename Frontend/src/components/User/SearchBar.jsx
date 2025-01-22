@@ -5,7 +5,6 @@ import { FaLocationCrosshairs } from "react-icons/fa6";
 import { Input, Button, Card, Dropdown } from "@nextui-org/react";
 import { MapPin, Search } from 'lucide-react';
 
-
 const SearchBar = ({ onLocationSelect }) => {
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState([]);
@@ -104,11 +103,11 @@ const SearchBar = ({ onLocationSelect }) => {
         </ul>
       )}
       <Button
-        onClick={detectCurrentLocation}
-        color="default"
-        icon={<FaLocationCrosshairs />}
+        onPress={detectCurrentLocation}
+        color="warning"
         className="mt-4 w-full"
       >
+        <FaLocationCrosshairs />
         Detect Current Location
       </Button>
     </Card>

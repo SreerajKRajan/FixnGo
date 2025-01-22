@@ -35,7 +35,7 @@ class WorkshopSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Workshop
-        fields = ['id', 'name', 'email', 'location', 'document', 'is_verified', 'is_approved', 'is_active', 'rejection_reason', 'approval_status', 'created_at']
+        fields = '__all__'
 
     def get_document(self, obj):
         # Generate the presigned URL for the document

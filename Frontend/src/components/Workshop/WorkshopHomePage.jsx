@@ -4,6 +4,7 @@ import WorkshopFooter from "@/components/Workshop/WorkshopFooter";
 import { logout } from "../../store/workshopAuthSlice";
 import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
+import UserRequestsPage from "@/components/Workshop/ServiceManagement/UserRequestsPage";
 
 const WorkshopHomePage = () => {
   const [activeTab, setActiveTab] = useState("requests");
@@ -56,39 +57,7 @@ const WorkshopHomePage = () => {
           </button>
         </div>
 
-        {activeTab === "requests" && (
-          <div className="bg-white text-black rounded-lg shadow-md p-4">
-            <h2 className="text-xl font-semibold mb-4">Service Requests</h2>
-            <div className="space-y-4">
-              <div className="border-b pb-4">
-                <h3 className="font-semibold">
-                  New Request: Engine Won't Start
-                </h3>
-                <p className="text-sm text-gray-600">User: John Doe</p>
-                <p className="text-sm text-gray-600">Location: 123 Main St</p>
-                <div className="mt-2">
-                  <button className="bg-green-500 text-white px-4 py-2 rounded-md mr-2 hover:bg-green-600">
-                    Accept
-                  </button>
-                  <button className="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600">
-                    Reject
-                  </button>
-                </div>
-              </div>
-              <div className="border-b pb-4">
-                <h3 className="font-semibold">Active Request: Flat Tire</h3>
-                <p className="text-sm text-gray-600">User: Jane Smith</p>
-                <p className="text-sm text-gray-600">Status: En route</p>
-                <div className="mt-2">
-                  <button className="bg-black text-white px-4 py-2 rounded-md hover:bg-gray-700">
-                    Update Status
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
+        {activeTab === "requests" && <UserRequestsPage />}
         {activeTab === "map" && (
           <div className="bg-white text-black rounded-lg shadow-md p-4 h-96">
             {/* Placeholder for map component */}

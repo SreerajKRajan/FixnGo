@@ -18,6 +18,7 @@ import UserForgotPassword from "./components/User/UserForgotPassword";
 import UserCreateNewPassword from "./components/User/UserCreateNewPassword";
 import WorkshopForgotPassword from "./components/Workshop/WorkshopForgotPassword";
 import WorkshopCreateNewPassword from "./components/Workshop/WorkshopCreateNewPassword";
+import WorkshopDetailsPage from "./components/User/WorkshopDetailsPage";
 
 function App() {
   return (
@@ -78,6 +79,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <UserProfile />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/workshops/:WorkshopId"
+            element={
+              <ProtectedRoute>
+                <WorkshopDetailsPage />
               </ProtectedRoute>
             }
           />

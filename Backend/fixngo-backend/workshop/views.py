@@ -19,6 +19,11 @@ from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.http import urlsafe_base64_decode
+from rest_framework.generics import ListAPIView
+from users.models import ServiceRequest
+from users.serializers import ServiceRequestSerializer
+import socketio
+import requests
 
 
 class WorkshopSignupView(APIView):
@@ -384,7 +389,52 @@ class WorkshopServiceAvailabilityUpdateAPIView(APIView):
             return Response({"error": "Service not found."}, status=status.HTTP_404_NOT_FOUND)
 
 
+class WorkshopServiceRequestsListAPIView(ListAPIView):
+    authentication_classes = [WorkshopJWTAuthentication]
+    permission_classes = [IsWorkshopUser]
+    serializer_class = ServiceRequestSerializer
+
+    def get_queryset(self):
+        # Fetch only the service requests for the authenticated workshop
+        workshop = self.request.user
+        return ServiceRequest.objects.filter(workshop_service__workshop=workshop).order_by('-created_at')
 
 
+class UpdateServiceRequestStatusAPIView(APIView):
+    authentication_classes = [WorkshopJWTAuthentication]
+    permission_classes = [IsWorkshopUser]
+
+    def post(self, request, request_id):
+        workshop = request.user
+        try:
+            service_request = ServiceRequest.objects.get(id=request_id, workshop=workshop)
+        except ServiceRequest.DoesNotExist:
+            return Response({"error": "Request not found or not authorized"}, status=404)
+
+        status = request.data.get("status")
+        if status not in ["accepted", "rejected"]:
+            return Response({"error": "Invalid status"}, status=400)
+
+        # Update the status
+        service_request.status = status
+        service_request.save()
+
+        # Send a real-time notification to the user
+        user_id = service_request.user.id
+        message = f"Your service request for {service_request.workshop_service.name} has been {status}."
+        
+        try:
+            response = requests.post(
+                "http://localhost:5000/notification",
+                json={"user_id": user_id, "message": message},
+                headers={"Content-Type": "application/json"}
+            )
+            print(f"Notification response: {response.status_code}, {response.text}")  # Add this debug log
+            if response.status_code != 200:
+                print(f"Error sending notification: {response.text}")
+        except Exception as e:
+            print(f"Error notifying user {user_id}: {str(e)}")
+
+        return Response({"message": f"Request {status} successfully"})
 
 

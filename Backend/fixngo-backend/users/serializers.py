@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import User
+from .models import User, ServiceRequest
 from django.contrib.auth import authenticate
 
 class UserSignupSerializer(serializers.ModelSerializer):
@@ -65,4 +65,12 @@ class UserSerializer(serializers.ModelSerializer):
         return instance
 
 
+class ServiceRequestSerializer(serializers.ModelSerializer):
+    user_name = serializers.CharField(source="user.username", read_only=True)
+    workshop_name = serializers.CharField(source="workshop.name", read_only=True)
+    workshop_service_name = serializers.CharField(source="workshop_service.name", read_only=True)
+    class Meta:
+        model = ServiceRequest
+        fields = ['id', 'user', 'workshop', 'workshop_service', 'user_name', 'workshop_name', 'workshop_service_name', 'vehicle_type', 'description', 'status', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'status', 'created_at', 'updated_at']
 

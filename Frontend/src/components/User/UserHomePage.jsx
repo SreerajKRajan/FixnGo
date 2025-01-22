@@ -10,8 +10,10 @@ import { useNavigate } from "react-router-dom";
 import axiosInstance from "../../utils/axiosInstance";
 
 export default function UserHomePage() {
-  const [activeTab, setActiveTab] = useState("map");
-  const [isLoggedIn, setIsLoggedIn] = useState(true);
+  const [activeTab, setActiveTab] = useState(() => {
+    // Get the saved tab from localStorage or default to "map"
+    return localStorage.getItem("activeTab") || "map";
+  });
   const [userLocation, setUserLocation] = useState(null);
   const [workshops, setWorkshops] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -37,46 +39,52 @@ export default function UserHomePage() {
     }
   };
 
+  useEffect(() => {
+    // Save the active tab to localStorage whenever it changes
+    localStorage.setItem("activeTab", activeTab);
+  }, [activeTab]);
+
   return (
-<div className="min-h-screen flex flex-col bg-gray-50">
-  {isLoggedIn && <Header onLogout={() => navigate("/login")} />}
-  <main className="flex-grow container mx-auto mt-8 px-4">
-    <Tabs activeTab={activeTab} setActiveTab={setActiveTab} />
-    <Spacer y={2} />
+    <div className="min-h-screen flex flex-col bg-gray-50">
+      <Header />
+      <main className="flex-grow container mx-auto mt-8 px-4">
+        <Tabs activeTab={activeTab} setActiveTab={setActiveTab} />
+        <Spacer y={2} />
 
-    {loading && (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500"></div>
-      </div>
-    )}
+        {activeTab === "map" && (
+          <div className="flex justify-between">
+            {/* Left Side (Search Bar or other content) */}
+            <div className="flex-1 pr-4">
+              {/* Added padding to the right to give space between search bar and map */}
+              <SearchBar onLocationSelect={handleLocationSelect} />
+              <Spacer y={2} />
+            </div>
 
-    {activeTab === "map" && (
-      <div className="flex justify-between">
-        {/* Left Side (Search Bar or other content) */}
-        <div className="flex-1">
-          <SearchBar onLocationSelect={handleLocationSelect} />
-          <Spacer y={2} />
-        </div>
-
-        {/* Right Side (Map Component) */}
-        <div className="flex-1 md:w-1/2 w-full">
-          <div className="h-[calc(100vh-300px)] w-full rounded-lg overflow-hidden shadow-lg">
-            <MapComponent userLocation={userLocation} workshops={workshops} />
+            {/* Right Side (Map Component) */}
+            <div className="flex-1 md:w-1/2 w-full">
+              {/* Increased width of the map container */}
+              <div className="relative h-[calc(100vh-250px)] w-full rounded-lg overflow-hidden shadow-lg">
+                {/* Increased height */}
+                {loading && (
+                  <div className="absolute inset-0 z-10 flex justify-center items-center bg-white bg-opacity-70">
+                    <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500"></div>
+                  </div>
+                )}
+                <MapComponent userLocation={userLocation} workshops={workshops} />
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
-    )}
+        )}
 
-    {activeTab === "workshops" && (
-      <div>
-        <UserWorkshops workshops={workshops} />
+        {activeTab === "workshops" && (
+          <div>
+            <UserWorkshops workshops={workshops} />
+          </div>
+        )}
+      </main>
+      <div className="mt-4">
+        <Footer />
       </div>
-    )}
-  </main>
-  <div className="mt-4">
-    <Footer />
-  </div>
-</div>
-
+    </div>
   );
 }
