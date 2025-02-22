@@ -10,7 +10,8 @@ from .views import (
     WorkshopForgotPasswordView, 
     WorkshopResetPasswordView,
     WorkshopServiceRequestsListAPIView,
-    UpdateServiceRequestStatusAPIView
+    UpdateServiceRequestStatusAPIView,
+    SendPaymentRequestView,
 )
 
 urlpatterns = [
@@ -26,5 +27,6 @@ urlpatterns = [
     path('services/<int:pk>/availability/', WorkshopServiceAvailabilityUpdateAPIView.as_view(), name='service-availability-update'),
     path('service-requests/list/', WorkshopServiceRequestsListAPIView.as_view(), name='service-requests-list'),
     path('service-requests/<int:request_id>/update/', UpdateServiceRequestStatusAPIView.as_view(), name='service-requests-update'),
+    path('send-payment-request/', SendPaymentRequestView.as_view(), name='send-payment-request'),
 
 ]

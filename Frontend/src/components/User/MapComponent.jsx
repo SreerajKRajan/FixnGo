@@ -43,7 +43,7 @@ const MapComponent = ({ userLocation, workshops }) => {
     <MapContainer
       center={position}
       zoom={13}
-      style={{ height: "100%", width: "100%" }}
+      style={{ height: "100%", width: "100%", zIndex: 1 }}
       className="map-container"
     >
       <ChangeView center={position} />

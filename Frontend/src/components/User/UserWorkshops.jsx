@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { Button } from "@nextui-org/react";
 import axiosInstance from "../../utils/axiosInstance";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 export default function UserWorkshops() {
   const [workshops, setWorkshops] = useState([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate()
 
   useEffect(() => {
     const fetchWorkshops = async () => {
@@ -56,11 +57,11 @@ export default function UserWorkshops() {
                 <p className="text-sm text-gray-600 mb-4">
                   {workshop.location}
                 </p>
-                <Link to={`/workshops/${workshop.id}`}>
-                  <Button className="bg-black text-white px-4 py-2 rounded-lg text-sm">
+                  <Button className="bg-black text-white px-4 py-2 rounded-lg text-sm"
+                  onPress={() => navigate(`/workshops/${workshop.id}`)}
+                  >
                     View Details
                   </Button>
-                </Link>
               </div>
             </div>
           ))}

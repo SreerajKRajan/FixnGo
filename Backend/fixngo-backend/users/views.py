@@ -6,7 +6,7 @@ from .serializers import UserSignupSerializer, UserLoginSerializer, UserSerializ
 from rest_framework_simplejwt.tokens import RefreshToken
 import random
 from django.utils import timezone
-from .models import User, Otp
+from .models import User, Otp, ServiceRequest, Payment
 from datetime import timedelta
 from utils.s3_utils import upload_to_s3
 from django.contrib.auth.tokens import default_token_generator
@@ -21,7 +21,12 @@ from workshop.utils import haversine
 from workshop.serializers import WorkshopSerializer, WorkshopServiceSerializer
 from datetime import datetime
 from itertools import chain
-
+import razorpay
+from django.views.decorators.csrf import csrf_exempt
+import json
+from django.shortcuts import get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.utils.decorators import method_decorator
 
 
 # Create your views here.
@@ -365,3 +370,97 @@ class ServiceRequestAPIView(APIView):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    
+class WorkshopPaymentRequests(ListAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    queryset = ServiceRequest.objects.filter(status='IN_PROGRESS').order_by('-created_at')
+    serializer_class = ServiceRequestSerializer
+    
+
+# Initialize Razorpay Client
+client = razorpay.Client(auth=("rzp_test_Vunq6st6Uq4zxb", "KnmtN51B9ANVS78ly2ZxGWoI"))
+
+
+class CreateOrderAPIView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        try:
+            data = request.data
+            print("dataaa: ", data)
+            user_id = request.user.id  # Use the authenticated user's ID
+            service_request_id = data.get("service_request_id")
+            amount = data.get("amount")  # Amount in paise
+
+            if not all([user_id, service_request_id, amount]):
+                return Response({"error": "Missing required fields"}, status=status.HTTP_400_BAD_REQUEST)
+
+            service_request = get_object_or_404(ServiceRequest, id=service_request_id)
+
+            # Create Razorpay Order
+            order = client.order.create({
+                "amount": int(amount),
+                "currency": "INR",
+                "payment_capture": 1
+            })
+
+            # Save payment record in the database
+            Payment.objects.create(
+                user_id=user_id,
+                service_request=service_request,
+                razorpay_order_id=order["id"],
+                amount=float(amount) / 100,  # Store in rupees
+                status="PENDING",
+            )
+
+            return Response({"order_id": order["id"]}, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+class VerifyPaymentAPIView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        """
+        Verify Razorpay payment and update the Payment model.
+        """
+        try:
+            data = request.data
+            razorpay_order_id = data.get("razorpay_order_id")
+            razorpay_payment_id = data.get("razorpay_payment_id")
+            razorpay_signature = data.get("razorpay_signature")
+
+            if not all([razorpay_order_id, razorpay_payment_id, razorpay_signature]):
+                return Response({"error": "Missing required fields"}, status=status.HTTP_400_BAD_REQUEST)
+
+            payment = get_object_or_404(Payment, razorpay_order_id=razorpay_order_id)
+
+            # Verify the payment signature
+            client.utility.verify_payment_signature({
+                "razorpay_order_id": razorpay_order_id,
+                "razorpay_payment_id": razorpay_payment_id,
+                "razorpay_signature": razorpay_signature,
+            })
+
+            # Payment is verified
+            payment.razorpay_payment_id = razorpay_payment_id
+            payment.razorpay_signature = razorpay_signature
+            payment.status = "SUCCESS"
+            payment.save()
+            
+            # Remove the service request associated with this payment
+            service_request = ServiceRequest.objects.filter(id=payment.service_request_id).first()
+            if service_request:
+                service_request.delete()
+
+            return Response({"message": "Payment verified successfully."}, status=status.HTTP_200_OK)
+        except Exception as e:
+            # Update payment status to FAILED if an error occurs
+            if 'payment' in locals():
+                payment.status = "FAILED"
+                payment.save()
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+

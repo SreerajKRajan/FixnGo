@@ -34,6 +34,9 @@ ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="localhost", cast=Csv())
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',
+    'channels',
+    'chat',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -48,7 +51,6 @@ INSTALLED_APPS = [
     'admin_side',
     'workshop',
     'service',
-
 ]
 
 REST_FRAMEWORK = {
@@ -103,6 +105,17 @@ CELERY_TASK_SERIALIZER = 'json'
 INSTALLED_APPS += ['django_celery_results']
 CELERY_RESULT_BACKEND = 'django-db'
 
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            "hosts": ["redis://127.0.0.1:6379/1"],  # Specify database in the Redis URL
+        }, 
+    },
+}
+
+
+ASGI_APPLICATION = "fixngo-backend.asgi.application"
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
@@ -113,6 +126,10 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+]
+
+CHANNEL_MIDDLEWARE = [
+    'chat.middleware.JWTAuthMiddleware',
 ]
 
 ROOT_URLCONF = 'fixngo-backend.urls'
@@ -139,7 +156,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'fixngo-backend.wsgi.application'
+# WSGI_APPLICATION = 'fixngo-backend.wsgi.application'
 
 
 # Database

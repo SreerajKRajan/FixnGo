@@ -19,6 +19,8 @@ import UserCreateNewPassword from "./components/User/UserCreateNewPassword";
 import WorkshopForgotPassword from "./components/Workshop/WorkshopForgotPassword";
 import WorkshopCreateNewPassword from "./components/Workshop/WorkshopCreateNewPassword";
 import WorkshopDetailsPage from "./components/User/WorkshopDetailsPage";
+import PaymentRequests from "./components/User/PymentRequests";
+import Layout from "./components/Layout";
 
 function App() {
   return (
@@ -70,7 +72,9 @@ function App() {
             path="/home"
             element={
               <ProtectedRoute>
-                <UserHomePage />
+                <Layout>
+                  <UserHomePage />
+                </Layout>
               </ProtectedRoute>
             }
           />
@@ -78,7 +82,19 @@ function App() {
             path="/user-profile"
             element={
               <ProtectedRoute>
-                <UserProfile />
+                <Layout>
+                  <UserProfile />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/payment-requests"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <PaymentRequests />
+                </Layout>
               </ProtectedRoute>
             }
           />
@@ -86,7 +102,9 @@ function App() {
             path="/workshops/:WorkshopId"
             element={
               <ProtectedRoute>
-                <WorkshopDetailsPage />
+                <Layout>
+                  <WorkshopDetailsPage />
+                </Layout>
               </ProtectedRoute>
             }
           />
@@ -150,7 +168,9 @@ function App() {
             path="/workshop/home"
             element={
               <ProtectedRoute role="workshop">
-                <WorkshopHomePage />
+                <Layout>
+                  <WorkshopHomePage />
+                </Layout>
               </ProtectedRoute>
             }
           />
@@ -158,7 +178,9 @@ function App() {
             path="/workshop/services"
             element={
               <ProtectedRoute role="workshop">
-                <WorkshopServiceManagement />
+                <Layout>
+                  <WorkshopServiceManagement />
+                </Layout>
               </ProtectedRoute>
             }
           />

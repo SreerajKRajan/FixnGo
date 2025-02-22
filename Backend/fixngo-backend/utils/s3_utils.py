@@ -46,13 +46,11 @@ def upload_to_s3(image_file, s3_file_path):
 def generate_presigned_url(object_key, expiration=3600):
     """Generate a pre-signed URL to share an S3 object."""
     try:
-        print(f"Object key passed to generate_presigned_url: {object_key}")
         response = s3.generate_presigned_url(
             'get_object',
             Params={'Bucket': bucket_name, 'Key': object_key},
             ExpiresIn=expiration,
         )
-        print('Generated presigned URL:', response)
         return response
     except Exception as e:
         print(f"Error generating presigned URL: {e}")

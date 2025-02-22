@@ -5,6 +5,8 @@ import { useDispatch, useSelector } from "react-redux";
 import { logout } from "../../store/userAuthSlice";
 import { Link, useNavigate } from "react-router-dom";
 import useSocket from "../../utils/useSocket";
+import { MdPayment } from "react-icons/md";
+
 
 export default function Header() {
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
@@ -48,22 +50,32 @@ export default function Header() {
   return (
     <header className="bg-black text-white p-4 relative">
       <div className="container mx-auto flex justify-between items-center">
+        <Link to={"/home"}>
         <h1 className="text-2xl font-bold">FixNgo</h1>
+        </Link>
         <div className="flex items-center space-x-4">
-          <div className="relative">
+          <div className="relative flex">
+          <button className="mr-5 m- rounded-full bg-black hover:bg-gray-800">
+            <Link
+              to="/payment-requests"
+              className="text-white flex items-center justify-center"
+            >
+              <MdPayment size={26}/>
+            </Link>
+          </button>
             <button
-              className="p-2 rounded-full bg-black hover:bg-gray-800 relative"
+              className="rounded-full bg-black hover:bg-gray-800 relative"
               onClick={toggleNotifications}
             >
-              <IoIosNotifications size={24} />
+              <IoIosNotifications size={26} />
               {notifications.length > 0 && (
-                <span className="absolute top-0 right-0 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                <span className="absolute top-0 right-0 bg-red-500 text-white text-xs font-bold rounded-full w-3.5 h-3.5 flex items-center justify-center">
                   {notifications.length}
                 </span>
               )}
             </button>
             {isNotificationOpen && (
-              <div className="absolute right-0 mt-2 w-72 bg-white text-black shadow-lg rounded-lg p-4 z-50">
+              <div className="absolute right-0 mt-6 w-72 bg-white text-black shadow-lg rounded-lg p-4 z-50">
                 <div className="flex justify-between items-center">
                   {notifications.length > 0 &&(
                   <button
@@ -97,7 +109,7 @@ export default function Header() {
               </div>
             )}
           </div>
-          <button className="p-2 rounded-full bg-black hover:bg-gray-800">
+          <button className="rounded-full bg-black hover:bg-gray-800">
             <Link
               to="/user-profile"
               className="text-white flex items-center justify-center"

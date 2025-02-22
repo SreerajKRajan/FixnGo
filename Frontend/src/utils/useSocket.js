@@ -29,7 +29,7 @@ function useSocket(userId, callback) {
             
             // Verify connection
             socket.on('connect', () => {
-                console.log('Socket connected successfully');
+                console.log('Socket for notification connected successfully');
             });
 
             socket.on('connect_error', (error) => {

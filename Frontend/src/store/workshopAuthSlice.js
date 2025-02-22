@@ -147,7 +147,8 @@ const workshopAuthSlice = createSlice({
       .addCase(workshopLogin.pending, (state) => {
         state.loading = true;
       })
-      .addCase(workshopLogin.fulfilled, (state, action) => {        
+      .addCase(workshopLogin.fulfilled, (state, action) => {       
+        console.log("Workshop payload", action.payload); 
         state.loading = false;
         state.workshop = action.payload.workshop || null;  // Ensure workshop data is being set
         state.email = action.payload.email || null;  // Ensure email is being set if necessary

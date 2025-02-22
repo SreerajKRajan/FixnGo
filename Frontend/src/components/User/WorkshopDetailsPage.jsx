@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Card, Button, Avatar } from "@nextui-org/react";
+import { Card, Button, Avatar, Spinner } from "@nextui-org/react";
 import {
   StarIcon,
   MapPinIcon,
@@ -15,8 +15,9 @@ import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
 import { toast } from "sonner";
 import { IoChatbubbleEllipses } from "react-icons/io5";
+import LinkedInMessages from "../Chat/LinkedInMessages";
+
 import { FaVideo } from "react-icons/fa6";
-import ChatModal from "../ChatModal";
 
 const WorkshopDetailsPage = () => {
   const reviews = [
@@ -28,11 +29,14 @@ const WorkshopDetailsPage = () => {
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
-  const [chatModalOpen, setChatModalOpen] = useState(false);
   const [selectedService, setSelectedService] = useState(null);
   const { WorkshopId } = useParams();
 
-  const handleChatClick = () => setChatModalOpen(true);
+  const [selectedChat, setSelectedChat] = useState(null);
+
+  const handleChatClick = () => {
+    setSelectedChat(workshop); // Set selected workshop to chat
+  };
 
   useEffect(() => {
     const fetchWorkshopDetails = async () => {
@@ -78,7 +82,9 @@ const WorkshopDetailsPage = () => {
         }
       );
       console.log("Service request submitted:", response.data);
-      toast.success("Service request submitted successfully!");
+      toast.success(
+        "Service request submitted successfully! Wait for workshop response."
+      );
       setModalOpen(false);
       resetForm();
     } catch (error) {
@@ -87,7 +93,12 @@ const WorkshopDetailsPage = () => {
     }
   };
 
-  if (loading) return <div>Loading...</div>;
+  if (loading)
+    return (
+      <div className="flex justify-center items-center min-h-[200px]">
+        <Spinner size="lg" color="primary" />
+      </div>
+    );
 
   if (!workshop) return <div>Workshop not found.</div>;
 
@@ -130,38 +141,26 @@ const WorkshopDetailsPage = () => {
 
         {/* Fixed Chat and Video Buttons */}
         <div
-          className="fixed right-4 bottom-96 flex flex-col space-y-4 z-40"
-          style={{ pointerEvents: "auto" }}
+        className="fixed right-4 bottom-96 flex flex-col space-y-4 z-40"
+        style={{ pointerEvents: "auto" }}
+      >
+        <button
+          className="p-3 rounded-full bg-red-500 hover:bg-red-600 text-white shadow-lg transition duration-300"
+          style={{ fontSize: "1.25rem" }}
+          onClick={handleChatClick} // Open chat window with this workshop
         >
-          <button
-            className="p-3 rounded-full bg-blue-500 hover:bg-blue-600 text-white shadow-lg transition duration-300"
-            style={{ fontSize: "1.25rem" }}
-            onClick={handleChatClick}
-          >
-            <IoChatbubbleEllipses />
-          </button>
+          <IoChatbubbleEllipses />
+        </button>
+        <button
+          className="p-3 rounded-full bg-red-500 hover:bg-red-600 text-white shadow-lg transition duration-300"
+          style={{ fontSize: "1.25rem" }}
+        >
+          <FaVideo />
+        </button>
+      </div>
 
-          <button
-            className="p-3 rounded-full bg-red-500 hover:bg-red-600 text-white shadow-lg transition duration-300"
-            style={{ fontSize: "1.25rem" }}
-          >
-            <FaVideo />
-          </button>
-        </div>
-        {chatModalOpen && (
-          <div className="fixed inset-0 flex items-center justify-center z-50">
-            <div
-              className="fixed inset-0 bg-black bg-opacity-50"
-              onClick={() => setChatModalOpen(false)}
-            />
-            <div className="relative bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
-              <ChatModal
-                isOpen={chatModalOpen}
-                onClose={() => setChatModalOpen(false)}
-              />
-            </div>
-          </div>
-        )}
+      {/* Pass selectedChat to LinkedInMessages */}
+      <LinkedInMessages newChat={selectedChat} />
 
         <h2 className="text-2xl font-semibold mb-4">Services Offered</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
@@ -174,7 +173,7 @@ const WorkshopDetailsPage = () => {
               <p className="text-gray-600 mb-2 line-clamp-3">
                 {service.description}
               </p>
-              <p className="text-lg font-bold mb-4">{service.base_price}</p>
+              <p className="text-lg font-bold mb-4">{service.bas10e_price}</p>
               <Button
                 onClick={() => handleRequestService(service)}
                 color="primary"

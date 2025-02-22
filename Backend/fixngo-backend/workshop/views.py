@@ -24,6 +24,8 @@ from users.models import ServiceRequest
 from users.serializers import ServiceRequestSerializer
 import socketio
 import requests
+from admin_side.views import CommonPagination
+
 
 
 class WorkshopSignupView(APIView):
@@ -162,7 +164,12 @@ class WorkshopLoginView(APIView):
                 return Response({
                     "refresh": str(token),
                     "access": str(token.access_token),
-                    "message": "Login successful"
+                    "message": "Login successful",
+                    "workshop": {
+                        "id": workshop.id,
+                        "email": workshop.email,
+                        "name": workshop.name,
+                    }
                 }, status=status.HTTP_200_OK)
             return Response({"error": "Invalid credentials"}, status=status.HTTP_400_BAD_REQUEST)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -393,6 +400,7 @@ class WorkshopServiceRequestsListAPIView(ListAPIView):
     authentication_classes = [WorkshopJWTAuthentication]
     permission_classes = [IsWorkshopUser]
     serializer_class = ServiceRequestSerializer
+    pagination_class = CommonPagination
 
     def get_queryset(self):
         # Fetch only the service requests for the authenticated workshop
@@ -438,3 +446,41 @@ class UpdateServiceRequestStatusAPIView(APIView):
         return Response({"message": f"Request {status} successfully"})
 
 
+class SendPaymentRequestView(APIView):
+    authentication_classes = [WorkshopJWTAuthentication]
+    permission_classes = [IsWorkshopUser]
+    
+    def post(self, request):
+        # Extract data from the request
+        request_id = request.data.get('requestId')
+        total_cost = request.data.get('totalCost')
+        
+        if not request_id or not total_cost:
+            return Response(
+                {"error": "Both 'requestId' and 'totalCost' are required."}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            # Fetch the service request object
+            service_request = ServiceRequest.objects.get(id=request_id)
+            
+            # Update the total cost and set payment status
+            service_request.total_cost = total_cost
+            service_request.status = 'IN_PROGRESS'
+            service_request.payment_status = 'PENDING'
+            service_request.save()
+            
+            # Additional logic: send notifications or emails (optional)
+            
+            return Response(
+                {"message": "Payment request sent successfully.", 
+                 "requestId": service_request.id, 
+                 "totalCost": service_request.total_cost},
+                status=status.HTTP_200_OK
+            )
+        except ServiceRequest.DoesNotExist:
+            return Response(
+                {"error": "Service request not found."}, 
+                status=status.HTTP_404_NOT_FOUND
+            )

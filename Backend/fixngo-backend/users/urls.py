@@ -11,6 +11,9 @@ from .views import (
     UserWorkshopsListView, 
     UserWorkshopDetailView, 
     ServiceRequestAPIView,
+    WorkshopPaymentRequests,
+    CreateOrderAPIView,
+    VerifyPaymentAPIView,
 )
 
 urlpatterns = [
@@ -25,4 +28,8 @@ urlpatterns = [
     path('workshops/list/', UserWorkshopsListView.as_view(), name='user-workshops-list'),
     path('workshops/<int:id>/', UserWorkshopDetailView.as_view(), name='user-workshops-details'),
     path('workshops/<int:workshop_id>/services/<int:service_id>/request/', ServiceRequestAPIView.as_view(), name='user-request-service'),
+    path('workshops/payment-requests/', WorkshopPaymentRequests.as_view(), name='user-workshop-payment-request'),
+    
+    path('create-order/', CreateOrderAPIView.as_view(), name='create_order'),
+    path('verify-payment/', VerifyPaymentAPIView.as_view(), name='verify_payment'),
 ]
