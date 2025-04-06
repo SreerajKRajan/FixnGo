@@ -87,6 +87,25 @@ export const resetPassword = createAsyncThunk(
   }
 );
 
+export const userGoogleSignup = createAsyncThunk(
+  "userAuth/userGoogleSignup",
+  async (userData, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.post("users/google-signup/", {
+        credential: userData.credential || null,
+        email: userData.email,
+        username: userData.username,
+        google_id: userData.google_id,
+        profile_image: userData.profile_image
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Google Signup Error:", error.response?.data);
+      return rejectWithValue(error.response?.data || "Google Signup Failed");
+    }
+  }
+);
+
 
 const initialState = {
   user: (() => {
@@ -115,6 +134,8 @@ const userAuthSlice = createSlice({
       localStorage.removeItem("token");
       localStorage.removeItem("user");
       localStorage.removeItem("email");
+      localStorage.removeItem("refreshToken");
+      localStorage.removeItem("isWorkshop"); // Also remove the isWorkshop flag
     },
     clearMessages: (state) => {
       state.error = null;
@@ -162,7 +183,8 @@ const userAuthSlice = createSlice({
         localStorage.setItem("refreshToken", action.payload.refresh);
         localStorage.setItem("user", JSON.stringify(action.payload.user));
         localStorage.setItem("email", action.payload.email);
-      })      
+        localStorage.setItem("isWorkshop", "false"); // Set isWorkshop flag to false
+      })     
       .addCase(userLogin.rejected, (state, action) => {
         console.log("Rejected action payload:", action.payload); // Debugging payload
         state.loading = false;
@@ -215,6 +237,26 @@ const userAuthSlice = createSlice({
       .addCase(resetPassword.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload || "Password reset failed.";
+      })
+      .addCase(userGoogleSignup.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(userGoogleSignup.fulfilled, (state, action) => {
+        state.loading = false;
+        state.user = action.payload.user;
+        state.email = action.payload.email;
+        state.error = null;
+      
+        // Store data in localStorage just like regular login
+        localStorage.setItem("token", action.payload.access);
+        localStorage.setItem("refreshToken", action.payload.refresh);
+        localStorage.setItem("user", JSON.stringify(action.payload.user));
+        localStorage.setItem("email", action.payload.email);
+        localStorage.setItem("isWorkshop", "false");
+      })
+      .addCase(userGoogleSignup.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || "Google signup failed";
       });
       
   },

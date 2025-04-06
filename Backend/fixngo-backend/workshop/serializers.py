@@ -38,11 +38,24 @@ class WorkshopSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
     def get_document(self, obj):
-        # Generate the presigned URL for the document
-        full_document_path = obj.document.name
-        base_url = "https://fixngo-images.s3.eu-north-1.amazonaws.com/"
-        document_key = full_document_path.replace(base_url, "")
+        # Get the original document URL
+        # if hasattr(obj.document, 'url'):
+        #     document_url = obj.document.url
+        # elif hasattr(obj.document, 'name'):
+        #     document_url = obj.document.name
+        # else:
+        #     document_url = str(obj.document)
+        
+        # # print(f"Original document URL: {document_url}")
+        
+        # Generate presigned URL directly using the original document URL
+        if hasattr(obj.document, 'name'):
+            document_key = obj.document.name
+        else:
+            document_key = str(obj.document)
+
         return generate_presigned_url(document_key)
+
 
         
 class WorkshopServiceSerializer(serializers.ModelSerializer):

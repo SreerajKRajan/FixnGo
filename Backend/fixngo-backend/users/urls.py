@@ -14,9 +14,11 @@ from .views import (
     WorkshopPaymentRequests,
     CreateOrderAPIView,
     VerifyPaymentAPIView,
+    google_signup,
 )
 
 urlpatterns = [
+    path("google-signup/", google_signup, name="google-signup"),
     path('signup/', UserSignupView.as_view(), name='user-signup'),
     path('otp_verification/', OtpVerificationView.as_view(), name='user-otp-verification'),
     path('login/', UserLoginView.as_view(), name='user-login'),

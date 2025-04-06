@@ -9,3 +9,4 @@ class WorkshopToken(RefreshToken):
         self.payload['user_id'] = workshop.id
         self.payload['email'] = workshop.email
         self.payload['is_verified'] = workshop.is_verified
+        self.payload['type'] = "workshop"

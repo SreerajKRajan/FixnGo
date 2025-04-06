@@ -1,28 +1,20 @@
 from django.db import models
-from django.contrib.auth import get_user_model
+from users.models import User
 from workshop.models import Workshop
-
-User = get_user_model()
-
-class ChatRoom(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="user_chat_rooms")
-    workshop = models.ForeignKey(Workshop, on_delete=models.CASCADE, related_name="workshop_chat_rooms")
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"ChatRoom(User: {self.user.username}, Workshop: {self.workshop.name})"
-
+from django.utils import timezone
 
 class Message(models.Model):
-    chat_room = models.ForeignKey(ChatRoom, related_name="messages", on_delete=models.CASCADE)
     sender_user = models.ForeignKey(User, null=True, blank=True, on_delete=models.CASCADE, related_name="sent_messages")
-    sender_workshop = models.ForeignKey(Workshop, null=True, blank=True, on_delete=models.CASCADE, related_name="sent_messages")
-    content = models.TextField()
-    timestamp = models.DateTimeField(auto_now_add=True)
+    sender_workshop = models.ForeignKey(Workshop, null=True, blank=True, on_delete=models.CASCADE, related_name="sent_messages_workshop")
+    receiver_user = models.ForeignKey(User, null=True, blank=True, on_delete=models.CASCADE, related_name="received_messages")
+    receiver_workshop = models.ForeignKey(Workshop, null=True, blank=True, on_delete=models.CASCADE, related_name="received_messages_workshop")
+    room_name = models.CharField(max_length=255)
+    message = models.TextField()
+    timestamp = models.DateTimeField(default=timezone.now)
     is_read = models.BooleanField(default=False)
 
+    class Meta:
+        ordering = ['-timestamp']
+
     def __str__(self):
-        sender = self.sender_user.username if self.sender_user else self.sender_workshop.name
-        return f"Message from {sender} at {self.timestamp}"
-
-
+        return f"{self.sender_user or self.sender_workshop} -> {self.receiver_user or self.receiver_workshop}: {self.message}"

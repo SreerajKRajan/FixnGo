@@ -1,170 +1,225 @@
-import React, { useState, useEffect, useRef } from "react";
-import { X, Minimize2, Maximize2, Send } from "lucide-react";
-import { useSelector } from "react-redux";
+  import React, { useState, useEffect, useRef } from "react";
+  import { Send, X } from "lucide-react";
+  import { formatDistanceToNow } from "date-fns";
+  import axiosInstance from "../../utils/axiosInstance";
+  import { useSelector } from "react-redux";
 
-const ChatWindow = ({ user, onClose }) => {
-  const [isMinimized, setIsMinimized] = useState(false);
-  const [message, setMessage] = useState("");
-  const [messages, setMessages] = useState([]);
-  const [isConnected, setIsConnected] = useState(false);
-  const chatRef = useRef();
-  const socketRef = useRef(null);
-  const currentUser = useSelector((state) => state.userAuth.user || state.workshopAuth.workshop);
+  const ChatWindow = ({chat, roomId, user, workshop, onClose }) => {
+    const [messages, setMessages] = useState([]);
+    const [message, setMessage] = useState("");
+    const [loading, setLoading] = useState(false);
+    const [newMessage, setNewMessage] = useState("");
+    const chatRef = useRef();
 
-  useEffect(() => {
-    if (!user || !currentUser) return;
+    const log_user = useSelector((state) => state.userAuth.user);
 
-    const connectWebSocket = () => {
-      const participants = [currentUser.id, user.id].sort();
-      const roomName = `${participants[0]}_${participants[1]}`;
-      const token = localStorage.getItem("token") || localStorage.getItem("workshopToken");
-      
-      const ws = new WebSocket(`ws://localhost:8000/ws/chat/${roomName}/?token=${token}`);
+    const socketRef = useRef(null);
 
-      ws.onopen = () => {
-        console.log("WebSocket connected:", roomName);
-        setIsConnected(true);
+    useEffect(() => {
+      if (!log_user.id) return;
+      console.log('hii working')
+
+      const socketUrl = `ws://127.0.0.1:8000/ws/chat/${log_user.id}/${6}/`;
+
+      socketRef.current = new WebSocket(socketUrl);
+
+      socketRef.current.onopen = () => {
+        console.log("WebSocket connected");
       };
 
-      ws.onmessage = (event) => {
+      socketRef.current.onmessage = (event) => {
         const data = JSON.parse(event.data);
-        console.log("Received WebSocket data:", data);
+        console.log(data, 'data came through socket');
+        const newMsg = {
+          message_id: data.message_id || Date.now(),
+          message: data.message,
+          sender_type: data.sender_type,
+          timestamp: data.timestamp || new Date().toISOString()
+        };
+        setMessages((prevMessages) => [...prevMessages, newMsg]);
+      };
 
-        if (data.type === "chat_history") {
-          const sortedMessages = data.messages.sort((a, b) => 
-            new Date(a.timestamp) - new Date(b.timestamp)
+      socketRef.current.onclose = () => {
+        console.log("WebSocket disconnected");
+      };
+
+      return () => {
+        socketRef.current?.close();
+      };
+    }, []);
+
+    const sendMessage = () => {
+      if (message.trim()) {
+        const socket = new WebSocket(`ws://127.0.0.1:8000/ws/chat/${log_user.id}/${6}/`);
+        socket.onopen = () => {
+          socket.send(
+            JSON.stringify({
+              message: message,
+            })
           );
-          setMessages(sortedMessages);
-        } else if (data.type === "chat_message") {
-          setMessages(prev => [...prev, {
-            message_id: data.message_id,
-            content: data.message,
-            sender_id: currentUser.id,
-            sender_name: data.sender,
-            timestamp: data.timestamp
-          }]);
-        }
-      };
-
-      ws.onerror = (error) => {
-        console.error("WebSocket error:", error);
-        setIsConnected(false);
-      };
-
-      ws.onclose = () => {
-        console.log("WebSocket closed");
-        setIsConnected(false);
-        setTimeout(connectWebSocket, 3000);
-      };
-
-      socketRef.current = ws;
-    };
-
-    connectWebSocket();
-
-    return () => {
-      if (socketRef.current) {
-        socketRef.current.close();
+          setNewMessage("");
+        };
       }
     };
-  }, [user, currentUser]);
+    console.log(messages, 'all messages,')
 
-  useEffect(() => {
-    if (chatRef.current && !isMinimized) {
-      chatRef.current.scrollTop = chatRef.current.scrollHeight;
-    }
-  }, [messages, isMinimized]);
+    // Dummy user info
+    const currentUser = { id: "current123", username: "CurrentUser" };
+    const isWorkshop = false;
 
-  const sendMessage = (e) => {
-    e.preventDefault();
-    if (!message.trim() || !socketRef.current || socketRef.current.readyState !== WebSocket.OPEN) {
-      console.log("Cannot send message: Socket not ready or message empty");
-      return;
-    }
+    // Determine which entity to show in the chat header
+    const chatPartner = isWorkshop ? user : workshop;
+    const chatPartnerName = isWorkshop ? user?.username : workshop?.name;
+    const chatPartnerImage = isWorkshop
+      ? user?.profile_image_url
+      : workshop?.document;
 
-    const messageData = {
-      type: "chat_message",
-      message: message.trim(),
-      receiver: user.id,
+      // Dummy messages data
+    const dummyMessages = [
+      {
+        message_id: "msg1",
+        message: "Hi there! I'm interested in your workshop",
+        sender_type: "user",
+        timestamp: "2025-03-17T14:23:00Z"
+      },
+      {
+        message_id: "msg2",
+        message: "Hello! Thanks for reaching out. What specific aspects are you curious about?",
+        sender_type: "workshop",
+        timestamp: "2025-03-17T14:25:00Z"
+      },
+      {
+        message_id: "msg3",
+        message: "I'd like to know more about the prerequisites and materials needed",
+        sender_type: "user",
+        timestamp: "2025-03-17T14:28:00Z"
+      },
+      {
+        message_id: "msg4",
+        message: "No special prerequisites needed! Just bring a notebook and your enthusiasm. We'll provide all other materials.",
+        sender_type: "workshop",
+        timestamp: "2025-03-17T14:30:00Z"
+      }
+    ];
+
+    // Set dummy messages when component mounts
+    useEffect(() => {
+      setLoading(true);
+      setTimeout(() => {
+        setMessages(dummyMessages);
+        setLoading(false);
+      }, 500); // Simulate loading delay
+    }, []);
+
+    // Auto-scroll to the latest message
+    useEffect(() => {
+      if (chatRef.current) {
+        chatRef.current.scrollTop = chatRef.current.scrollHeight;
+      }
+    }, [messages]);
+
+    // const sendMessage = (e) => {
+    //   e.preventDefault();
+      
+    //   if (message.trim() !== "") {
+    //     const newMessage = {
+    //       message_id: `msg${Date.now()}`,
+    //       message: message.trim(),
+    //       sender_type: isWorkshop ? "workshop" : "user",
+    //       timestamp: new Date().toISOString()
+    //     };
+        
+    //     setMessages([...messages, newMessage]);
+    //     setMessage("");
+    //   }
+    // };
+
+    // Determine if a message is from the current user
+    const isOwnMessage = (msg) => {
+      if (isWorkshop) {
+        return msg.sender_type === "workshop";
+      } else {
+        return msg.sender_type === "user";
+      }
     };
 
-    try {
-      socketRef.current.send(JSON.stringify(messageData));
-      setMessage("");
-    } catch (error) {
-      console.error("Error sending message:", error);
-    }
-  };
-
-  return (
-    <div className="w-80 bg-white border border-gray-300 rounded-t-lg shadow-lg mb-1">
-      <div className="flex items-center justify-between p-3 bg-black text-white rounded-t-lg">
-        <div className="flex items-center space-x-2">
-          <img
-            src={user.document || "/default-avatar.png"}
-            alt={user.name}
-            className="w-8 h-8 rounded-full object-cover"
-          />
-          <span className="font-semibold">{user.name}</span>
+    return (
+      <div className="w-80 bg-white border border-gray-300 rounded-t-lg shadow-lg mr-2">
+        <div className="flex items-center justify-between p-3 bg-black text-white rounded-t-lg">
+          <div className="flex items-center space-x-2">
+            <img
+              src={chatPartnerImage}
+              alt={chatPartnerName}
+              className="w-8 h-8 rounded-full object-cover"
+              onError={(e) => {
+                e.target.onError = null;
+                e.target.src = "";
+              }}
+            />
+            <span className="font-semibold truncate">{chatPartnerName || "Chat"}</span>
+          </div>
+          <div className="flex items-center space-x-2">
+            <button onClick={onClose} className="hover:bg-gray-700 p-1 rounded">
+              <X size={18} />
+            </button>
+          </div>
         </div>
-        <div className="flex items-center space-x-2">
+
+        <div className="h-64 p-3 overflow-y-auto bg-gray-50" ref={chatRef}>
+          {loading ? (
+            <div className="flex justify-center items-center h-full">
+              <span>Loading messages...</span>
+            </div>
+          ) : messages.length === 0 ? (
+            <div className="flex justify-center items-center h-full text-gray-500">
+              <span>No messages yet. Start the conversation!</span>
+            </div>
+          ) : (
+            messages.map((msg, index) => (
+              <div
+                key={msg.message_id || index}
+                className={`p-2 mb-2 max-w-[80%] rounded-lg ${
+                  isOwnMessage(msg)
+                    ? "ml-auto bg-blue-500 text-white rounded-bl-lg rounded-tl-lg rounded-tr-lg"
+                    : "mr-auto bg-gray-200 text-gray-800 rounded-br-lg rounded-tr-lg rounded-tl-lg"
+                }`}
+              >
+                <div className="break-words">{msg.message}</div>
+                <div className="text-xs opacity-75 mt-1">
+                  {msg.timestamp
+                    ? formatDistanceToNow(new Date(msg.timestamp), {
+                        addSuffix: true,
+                      })
+                    : "Just now"}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        <div
+          className="flex items-center p-3 border-t border-gray-300"
+        >
+          <input
+            type="text"
+            placeholder="Type a message..."
+            className="flex-1 px-3 py-2 border border-gray-300 rounded-full focus:outline-none"
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+          />
           <button
-            onClick={() => setIsMinimized(!isMinimized)}
-            className="hover:bg-gray-700 p-1 rounded"
+          onClick={sendMessage}
+            type="button"
+            className={`ml-2 ${
+              message.trim() ? "text-blue-500" : "text-gray-400"
+            }`}
+            disabled={!message.trim()}
           >
-            {isMinimized ? <Maximize2 size={18} /> : <Minimize2 size={18} />}
-          </button>
-          <button onClick={onClose} className="hover:bg-gray-700 p-1 rounded">
-            <X size={18} />
+            <Send size={20} />
           </button>
         </div>
       </div>
+    );
+  };
 
-      {!isMinimized && (
-        <>
-          <div className="h-64 p-3 overflow-y-auto bg-gray-50" ref={chatRef}>
-            {messages.map((msg, index) => (
-              <div
-                key={`${msg.timestamp}-${index}`}
-                className={`p-2 mb-2 rounded-lg ${
-                  msg.sender_id === currentUser.id
-                    ? "ml-auto bg-blue-500 text-white max-w-[80%]"
-                    : "mr-auto bg-gray-200 text-gray-800 max-w-[80%]"
-                }`}
-              >
-                <div className="text-sm">{msg.content}</div>
-                <div className="text-xs opacity-75 mt-1">
-                  {new Date(msg.timestamp).toLocaleTimeString()}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <form onSubmit={sendMessage} className="flex items-center p-3 border-t border-gray-300">
-            <input
-              type="text"
-              placeholder={isConnected ? "Write a message..." : "Connecting..."}
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-black"
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              disabled={!isConnected}
-            />
-            <button
-              type="submit"
-              className={`ml-2 transition duration-200 ${
-                isConnected && message.trim() 
-                  ? "text-black hover:text-gray-700" 
-                  : "text-gray-400 cursor-not-allowed"
-              }`}
-              disabled={!isConnected || !message.trim()}
-            >
-              <Send size={20} />
-            </button>
-          </form>
-        </>
-      )}
-    </div>
-  );
-};
-
-export default ChatWindow;
+  export default ChatWindow;

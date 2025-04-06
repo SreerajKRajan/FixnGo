@@ -8,6 +8,8 @@ from workshop.models import WorkshopService, Workshop
 from rest_framework.permissions import IsAdminUser
 from rest_framework.pagination import PageNumberPagination
 from admin_side.views import CommonPagination
+from django.db import IntegrityError
+
 
 
 class ServiceListCreateAPIView(APIView):
@@ -21,8 +23,14 @@ class ServiceListCreateAPIView(APIView):
     def post(self, request):
         serializer = ServiceSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            try:
+                serializer.save()
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            except IntegrityError:  # Catch duplicate name error
+                return Response(
+                    {"error": "A service with this name already exists."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class ServiceDetailAPIView(APIView):

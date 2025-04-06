@@ -15,9 +15,9 @@ import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
 import { toast } from "sonner";
 import { IoChatbubbleEllipses } from "react-icons/io5";
-import LinkedInMessages from "../Chat/LinkedInMessages";
-
+import ChatComponent from "../Chat/ChatComponent";
 import { FaVideo } from "react-icons/fa6";
+import unavailableImg from "@/assets/unavailable.svg";
 
 const WorkshopDetailsPage = () => {
   const reviews = [
@@ -35,7 +35,19 @@ const WorkshopDetailsPage = () => {
   const [selectedChat, setSelectedChat] = useState(null);
 
   const handleChatClick = () => {
-    setSelectedChat(workshop); // Set selected workshop to chat
+    // Format the workshop data to match the chat window's expected props
+    const chatData = {
+      id: workshop.id || WorkshopId,
+      workshop_details: {
+        name: workshop.name,
+        document: workshop.profile_image || "/default-avatar.png",
+      },
+    };
+    setSelectedChat(chatData);
+  };
+
+  const handleChatClose = () => {
+    setSelectedChat(null);
   };
 
   useEffect(() => {
@@ -141,48 +153,65 @@ const WorkshopDetailsPage = () => {
 
         {/* Fixed Chat and Video Buttons */}
         <div
-        className="fixed right-4 bottom-96 flex flex-col space-y-4 z-40"
-        style={{ pointerEvents: "auto" }}
-      >
-        <button
-          className="p-3 rounded-full bg-red-500 hover:bg-red-600 text-white shadow-lg transition duration-300"
-          style={{ fontSize: "1.25rem" }}
-          onClick={handleChatClick} // Open chat window with this workshop
+          className="fixed right-4 bottom-96 flex flex-col space-y-4 z-40"
+          style={{ pointerEvents: "auto" }}
         >
-          <IoChatbubbleEllipses />
-        </button>
-        <button
-          className="p-3 rounded-full bg-red-500 hover:bg-red-600 text-white shadow-lg transition duration-300"
-          style={{ fontSize: "1.25rem" }}
-        >
-          <FaVideo />
-        </button>
-      </div>
+          <button
+            className="p-3 rounded-full bg-red-500 hover:bg-red-600 text-white shadow-lg transition duration-300"
+            style={{ fontSize: "1.25rem" }}
+            onClick={handleChatClick} // Open chat window with this workshop
+          >
+            <IoChatbubbleEllipses />
+          </button>
+          <button
+            className="p-3 rounded-full bg-red-500 hover:bg-red-600 text-white shadow-lg transition duration-300"
+            style={{ fontSize: "1.25rem" }}
+          >
+            <FaVideo />
+          </button>
+        </div>
 
-      {/* Pass selectedChat to LinkedInMessages */}
-      <LinkedInMessages newChat={selectedChat} />
+        {/* Pass selectedChat to ChatComponent */}
+        {selectedChat && (
+          <ChatComponent newChat={selectedChat} onChatClose={handleChatClose} />
+        )}
 
         <h2 className="text-2xl font-semibold mb-4">Services Offered</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-          {services.map((service, index) => (
-            <Card
-              key={index}
-              className="p-4 flex flex-col justify-between h-64"
-            >
-              <h3 className="text-xl font-semibold mb-2">{service.name}</h3>
-              <p className="text-gray-600 mb-2 line-clamp-3">
-                {service.description}
-              </p>
-              <p className="text-lg font-bold mb-4">{service.bas10e_price}</p>
-              <Button
-                onClick={() => handleRequestService(service)}
-                color="primary"
+
+        {services.length === 0 ? (
+          <div className="flex flex-col items-center justify-center text-center text-gray-500 py-10">
+            <img
+              src={unavailableImg} // You can use a relevant image or icon here
+              alt="No services"
+              className="w-40 h-40 mb-4"
+            />
+            <p className="text-lg font-medium">
+              No services available currently.
+            </p>
+            <p className="text-sm text-gray-400">Please check back later!</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            {services.map((service, index) => (
+              <Card
+                key={index}
+                className="p-4 flex flex-col justify-between h-64"
               >
-                Request Service
-              </Button>
-            </Card>
-          ))}
-        </div>
+                <h3 className="text-xl font-semibold mb-2">{service.name}</h3>
+                <p className="text-gray-600 mb-2 line-clamp-3">
+                  {service.description}
+                </p>
+                <p className="text-lg font-bold mb-4">{service.base_price}</p>
+                <Button
+                  onClick={() => handleRequestService(service)}
+                  color="primary"
+                >
+                  Request Service
+                </Button>
+              </Card>
+            ))}
+          </div>
+        )}
 
         <h2 className="text-2xl font-semibold mb-4">Reviews</h2>
         <div className="space-y-4 mb-8">

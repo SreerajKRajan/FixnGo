@@ -1,6 +1,6 @@
 import React from "react"
 // import ChatComponent from "./ChatComponent" // Import the ChatComponent component
-import LinkedInMessages from "./Chat/LinkedInMessages"
+import ChatComponent from "./Chat/ChatComponent"
 
 const Layout = ({ children }) => {
   return (
@@ -9,7 +9,7 @@ const Layout = ({ children }) => {
       {children}
 
       {/* Include the ChatComponent component */}
-      <LinkedInMessages />
+      <ChatComponent />
     </div>
   )
 }

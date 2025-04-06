@@ -90,7 +90,7 @@ export default function WorkshopServiceManagement() {
         </Tabs>
         <Button
           onClick={() => setIsModalOpen(true)}
-          className="fixed bottom-8 right-8 rounded-full shadow-lg"
+          className="fixed bottom-14 right-2 rounded-full shadow-lg"
           size="lg"
         >
           <PlusCircle className="mr-2 h-5 w-5" /> Create New Service

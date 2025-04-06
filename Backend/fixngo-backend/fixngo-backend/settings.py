@@ -57,7 +57,7 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
-    'PAGE_SIZE': 5,
+    'PAGE_SIZE': 10,
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
 }
 
@@ -68,6 +68,7 @@ SIMPLE_JWT = {
     'BLACKLIST_AFTER_ROTATION': True,
 }
 
+GOOGLE_CLIENT_ID = "111926382141-a0gum91dmvct79964hk0rn7b20fpv9pn.apps.googleusercontent.com"
 
 AUTH_USER_MODEL = 'users.User'
 

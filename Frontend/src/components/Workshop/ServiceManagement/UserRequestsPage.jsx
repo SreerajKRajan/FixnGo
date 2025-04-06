@@ -14,7 +14,8 @@ import { toast } from "sonner";
 import { MdOutlineCurrencyRupee, MdClose } from "react-icons/md";
 import { FaVideo } from "react-icons/fa6";
 import { IoChatbubbleEllipses } from "react-icons/io5";
-import LinkedInMessages from "../../Chat/LinkedInMessages";
+import { RiFileListLine } from "react-icons/ri";
+import ChatComponent from "../../Chat/ChatComponent";
 
 const capitalizeStatus = (status) => {
   if (!status) return "";
@@ -31,7 +32,7 @@ const UserRequestsPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [additionalCost, setAdditionalCost] = useState("");
-
+  const [loading, setLoading] = useState(true);
   const [selectedChat, setSelectedChat] = useState(null);
 
   const handleChatClick = () => {
@@ -40,6 +41,7 @@ const UserRequestsPage = () => {
 
   useEffect(() => {
     const fetchRequests = async (page) => {
+      setLoading(true);
       try {
         const response = await axiosInstance.get(
           `/workshop/service-requests/list/?page=${page}`
@@ -49,6 +51,9 @@ const UserRequestsPage = () => {
         setTotalPages(Math.ceil(response.data.count / 5)); // Assuming 5 items per page
       } catch (error) {
         console.error("Error fetching service requests:", error);
+        toast.error("Failed to load service requests");
+      } finally {
+        setLoading(false);
       }
     };
     fetchRequests(currentPage);
@@ -73,6 +78,7 @@ const UserRequestsPage = () => {
       closeModal(); // Close modal after updating status
     } catch (error) {
       console.error(`Error updating request status: ${error}`);
+      toast.error("Failed to update request status");
     }
   };
 
@@ -116,60 +122,82 @@ const UserRequestsPage = () => {
     }
   };
 
+  const EmptyState = () => (
+    <div className="flex flex-col items-center justify-center py-16 bg-gray-50 rounded-lg">
+      <RiFileListLine className="text-gray-400" size={80} />
+      <p className="mt-4 text-xl font-medium text-gray-500">No service requests found</p>
+      <p className="mt-2 text-gray-400">When new service requests arrive, they will appear here</p>
+    </div>
+  );
+
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 min-h-screen flex flex-col">
       <h1 className="text-3xl font-bold mb-8 text-center">Service Requests</h1>
 
-      <Table aria-label="Service Requests">
-        <TableHeader>
-          <TableColumn>ID</TableColumn>
-          <TableColumn>User</TableColumn>
-          <TableColumn>Service</TableColumn>
-          <TableColumn>Vehicle</TableColumn>
-          <TableColumn>Status</TableColumn>
-          <TableColumn>Actions</TableColumn>
-        </TableHeader>
-        <TableBody>
-          {requests.map((request) => (
-            <TableRow key={request.id} className="hover:bg-gray-50">
-              <TableCell>{request.id}</TableCell>
-              <TableCell>{request.user_name}</TableCell>
-              <TableCell>{request.workshop_service_name}</TableCell>
-              <TableCell>{request.vehicle_type}</TableCell>
-              <TableCell>
-                <span
-                  className={`px-3 py-1 rounded-full text-white ${
-                    request.status === "accepted"
-                      ? "bg-green-500"
-                      : request.status === "rejected"
-                      ? "bg-red-500"
-                      : "bg-yellow-500"
-                  }`}
-                >
-                  {capitalizeStatus(request.status)}
-                </span>
-              </TableCell>
-              <TableCell>
-                <Button
-                  onPress={() => handleViewRequest(request)}
-                  color="primary"
-                  size="sm"
-                >
-                  View Details
-                </Button>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+      {loading ? (
+        <div className="flex-grow flex justify-center items-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+        </div>
+      ) : requests.length > 0 ? (
+        <>
+          <div className="flex-grow">
+            <Table aria-label="Service Requests">
+              <TableHeader>
+                <TableColumn>ID</TableColumn>
+                <TableColumn>User</TableColumn>
+                <TableColumn>Service</TableColumn>
+                <TableColumn>Vehicle</TableColumn>
+                <TableColumn>Status</TableColumn>
+                <TableColumn>Actions</TableColumn>
+              </TableHeader>
+              <TableBody>
+                {requests.map((request) => (
+                  <TableRow key={request.id} className="hover:bg-gray-50">
+                    <TableCell>{request.id}</TableCell>
+                    <TableCell>{request.user_name}</TableCell>
+                    <TableCell>{request.workshop_service_name}</TableCell>
+                    <TableCell>{request.vehicle_type}</TableCell>
+                    <TableCell>
+                      <span
+                        className={`px-3 py-1 rounded-full text-white ${
+                          request.status === "accepted"
+                            ? "bg-green-500"
+                            : request.status === "rejected"
+                            ? "bg-red-500"
+                            : "bg-yellow-500"
+                        }`}
+                      >
+                        {capitalizeStatus(request.status)}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        onPress={() => handleViewRequest(request)}
+                        color="primary"
+                        size="sm"
+                      >
+                        View Details
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
 
-      <div className="mt-4 flex justify-center">
-        <Pagination
-          total={totalPages}
-          initialPage={currentPage}
-          onChange={handlePageChange}
-        />
-      </div>
+            <div className="mt-4 flex justify-center">
+              <Pagination
+                total={totalPages}
+                initialPage={currentPage}
+                onChange={handlePageChange}
+              />
+            </div>
+          </div>
+        </>
+      ) : (
+        <div className="flex-grow">
+          <EmptyState />
+        </div>
+      )}
 
       {/* Custom Modal for Request Details */}
       {isModalOpen && selectedRequest && (
@@ -206,7 +234,7 @@ const UserRequestsPage = () => {
             {/* Display base price and option to enter total cost */}
             {selectedRequest.status === "accepted" && (
               <>
-                <p className="mb-2 flex items-centre">
+                <p className="mb-2 flex items-center">
                   <strong>Base Price:</strong>&nbsp;
                   <MdOutlineCurrencyRupee className="mt-1" />
                   {selectedRequest.base_price}
@@ -261,7 +289,7 @@ const UserRequestsPage = () => {
                 </div>
               </div>
             )}
-            <LinkedInMessages newChat={selectedChat} />
+            <ChatComponent newChat={selectedChat} />
 
             <div className="mt-4 flex space-x-4">
               {/* Conditionally render buttons based on the request status */}

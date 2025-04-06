@@ -1,39 +1,49 @@
-from urllib.parse import parse_qs
+import jwt
+from django.conf import settings
 from channels.middleware import BaseMiddleware
-from django.contrib.auth.models import AnonymousUser
-from rest_framework_simplejwt.tokens import AccessToken
-from django.contrib.auth import get_user_model
 from channels.db import database_sync_to_async
-from django.db import close_old_connections
-
-User = get_user_model()
-
-@database_sync_to_async
-def get_user(token_key):
-    try:
-        access_token = AccessToken(token_key)
-        user_id = access_token.payload.get('user_id')  # Fix here
-        if not user_id:
-            return AnonymousUser()
-
-        return User.objects.get(id=user_id)
-    except User.DoesNotExist:  # Handle user not found
-        return AnonymousUser()
-    except Exception as e:  # Catch other errors
-        print(f"JWTAuthMiddleware Error: {e}")  # Debugging
-        return AnonymousUser()
+from django.contrib.auth.models import AnonymousUser
+from users.models import User
+from workshop.models import Workshop
 
 class JWTAuthMiddleware(BaseMiddleware):
-    async def __call__(self, scope, receive, send):
-        query_string = scope.get('query_string', b'').decode()
-        query_params = parse_qs(query_string)
-        
-        token = query_params.get('token', [None])[0]
-        
-        if token:
-            scope['user'] = await get_user(token)
-        else:
-            scope['user'] = AnonymousUser()
+    """
+    Middleware to authenticate WebSocket connections using JWT tokens.
+    It checks whether the user is a normal user or a workshop user.
+    """
 
-        close_old_connections()  # Prevent database connection leaks
+    async def __call__(self, scope, receive, send):
+        query_string = scope.get("query_string", b"").decode("utf8")
+        token = self.extract_token(query_string)
+
+        if token:
+            scope["user"] = await self.get_user_from_jwt(token)
+        else:
+            scope["user"] = AnonymousUser()
+
         return await super().__call__(scope, receive, send)
+
+    def extract_token(self, query_string):
+        """Extract token from query parameters"""
+        for param in query_string.split("&"):
+            if param.startswith("token="):
+                return param.split("=")[1]
+        return None
+
+    @database_sync_to_async
+    def get_user_from_jwt(self, token):
+        """Decode JWT token and return User or Workshop instance."""
+        try:
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+            user_id = payload.get("user_id")
+            user_type = payload.get("type", "user")  # Default to user
+
+            if not user_id:
+                return AnonymousUser()
+
+            if user_type == "workshop":
+                return Workshop.objects.get(id=user_id)
+            else:
+                return User.objects.get(id=user_id)
+        except (jwt.InvalidTokenError, User.DoesNotExist, Workshop.DoesNotExist, KeyError):
+            return AnonymousUser()

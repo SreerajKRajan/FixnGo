@@ -180,14 +180,43 @@ export function WorkshopList() {
                 {workshop.location}
               </TableCell>
               <TableCell>
-                <a
-                  href={workshop.document}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-500 underline"
-                >
-                  View Document
-                </a>
+                {workshop.document ? (
+                  <a
+                    href={workshop.document}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-500 underline"
+                    onClick={(e) => {
+                      // If the URL contains double encoding of S3 paths, fix it on click
+                      const docUrl = workshop.document;
+                      if (docUrl.includes("amazonaws.com/media/https%3A/")) {
+                        e.preventDefault();
+
+                        // Extract the relevant parts
+                        const parts = docUrl.split("workshop_documents/");
+                        if (parts.length > 1) {
+                          const region = docUrl.includes("us-east-1")
+                            ? "us-east-1"
+                            : docUrl.includes("eu-north-1")
+                            ? "eu-north-1"
+                            : "us-east-1";
+
+                          // Construct direct URL to the file
+                          const correctUrl = `https://fixngo-new-images.s3.${region}.amazonaws.com/media/workshop_documents/${
+                            parts[1].split("%")[0]
+                          }`;
+
+                          // Open the corrected URL
+                          window.open(correctUrl, "_blank");
+                        }
+                      }
+                    }}
+                  >
+                    View Document
+                  </a>
+                ) : (
+                  <span className="text-gray-400">No document</span>
+                )}
               </TableCell>
               <TableCell>
                 {workshop.is_verified ? (

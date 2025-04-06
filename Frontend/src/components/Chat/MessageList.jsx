@@ -1,112 +1,91 @@
-import React, { useState, useEffect } from "react";
-import { useSelector } from "react-redux";
+import React from "react";
+import { formatDistanceToNow } from "date-fns";
 
-const MessageList = ({ searchQuery, onChatOpen }) => {
-  const [users, setUsers] = useState([]);
-  const [socket, setSocket] = useState(null);
-  const user = useSelector((state) => state.userAuth.user);
-  const workshop = useSelector((state) => state.workshopAuth.workshop);
-  console.log("User: ", user)
-  console.log("workshop: ", workshop)
+const MessageList = ({ searchQuery, onChatOpen, chatThreads, loading, error }) => {
+  // Show a loader if chat threads are being fetched
+  if (loading) return <div className="p-4 text-center">Loading chats...</div>;
 
-  // Determine the current user type
-  const currentUser = user || workshop;
-  const currentUserId = currentUser?.id;
-  const isUser = !!user; // True if it's a user, false if it's a workshop
-  const token = isUser
-    ? localStorage.getItem("token")
-    : localStorage.getItem("workshopToken");
-  console.log("currentUserId", currentUserId)
-  console.log("token", token)
-  useEffect(() => {
-    if (!currentUser) {
-      console.error("No user or workshop found");
-      return;
-    }
+  // Show an error if one occurred during fetching
+  if (error) return <div className="p-4 text-center text-red-500">Error: {error}</div>;
 
-    // Establish WebSocket connection with appropriate user ID
-    const ws = new WebSocket(
-      `ws://127.0.0.1:8000/ws/chat/list/${currentUserId}/?token=${token}`
+  // Show a message if there are no chat threads available
+  if (!chatThreads || chatThreads.length === 0) {
+    return <div className="p-4 text-center text-gray-500">No chats available.</div>;
+  }
+
+  // Filter chat threads based on the search query
+  const filteredThreads = chatThreads.filter((chat) => {
+    // Determine if it's a user or workshop profile we need to display
+    const isCurrentUserWorkshop = chat.user_details && !chat.workshop_details;
+    
+    // Get the name of the other party
+    const name = isCurrentUserWorkshop 
+      ? (chat.workshop_details?.name || "Unknown Workshop") 
+      : (chat.user_details?.username || "Unknown User");
+      
+    const lastMessage = chat.last_message || "";
+    
+    return (
+      name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      lastMessage.toLowerCase().includes(searchQuery.toLowerCase())
     );
-
-    ws.onopen = () => {
-      console.log(
-        `WebSocket connection established for chat list (${isUser ? "User" : "Workshop"})`
-      );
-    };
-
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        console.log("Received chat rooms:", data);
-
-        if (data.type === "chat_rooms") {
-          setUsers(data.chat_rooms || []);
-        }
-      } catch (error) {
-        console.error("Error parsing WebSocket message:", error);
-      }
-    };
-
-    ws.onerror = (error) => {
-      console.error("WebSocket error:", error);
-    };
-
-    ws.onclose = () => {
-      console.log("WebSocket connection closed");
-      // Attempt to reconnect after a delay
-      setTimeout(() => {
-        if (currentUser) {
-          console.log("Attempting to reconnect...");
-          // The component will re-render and try to establish a new connection
-        }
-      }, 3000);
-    };
-
-    setSocket(ws);
-
-    return () => {
-      if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.close();
-      }
-    };
-  }, [currentUser]);
-
-  const filteredMessages = users.filter(
-    (chat) =>
-      chat.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (chat.last_message &&
-        chat.last_message.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  });
 
   return (
-    <div className="space-y-3 max-h-80 overflow-y-auto">
-      {filteredMessages.map((chat) => (
-        <div
-          key={chat.id}
-          className="flex items-center space-x-3 p-2 hover:bg-gray-100 rounded-lg cursor-pointer transition duration-200"
-          onClick={() => onChatOpen(chat)}
-        >
-          <div className="relative">
-            <img
-              src={chat.document || "/default-avatar.png"}
-              alt={chat.name}
-              className="w-10 h-10 rounded-full object-cover"
-            />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="font-semibold truncate">{chat.name}</p>
-            <p className="text-sm text-gray-500 truncate">
-              {chat.last_message || "No messages yet"}
-            </p>
-          </div>
-          {chat.timestamp && (
-            <div className="text-xs text-gray-400">
-              {new Date(chat.timestamp).toLocaleDateString()}
+    <div className="divide-y divide-gray-200">
+      {filteredThreads.map((chat) => {
+        // Determine if the current user is a workshop or regular user
+        const isCurrentUserWorkshop = chat.user_details && !chat.workshop_details;
+        
+        // Display the other party's info
+        const name = isCurrentUserWorkshop 
+          ? (chat.workshop_details?.name || "Unknown Workshop") 
+          : (chat.user_details?.username || "Unknown User");
+          
+        const image = isCurrentUserWorkshop 
+          ? (chat.workshop_details?.document) 
+          : (chat.user_details?.profile_image_url);
+          
+        const lastMessage = chat.last_message || "No messages yet";
+        const timestamp = chat.last_message_timestamp || chat.created_at;
+        const unread = chat.unread_count || 0;
+
+        return (
+          <div 
+            key={chat.id} 
+            className="p-3 hover:bg-gray-100 cursor-pointer flex justify-between"
+            onClick={() => onChatOpen(chat)}  
+          >
+            <div className="flex items-center relative">
+              <img 
+                src={image} 
+                alt={name} 
+                className="w-10 h-10 rounded-full mr-3 object-cover"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = "/default-avatar.png";
+                }}
+              />
+              {unread > 0 && (
+                <div className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
+                  {unread}
+                </div>
+              )}
             </div>
-          )}
-        </div>
-      ))}
+
+            <div className="flex-1 min-w-0">
+              <p className="font-medium truncate">{name}</p>
+              <p className="text-gray-500 truncate text-sm">{lastMessage}</p>
+            </div>
+
+            {timestamp && (
+              <div className="text-xs text-gray-400 ml-2 whitespace-nowrap">
+                {formatDistanceToNow(new Date(timestamp), { addSuffix: true })}
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 };

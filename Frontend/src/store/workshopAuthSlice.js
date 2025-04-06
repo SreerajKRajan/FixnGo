@@ -106,6 +106,8 @@ const workshopAuthSlice = createSlice({
       localStorage.removeItem("workshopToken");
       localStorage.removeItem("workshop");
       localStorage.removeItem("workshopEmail");
+      localStorage.removeItem("workshopRefreshToken");
+      localStorage.removeItem("isWorkshop"); // Also remove the isWorkshop flag
     },
     clearMessages: (state) => {
       state.error = null;
@@ -150,8 +152,8 @@ const workshopAuthSlice = createSlice({
       .addCase(workshopLogin.fulfilled, (state, action) => {       
         console.log("Workshop payload", action.payload); 
         state.loading = false;
-        state.workshop = action.payload.workshop || null;  // Ensure workshop data is being set
-        state.email = action.payload.email || null;  // Ensure email is being set if necessary
+        state.workshop = action.payload.workshop || null;
+        state.email = action.payload.email || null;
         state.error = null;
       
         // Save valid JSON to localStorage
@@ -163,9 +165,10 @@ const workshopAuthSlice = createSlice({
           }
       
           // Set both access and refresh tokens for the workshop
-          localStorage.setItem("workshopToken", action.payload.access || ""); // Workshop access token
-          localStorage.setItem("workshopRefreshToken", action.payload.refresh || ""); // Workshop refresh token
-          localStorage.setItem("workshopEmail", action.payload.email || ""); // If email is part of the response
+          localStorage.setItem("workshopToken", action.payload.access || "");
+          localStorage.setItem("workshopRefreshToken", action.payload.refresh || "");
+          localStorage.setItem("workshopEmail", action.payload.email || "");
+          localStorage.setItem("isWorkshop", "true"); // Set isWorkshop flag to true
         } catch (error) {
           console.error("Failed to save workshop data to localStorage:", error);
         }

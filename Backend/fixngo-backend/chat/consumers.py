@@ -1,189 +1,207 @@
+# import json
+# from channels.generic.websocket import AsyncWebsocketConsumer
+# from channels.db import database_sync_to_async
+# from chat.models import ChatRoom, Message
+# from django.contrib.auth.models import AnonymousUser
+# from django.utils import timezone
+
+# class ChatConsumer(AsyncWebsocketConsumer):
+#     async def connect(self):
+#         self.room_id = self.scope['url_route']['kwargs']['room_name']
+#         self.room_group_name = f"chat_{self.room_id}"
+        
+#         # Check that the user is authenticated
+#         if isinstance(self.scope["user"], AnonymousUser):
+#             # Close the connection if user isn't authenticated
+#             await self.close(code=4003)
+#             return
+            
+#         # Join room group
+#         await self.channel_layer.group_add(
+#             self.room_group_name,
+#             self.channel_name
+#         )
+        
+#         # Check if user has access to this chat room
+#         has_access = await self.check_room_access(self.room_id, self.scope["user"])
+#         if not has_access:
+#             await self.close(code=4004)
+#             return
+            
+#         await self.accept()
+
+#     async def disconnect(self, close_code):
+#         # Leave room group on disconnect
+#         await self.channel_layer.group_discard(
+#             self.room_group_name,
+#             self.channel_name
+#         )
+
+#     async def receive(self, text_data):
+#         try:
+#             data = json.loads(text_data)
+#             message = data.get("message", "").strip()
+            
+#             if not message:
+#                 return
+                
+#             # Get the sender info from the authenticated user
+#             user = self.scope["user"]
+#             if hasattr(user, 'username'):  # It's a User
+#                 sender_id = user.id
+#                 sender_type = "user"
+#             else:  # It's a Workshop
+#                 sender_id = user.id
+#                 sender_type = "workshop"
+            
+#             # Save the message in the database
+#             chat_room = await self.get_chat_room(self.room_id)
+#             if not chat_room:
+#                 return
+                
+#             msg_obj = await self.create_message(chat_room, sender_id, sender_type, message)
+            
+#             # Also update the chat room with last message
+#             await self.update_chat_room_last_message(chat_room, message)
+
+#             # Broadcast the message to the room group
+#             await self.channel_layer.group_send(
+#                 self.room_group_name,
+#                 {
+#                     "type": "chat_message",
+#                     "message": msg_obj.content,
+#                     "sender_id": sender_id,
+#                     "sender_type": sender_type,
+#                     "timestamp": msg_obj.timestamp.isoformat(),
+#                     "message_id": msg_obj.id
+#                 }
+#             )
+#         except json.JSONDecodeError:
+#             pass
+#         except Exception as e:
+#             print(f"Error in receive: {str(e)}")
+
+#     async def chat_message(self, event):
+#         # Send message to WebSocket
+#         await self.send(text_data=json.dumps({
+#             "message": event["message"],
+#             "sender_id": event["sender_id"],
+#             "sender_type": event["sender_type"],
+#             "timestamp": event["timestamp"],
+#             "message_id": event["message_id"]
+#         }))
+
+#     @database_sync_to_async
+#     def get_chat_room(self, room_id):
+#         try:
+#             return ChatRoom.objects.get(id=room_id)
+#         except ChatRoom.DoesNotExist:
+#             return None
+            
+#     @database_sync_to_async
+#     def check_room_access(self, room_id, user):
+#         try:
+#             if hasattr(user, 'username'):  # It's a User
+#                 return ChatRoom.objects.filter(id=room_id, user=user).exists()
+#             else:  # It's a Workshop
+#                 return ChatRoom.objects.filter(id=room_id, workshop=user).exists()
+#         except Exception:
+#             return False
+
+#     @database_sync_to_async
+#     def create_message(self, chat_room, sender_id, sender_type, message):
+#         if sender_type == "user":
+#             return Message.objects.create(
+#                 chat_room=chat_room,
+#                 sender_user_id=sender_id,
+#                 content=message
+#             )
+#         else:
+#             return Message.objects.create(
+#                 chat_room=chat_room,
+#                 sender_workshop_id=sender_id,
+#                 content=message
+#             )
+            
+#     @database_sync_to_async
+#     def update_chat_room_last_message(self, chat_room, message):
+#         chat_room.last_message = message
+#         chat_room.last_message_timestamp = timezone.now()
+#         chat_room.save(update_fields=['last_message', 'last_message_timestamp'])
+
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
-from django.contrib.auth import get_user_model
+from django.utils.timezone import now
+from chat.models import Message
+from users.models import User
 from workshop.models import Workshop
-from chat.models import ChatRoom, Message
-from django.db import transaction
 from channels.db import database_sync_to_async
-
-User = get_user_model()
 
 class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
-        if not self.scope["user"].is_authenticated:
-            await self.close()
-            return
+        self.user_id = self.scope["url_route"]["kwargs"]["user_id"]
+        self.workshop_id = self.scope["url_route"]["kwargs"]["workshop_id"]
+        self.room_group_name = f"chat_{self.user_id}_{self.workshop_id}"
 
-        self.room_name = self.scope["url_route"]["kwargs"]["room_name"]
-        self.room_group_name = f"chat_{self.room_name}"
-
-        # Join room group
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
         await self.accept()
 
-        # Load and send chat history
-        messages = await self.get_chat_history()
-        await self.send(text_data=json.dumps({
-            "type": "chat_history",
-            "messages": messages
-        }))
-
-    @database_sync_to_async
-    def get_chat_history(self):
-        try:
-            user_id, workshop_id = map(int, self.room_name.split("_"))
-            
-            # Get or create chat room
-            chat_room, _ = ChatRoom.objects.get_or_create(
-                user_id=user_id,
-                workshop_id=workshop_id
-            )
-            
-            # Get messages for this chat room
-            messages = Message.objects.filter(chat_room=chat_room)\
-                .select_related('sender_user', 'sender_workshop')\
-                .order_by('timestamp')
-
-            return [
-                {
-                    "message_id": msg.id,
-                    "content": msg.content,
-                    "sender_id": msg.sender_user.id if msg.sender_user else msg.sender_workshop.id,
-                    "sender_name": msg.sender_user.username if msg.sender_user else msg.sender_workshop.name,
-                    "timestamp": msg.timestamp.isoformat()
-                }
-                for msg in messages
-            ]
-        except (ValueError, Exception) as e:
-            print(f"Error getting chat history: {e}")
-            return []
+    async def disconnect(self, close_code):
+        await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
 
     async def receive(self, text_data):
-        try:
-            data = json.loads(text_data)
-            message_text = data.get("message")
-            receiver_id = data.get("receiver")
+        data = json.loads(text_data)
+        message = data["message"]
+        user = self.scope["user"]
 
-            if not message_text or not receiver_id:
-                return
+        if user.is_authenticated:
+            sender_user = user if isinstance(user, User) else None
+            sender_workshop = user if isinstance(user, Workshop) else None
 
-            # Get sender and receiver details
-            sender = self.scope["user"]
-            receiver = await self.get_receiver(receiver_id)
+            # Extract receiver info from room_name (Assuming format "user_1_workshop_2")
+            parts = self.room_name.split("_")
+            receiver_user = None
+            receiver_workshop = None
 
-            if not receiver:
-                return
+            if parts[0] == "user":
+                receiver_user = await self.get_user(int(parts[1]))
+            elif parts[0] == "workshop":
+                receiver_workshop = await self.get_workshop(int(parts[1]))
 
-            # Save message and get chat room
-            saved_message = await self.save_message(sender, receiver, message_text)
+            # Save message to database
+            await self.save_message(sender_user, sender_workshop, receiver_user, receiver_workshop, message)
 
-            if saved_message:
-                # Broadcast message to room group
-                await self.channel_layer.group_send(
-                    self.room_group_name,
-                    {
-                        "type": "chat_message",
-                        "message": saved_message["content"],
-                        "sender": saved_message["sender_name"],
-                        "timestamp": saved_message["timestamp"],
-                        "message_id": saved_message["message_id"]
-                    }
-                )
-
-        except json.JSONDecodeError:
-            print("Invalid JSON received")
-        except Exception as e:
-            print(f"Error in receive: {e}")
-
-    @database_sync_to_async
-    def get_receiver(self, receiver_id):
-        try:
-            # Try to get user first
-            return User.objects.get(id=receiver_id)
-        except User.DoesNotExist:
-            try:
-                # If not user, try to get workshop
-                return Workshop.objects.get(id=receiver_id)
-            except Workshop.DoesNotExist:
-                return None
-
-    @database_sync_to_async
-    def save_message(self, sender, receiver, content):
-        with transaction.atomic():
-            # Determine sender type and get/create chat room
-            is_sender_user = isinstance(sender, User)
-            is_receiver_user = isinstance(receiver, User)
-
-            chat_room, _ = ChatRoom.objects.get_or_create(
-                user=sender if is_sender_user else receiver,
-                workshop=receiver if not is_receiver_user else sender
+            # Send message to WebSocket group
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    "type": "chat_message",
+                    "message": message,
+                    "username": user.email,
+                    "timestamp": str(now()),
+                }
             )
-
-            # Create message
-            message = Message.objects.create(
-                chat_room=chat_room,
-                sender_user=sender if is_sender_user else None,
-                sender_workshop=sender if not is_sender_user else None,
-                content=content
-            )
-
-            return {
-                "message_id": message.id,
-                "content": message.content,
-                "sender_name": sender.username if is_sender_user else sender.name,
-                "timestamp": message.timestamp.isoformat()
-            }
 
     async def chat_message(self, event):
-        await self.send(text_data=json.dumps({
-            "type": "chat_message",
-            "message": event["message"],
-            "sender": event["sender"],
-            "timestamp": event["timestamp"],
-            "message_id": event["message_id"]
-        }))
-
-    async def disconnect(self, close_code):
-        await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
-
-class ChatListConsumer(AsyncWebsocketConsumer):
-    async def connect(self):
-        self.user = self.scope["user"]
-        if not self.user.is_authenticated:
-            await self.close()
-            return
-
-        self.room_group_name = f"chat_list_{self.user.id}"
-        await self.channel_layer.group_add(self.room_group_name, self.channel_name)
-        await self.accept()
-
-        chat_rooms = await self.get_user_chat_rooms()
-        await self.send(text_data=json.dumps({
-            "type": "chat_rooms",
-            "chat_rooms": chat_rooms
-        }))
-
-    async def disconnect(self, close_code):
-        await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
+        await self.send(text_data=json.dumps(event))
 
     @database_sync_to_async
-    def get_user_chat_rooms(self):
-        if hasattr(self.user, "name"):  
-            chat_rooms = ChatRoom.objects.filter(workshop=self.user)
-        else:
-            chat_rooms = ChatRoom.objects.filter(user=self.user)
+    def save_message(self, sender_user, sender_workshop, receiver_user, receiver_workshop, message):
+        Message.objects.create(
+            sender_user=sender_user,
+            sender_workshop=sender_workshop,
+            receiver_user=receiver_user,
+            receiver_workshop=receiver_workshop,
+            room_name=self.room_name,
+            message=message,
+        )
 
-        rooms_data = []
-        for room in chat_rooms:
-            other_participant = room.user if room.workshop == self.user else room.workshop
-            if other_participant:
-                last_message = Message.objects.filter(chat_room=room).order_by("-timestamp").first()
-                rooms_data.append({
-                    "id": room.id,
-                    "name": other_participant.username if isinstance(other_participant, User) else other_participant.name,
-                    "last_message": last_message.content if last_message else "",
-                    "timestamp": last_message.timestamp.isoformat() if last_message else "",
-                    "document": other_participant.document.url if getattr(other_participant, "document", None) else None,
-                })
+    @database_sync_to_async
+    def get_user(self, user_id):
+        return User.objects.filter(id=user_id).first()
 
-        return rooms_data
+    @database_sync_to_async
+    def get_workshop(self, workshop_id):
+        return Workshop.objects.filter(id=workshop_id).first()
+
+

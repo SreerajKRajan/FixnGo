@@ -27,9 +27,77 @@ import json
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
+from google.auth.transport import requests
+from google.oauth2 import id_token
+from django.contrib.auth import get_user_model
+from rest_framework.decorators import api_view
+from rest_framework import status
+from django.conf import settings
 
 
 # Create your views here.
+
+@api_view(["POST"])
+def google_signup(request):
+    try:
+        # Get the token from the request
+        token = request.data.get("credential")
+        
+        # Verify the token
+        idinfo = id_token.verify_oauth2_token(
+            token, 
+            requests.Request(), 
+            settings.GOOGLE_CLIENT_ID
+        )
+        
+        # Extract user information
+        email = idinfo.get('email')
+        username = idinfo.get('name')
+        google_id = idinfo.get('sub')
+        profile_image = idinfo.get('picture', '')
+
+        # Check if user exists
+        user, created = User.objects.get_or_create(
+            email=email,
+            defaults={
+                'username': username, 
+                'google_id': google_id, 
+                'profile_image': profile_image
+            }
+        )
+
+        # If existing user, update google_id if not set
+        if not created and not user.google_id:
+            user.google_id = google_id
+            user.save()
+
+        # Generate tokens (assuming you're using JWT)
+        from rest_framework_simplejwt.tokens import RefreshToken
+        refresh = RefreshToken.for_user(user)
+
+        return Response({
+            'refresh': str(refresh),
+            'access': str(refresh.access_token),
+            'user': {
+                'id': user.id,
+                'username': user.username,
+                'email': user.email
+            },
+            'message': 'Google Signup Successful'
+        }, status=status.HTTP_200_OK)
+
+    except ValueError as e:
+        # Invalid token
+        return Response(
+            {'error': 'Invalid Google token'}, 
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    except Exception as e:
+        return Response(
+            {'error': str(e)}, 
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
 
 class UserSignupView(APIView):
     def post(self, request):
@@ -452,9 +520,9 @@ class VerifyPaymentAPIView(APIView):
             payment.save()
             
             # Remove the service request associated with this payment
-            service_request = ServiceRequest.objects.filter(id=payment.service_request_id).first()
-            if service_request:
-                service_request.delete()
+            service_request = payment.service_request
+            service_request.status = "COMPLETED"
+            service_request.save()
 
             return Response({"message": "Payment verified successfully."}, status=status.HTTP_200_OK)
         except Exception as e:

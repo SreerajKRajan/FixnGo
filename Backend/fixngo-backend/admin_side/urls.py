@@ -1,7 +1,8 @@
 from django.urls import path
-from .views import ApproveWorkshopView, AdminLoginView, WorkshopListView, RejectWorkhsopView, AdminLogoutView, UserListView, ToggleUserStatusView, ToggleWorkshopStatusView
+from .views import ApproveWorkshopView, AdminLoginView, WorkshopListView, RejectWorkhsopView, AdminLogoutView, UserListView, ToggleUserStatusView, ToggleWorkshopStatusView, DashboardAPIView
 
 urlpatterns = [
+    path('dashboard/', DashboardAPIView.as_view(), name='admin-dashboard'),
     path('approve-workshop/', ApproveWorkshopView.as_view(), name='approve_workshop'),
     path('reject-workshop/', RejectWorkhsopView.as_view(), name='reject_workshop'),
     path('workshop-list/', WorkshopListView.as_view(), name='workshop_list'),
