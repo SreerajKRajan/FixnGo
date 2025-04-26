@@ -10,7 +10,7 @@ import Header from "./Header";
 import Footer from "./Footer";
 import axiosInstance from "../../utils/axiosInstance";
 import { Link, useParams } from "react-router-dom";
-import { Modal, ModalHeader, ModalBody, ModalFooter } from "../ui/Modal";
+import { Modal, ModalHeader, ModalBody, ModalFooter } from "../uis/Modal";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
 import { toast } from "sonner";

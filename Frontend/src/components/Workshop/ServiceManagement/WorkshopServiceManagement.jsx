@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/uis/Tabs";
 import { Button } from "@/components/ui/Button";
 import { PlusCircle } from "lucide-react";
 import { ServiceHeader } from "./ServiceHeader";
@@ -7,8 +7,8 @@ import { GlobalServicesTab } from "./GlobalServicesTab";
 import { MyServicesTab } from "./MyServicesTab";
 import { AllServicesTab } from "./AllServicesTab";
 import { CustomServiceModal } from "./CustomServiceModal";
-import { Toaster } from "@/components/ui/Toaster";
-import { useToast } from "@/components/ui/use-toast";
+import { Toaster } from "@/components/uis/Toaster";
+import { useToast } from "@/components/uis/use-toast";
 import WorkshopHeader from "@/components/Workshop/WorkshopHeader";
 import WorkshopFooter from "@/components/Workshop/WorkshopFooter";
 import axiosInstance from "../../../utils/axiosInstance";

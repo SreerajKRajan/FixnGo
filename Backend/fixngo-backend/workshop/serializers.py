@@ -38,16 +38,6 @@ class WorkshopSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
     def get_document(self, obj):
-        # Get the original document URL
-        # if hasattr(obj.document, 'url'):
-        #     document_url = obj.document.url
-        # elif hasattr(obj.document, 'name'):
-        #     document_url = obj.document.name
-        # else:
-        #     document_url = str(obj.document)
-        
-        # # print(f"Original document URL: {document_url}")
-        
         # Generate presigned URL directly using the original document URL
         if hasattr(obj.document, 'name'):
             document_key = obj.document.name

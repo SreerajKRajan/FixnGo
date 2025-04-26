@@ -9,7 +9,7 @@ export const PublicRoute = ({ children }) => {
   // If either token exists, redirect to their respective dashboard
   if (userToken) return <Navigate to="/home" replace />;
   if (adminToken) return <Navigate to="/admin/dashboard" replace />;
-  if (workshopToken) return <Navigate to="/workshop/home" replace />;
+  if (workshopToken) return <Navigate to="/workshop/dashboard" replace />;
   
   return children; // No token, proceed to public route
 };

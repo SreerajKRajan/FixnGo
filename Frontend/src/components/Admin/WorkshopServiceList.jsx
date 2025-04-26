@@ -11,7 +11,7 @@ import {
   CardBody,
   Pagination,
 } from "@nextui-org/react";
-import { Modal, ModalHeader, ModalBody, ModalFooter } from "../ui/Modal";
+import { Modal, ModalHeader, ModalBody, ModalFooter } from "../uis/Modal";
 import { toast } from "sonner";
 import axiosInstance from "../../utils/axiosInstance";
 import { Formik, Form, Field, ErrorMessage } from "formik";

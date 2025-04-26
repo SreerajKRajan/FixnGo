@@ -10,7 +10,6 @@ import UserOtpVerification from "./components/Auth/UserOtpVerification";
 import WorkshopSignup from "./components/Auth/WorkshopSignup";
 import WorkshopOtpVerification from "./components/Auth/workshopOtpVerification";
 import WorkshopLogin from "./components/Auth/WorkshopLogin";
-import WorkshopHomePage from "./components/Workshop/WorkshopHomePage";
 import NotFound from "./components/NotFound";
 import UserProfile from "./components/User/UserProfile";
 import WorkshopServiceManagement from "./components/Workshop/ServiceManagement/WorkshopServiceManagement";
@@ -21,6 +20,8 @@ import WorkshopCreateNewPassword from "./components/Workshop/WorkshopCreateNewPa
 import WorkshopDetailsPage from "./components/User/WorkshopDetailsPage";
 import PaymentRequests from "./components/User/PymentRequests";
 import Layout from "./components/Layout";
+import WorkshopDashboard from "./components/Workshop/WorkshopDashboard";
+import UserRequestsPage from "./components/Workshop/ServiceManagement/UserRequestsPage";
 
 function App() {
   return (
@@ -165,11 +166,11 @@ function App() {
             }
           />
           <Route
-            path="/workshop/home"
+            path="/workshop/service-requests"
             element={
               <ProtectedRoute role="workshop">
                 <Layout>
-                  <WorkshopHomePage />
+                  <UserRequestsPage />
                 </Layout>
               </ProtectedRoute>
             }
@@ -180,6 +181,16 @@ function App() {
               <ProtectedRoute role="workshop">
                 <Layout>
                   <WorkshopServiceManagement />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/workshop/dashboard"
+            element={
+              <ProtectedRoute role="workshop">
+                <Layout>
+                  <WorkshopDashboard />
                 </Layout>
               </ProtectedRoute>
             }

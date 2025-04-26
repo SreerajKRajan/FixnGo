@@ -33,7 +33,7 @@ from django.contrib.auth import get_user_model
 from rest_framework.decorators import api_view
 from rest_framework import status
 from django.conf import settings
-
+from utils.s3_utils import get_s3_file_url
 
 # Create your views here.
 
@@ -54,7 +54,7 @@ def google_signup(request):
         email = idinfo.get('email')
         username = idinfo.get('name')
         google_id = idinfo.get('sub')
-        profile_image = idinfo.get('picture', '')
+        profile_image_url = idinfo.get('picture', '')
 
         # Check if user exists
         user, created = User.objects.get_or_create(
@@ -62,7 +62,7 @@ def google_signup(request):
             defaults={
                 'username': username, 
                 'google_id': google_id, 
-                'profile_image': profile_image
+                'profile_image_url': profile_image_url
             }
         )
 
@@ -309,26 +309,35 @@ class UserProfileView(APIView):
         return Response(serializer.data)
 
     def put(self, request):
+        user = request.user
+
+        # Handle profile image upload
         if 'profile_image' in request.FILES:
             profile_image = request.FILES['profile_image']
-            user = request.user
-    
+
+            # Validate it's an image
+            if not profile_image.content_type.startswith('image/'):
+                return Response({"error": "Only image files are allowed."}, status=400)
+
             try:
                 s3_file_path = f"media/profile_images/{user.id}/"
-                image_url = upload_to_s3(profile_image, s3_file_path)
-    
-                # Save the S3 URL to the user's profile
+                s3_key = upload_to_s3(profile_image, s3_file_path)
+                image_url = get_s3_file_url(profile_image.name, s3_file_path)
+
+                # Save the full S3 image URL to user model
                 user.profile_image_url = image_url
                 user.save()
             except Exception as e:
                 return Response({"error": f"Failed to upload image: {str(e)}"}, status=500)
-    
-        serializer = UserSerializer(request.user, data=request.data, partial=True)
+
+        # Update other fields
+        serializer = UserSerializer(user, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response({"message": "Profile updated successfully!"})
-    
+
         return Response(serializer.errors, status=400)
+
 
 
 class NearbyWorkshopsView(APIView):
@@ -432,7 +441,7 @@ class ServiceRequestAPIView(APIView):
         data['user'] = request.user.id
         data['workshop'] = workshop.id
         data['workshop_service'] = workshop_service.id
-        
+         
         serializer = ServiceRequestSerializer(data=data)
         if serializer.is_valid():
             serializer.save()

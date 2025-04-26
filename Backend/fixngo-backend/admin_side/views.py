@@ -217,7 +217,9 @@ class DashboardAPIView(APIView):
         total_users = User.objects.filter(is_active=True).count()
         last_month_users = User.objects.filter(created_at__lt=last_month, is_active=True).count()
         user_growth_pct = round(((total_users - last_month_users) / max(last_month_users, 1)) * 100, 1)
-        
+        print(total_users, "Total Users")
+        print(last_month_users, "last_month_users")
+        print(user_growth_pct, "user_growth_pct")
         # Get workshop statistics
         total_workshops = Workshop.objects.filter(is_active=True).count()
         new_workshops = Workshop.objects.filter(created_at__gte=last_week).count()

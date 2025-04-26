@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import axiosInstance from "@/utils/axiosInstance";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/Table";
-import { Button } from "@/components/ui/Button";
-import { Badge } from "@/components/ui/Badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/uis/Table";
+import { Button } from "@/components/uis/Button";
+import { Badge } from "@/components/uis/Badge";
 
 export function MyServicesTab() {
   const [approvedServices, setApprovedServices] = useState([]);

@@ -10,7 +10,7 @@ function EditProfileModal({ userData, onClose, onProfileUpdate }) {
       username: userData?.username || "",
       email: userData?.email || "",
       phone: userData?.phone || "",
-      profileImage: null,
+      profileImage: userData?.profile_image_url || null,
     },
     validationSchema: Yup.object({
       username: Yup.string().required("Username is required"),

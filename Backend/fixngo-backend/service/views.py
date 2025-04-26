@@ -11,7 +11,6 @@ from admin_side.views import CommonPagination
 from django.db import IntegrityError
 
 
-
 class ServiceListCreateAPIView(APIView):
     def get(self, request):
         services = Service.objects.order_by("-created_at")

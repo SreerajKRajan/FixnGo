@@ -20,11 +20,14 @@ from django.utils.http import urlsafe_base64_encode
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.http import urlsafe_base64_decode
 from rest_framework.generics import ListAPIView
-from users.models import ServiceRequest
+from users.models import ServiceRequest, Payment
 from users.serializers import ServiceRequestSerializer
 import socketio
 import requests
 from admin_side.views import CommonPagination
+from django.db.models import Sum, Count
+from dateutil.relativedelta import relativedelta
+from django.db.models.functions import ExtractMonth, TruncMonth
 
 
 
@@ -484,3 +487,224 @@ class SendPaymentRequestView(APIView):
                 {"error": "Service request not found."}, 
                 status=status.HTTP_404_NOT_FOUND
             )
+
+
+class WorkshopDashboardAPIView(APIView):
+    authentication_classes = [WorkshopJWTAuthentication]
+    permission_classes = [IsWorkshopUser]
+    
+    def get(self, request):
+        workshop = request.user
+        
+        # Get all service requests for this workshop
+        service_requests = ServiceRequest.objects.filter(workshop=workshop)
+        
+        # Total number of service requests
+        total_requests = service_requests.count()
+        
+        # Total pending service requests
+        total_pending = service_requests.filter(status='PENDING').count()
+        
+        # Total completed service requests
+        total_completed = service_requests.filter(status='COMPLETED').count()
+        
+        # Total earnings (Sum of successful payments for this workshop)
+        successful_payments = Payment.objects.filter(
+            service_request__workshop=workshop,
+            status="SUCCESS"
+        )
+        total_earnings = successful_payments.aggregate(total=Sum('amount'))['total'] or 0
+        
+        # Calculate changes from previous periods for context
+        # Last month's service requests
+        last_month = timezone.now() - timedelta(days=30)
+        last_month_requests = service_requests.filter(created_at__gte=last_month).count()
+        previous_month_requests = service_requests.filter(
+            created_at__lt=last_month,
+            created_at__gte=last_month - timedelta(days=30)
+        ).count()
+        
+        # Calculate percentage change
+        req_percent_change = 0
+        if previous_month_requests > 0:
+            req_percent_change = ((last_month_requests - previous_month_requests) / previous_month_requests) * 100
+        
+        # Last week's pending requests
+        last_week = timezone.now() - timedelta(days=7)
+        last_week_pending = service_requests.filter(
+            status='PENDING', 
+            created_at__gte=last_week
+        ).count()
+        previous_week_pending = service_requests.filter(
+            status='PENDING',
+            created_at__lt=last_week,
+            created_at__gte=last_week - timedelta(days=7)
+        ).count()
+        
+        # Calculate percentage change for pending
+        pending_percent_change = 0
+        if previous_week_pending > 0:
+            pending_percent_change = ((last_week_pending - previous_week_pending) / previous_week_pending) * 100
+        
+        # Last month's completed requests
+        last_month_completed = service_requests.filter(
+            status='COMPLETED', 
+            created_at__gte=last_month
+        ).count()
+        previous_month_completed = service_requests.filter(
+            status='COMPLETED',
+            created_at__lt=last_month,
+            created_at__gte=last_month - timedelta(days=30)
+        ).count()
+        
+        # Calculate percentage change for completed
+        completed_percent_change = 0
+        if previous_month_completed > 0:
+            completed_percent_change = ((last_month_completed - previous_month_completed) / previous_month_completed) * 100
+        
+        # Last month's earnings
+        last_month_earnings = successful_payments.filter(created_at__gte=last_month).aggregate(total=Sum('amount'))['total'] or 0
+        previous_month_earnings = successful_payments.filter(
+            created_at__lt=last_month,
+            created_at__gte=last_month - timedelta(days=30)
+        ).aggregate(total=Sum('amount'))['total'] or 0
+        
+        # Calculate percentage change for earnings
+        earnings_percent_change = 0
+        if previous_month_earnings > 0:
+            earnings_percent_change = ((last_month_earnings - previous_month_earnings) / previous_month_earnings) * 100
+        
+        return Response({
+            "total_requests": total_requests,
+            "total_pending": total_pending,
+            "total_completed": total_completed,
+            "total_earnings": total_earnings,
+            "req_percent_change": round(req_percent_change, 1),
+            "pending_percent_change": round(pending_percent_change, 1),
+            "completed_percent_change": round(completed_percent_change, 1),
+            "earnings_percent_change": round(earnings_percent_change, 1)
+        })
+
+
+class ServiceRequestTrendsAPIView(APIView):
+    authentication_classes = [WorkshopJWTAuthentication]
+    permission_classes = [IsWorkshopUser]
+    
+    def get(self, request):
+        workshop = request.user
+        
+        # Get the current date and calculate the date one year ago
+        today = timezone.now().date()
+        one_year_ago = today - relativedelta(years=1)
+        
+        # Query to get service requests grouped by month
+        service_requests = ServiceRequest.objects.filter(
+            workshop=workshop,
+            created_at__date__gte=one_year_ago,
+            created_at__date__lte=today
+        ).annotate(
+            month=TruncMonth('created_at')
+        ).values('month').annotate(
+            requests=Count('id')
+        ).order_by('month')
+        
+        # Map month numbers to month names
+        month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+        
+        # Prepare data for all months in the past year
+        all_months = {}
+        for i in range(12):
+            month_date = today - relativedelta(months=i)
+            month_name = month_names[month_date.month - 1]
+            all_months[month_date.strftime('%Y-%m')] = {
+                "month": month_name,
+                "requests": 0
+            }
+        
+        # Fill in actual data where available
+        for entry in service_requests:
+            month_key = entry['month'].strftime('%Y-%m')
+            month_name = month_names[entry['month'].month - 1]
+            all_months[month_key] = {
+                "month": month_name,
+                "requests": entry['requests']
+            }
+        
+        # Convert to list and sort by month
+        trends = list(all_months.values())
+        
+        # Reverse to get chronological order (oldest to newest)
+        trends.reverse()
+        
+        return Response({
+            "trends": trends
+        })
+
+
+class RecentActivityAPIView(APIView):
+    authentication_classes = [WorkshopJWTAuthentication]
+    permission_classes = [IsWorkshopUser]
+    
+    def get(self, request):
+        workshop = request.user
+        
+        # Get the most recent service requests (last 10)
+        recent_requests = ServiceRequest.objects.filter(
+            workshop=workshop
+        ).order_by('-created_at')[:10]
+        
+        activities = []
+        for req in recent_requests:
+            # Map the status to a user-friendly format
+            status_map = {
+                'PENDING': 'Pending',
+                'ACCEPTED': 'In Progress',
+                'REJECTED': 'Rejected',
+                'IN_PROGRESS': 'In Progress',
+                'COMPLETED': 'Completed'
+            }
+            
+            activities.append({
+                'id': req.id,
+                'user_name': req.user.username,
+                'status': status_map.get(req.status, req.status),
+                'service_name': req.workshop_service.name,
+                'created_at': req.created_at.isoformat(),
+                'vehicle_type': req.vehicle_type
+            })
+        
+        return Response({
+            "activities": activities
+        })
+
+
+class WorkshopServicesAPIView(APIView):
+    authentication_classes = [WorkshopJWTAuthentication]
+    permission_classes = [IsWorkshopUser]
+    
+    def get(self, request):
+        workshop = request.user
+        
+        # Get all services for this workshop
+        services = WorkshopService.objects.filter(workshop=workshop)
+        
+        # For each service, get the number of bookings
+        result = []
+        for service in services:
+            bookings_count = ServiceRequest.objects.filter(
+                workshop_service=service
+            ).count()
+            
+            result.append({
+                'id': service.id,
+                'name': service.name,
+                'description': service.description,
+                'base_price': service.base_price,
+                'is_approved': service.is_approved,
+                'is_available': service.is_available,
+                'service_type': service.service_type,
+                'created_at': service.created_at.isoformat(),
+                'bookings_count': bookings_count
+            })
+        
+        return Response(result)

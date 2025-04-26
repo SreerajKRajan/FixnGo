@@ -117,4 +117,4 @@ const ChatComponent = ({ newChat, onChatClose }) => {
   );
 };
 
-export default ChatComponent;
+export default ChatComponent; 

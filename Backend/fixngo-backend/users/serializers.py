@@ -51,18 +51,16 @@ class UserLoginSerializer(serializers.Serializer):
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = '__all__'
+        fields = ['id', 'username', 'email', 'phone', 'profile_image_url', 'created_at', 'updated_at']
+        read_only_fields = ['email', 'created_at', 'updated_at']
 
     def update(self, instance, validated_data):
-        if 'profile_image' in validated_data:
-            if instance.profile_image:
-                instance.profile_image.delete(save=False)  # Safely delete old image
-            instance.profile_image = validated_data['profile_image']
-        
+        # Only update allowed fields
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
         return instance
+
 
 
 class ServiceRequestSerializer(serializers.ModelSerializer):

@@ -12,6 +12,10 @@ from .views import (
     WorkshopServiceRequestsListAPIView,
     UpdateServiceRequestStatusAPIView,
     SendPaymentRequestView,
+    WorkshopDashboardAPIView,
+    ServiceRequestTrendsAPIView,
+    RecentActivityAPIView,
+    WorkshopServicesAPIView,
 )
 
 urlpatterns = [
@@ -28,5 +32,10 @@ urlpatterns = [
     path('service-requests/list/', WorkshopServiceRequestsListAPIView.as_view(), name='service-requests-list'),
     path('service-requests/<int:request_id>/update/', UpdateServiceRequestStatusAPIView.as_view(), name='service-requests-update'),
     path('send-payment-request/', SendPaymentRequestView.as_view(), name='send-payment-request'),
-
+    
+    path('dashboard/', WorkshopDashboardAPIView.as_view(), name='workshop-dashboard'),
+    path('dashboard/service-requests/trends/', ServiceRequestTrendsAPIView.as_view(), name='service-request-trends'),
+    path('dashboard/recent-activity/', RecentActivityAPIView.as_view(), name='recent-activity'),
+    path('dashboard/services/', WorkshopServicesAPIView.as_view(), name='workshop-services'),
 ]
+

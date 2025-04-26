@@ -28,7 +28,7 @@ export default function WorkshopLogin() {
     try {
       const response = await dispatch(workshopLogin(values)).unwrap();
       toast.success("Login successful!");
-      navigate("/workshop/home"); // Redirect on successful login
+      navigate("/workshop/dashboard"); // Redirect on successful login
     } catch (err) {
       console.error("Login failed:", err);
 

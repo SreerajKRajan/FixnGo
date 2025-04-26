@@ -5,11 +5,11 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "@/components/ui/Dialog";
-import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
-import { Textarea } from "@/components/ui/Textarea";
-import { Label } from "@/components/ui/Label";
+} from "@/components/uis/Dialog";
+import { Button } from "@/components/uis/Button";
+import { Input } from "@/components/uis/Input";
+import { Textarea } from "@/components/uis/Textarea";
+import { Label } from "@/components/uis/Label";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
 
