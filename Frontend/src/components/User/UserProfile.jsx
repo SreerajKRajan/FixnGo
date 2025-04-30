@@ -7,8 +7,40 @@ import { useEffect, useState } from "react";
 import axiosInstance from "../../utils/axiosInstance";
 import EditProfileModal from "./EditProfileModal";
 
+// Shimmer Loading Component
+const ShimmerEffect = () => {
+  return (
+    <div className="w-full max-w-2xl bg-white rounded-lg shadow-lg overflow-hidden animate-pulse">
+      {/* Profile Header Shimmer */}
+      <div className="bg-gray-300 p-6">
+        <div className="flex flex-col items-center">
+          <div className="w-32 h-32 bg-gray-200 rounded-full overflow-hidden border-4 border-white"></div>
+          <div className="h-6 bg-gray-200 rounded w-40 mt-4"></div>
+          <div className="h-4 bg-gray-200 rounded w-32 mt-2"></div>
+        </div>
+      </div>
+
+      {/* Profile Details Shimmer */}
+      <div className="p-6">
+        <div className="h-5 bg-gray-200 rounded w-40 mb-4"></div>
+        <div className="space-y-4">
+          <div className="h-4 bg-gray-200 rounded w-full"></div>
+          <div className="h-4 bg-gray-200 rounded w-full"></div>
+        </div>
+      </div>
+
+      {/* Footer Actions Shimmer */}
+      <div className="p-6 border-t flex justify-end gap-4">
+        <div className="h-10 bg-gray-200 rounded w-28"></div>
+        <div className="h-10 bg-gray-200 rounded w-24"></div>
+      </div>
+    </div>
+  );
+};
+
 export default function UserProfile() {
   const [userData, setUserData] = useState(null);
+  const [loading, setLoading] = useState(true);
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -21,6 +53,7 @@ export default function UserProfile() {
 
   // Fetch User Profile
   const fetchUserProfile = async () => {
+    setLoading(true);
     try {
       const token = localStorage.getItem("token");
       const response = await axiosInstance.get("/users/profile/", {
@@ -31,6 +64,8 @@ export default function UserProfile() {
       setUserData(response.data);
     } catch (error) {
       console.error("Failed to fetch user profile", error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -39,11 +74,15 @@ export default function UserProfile() {
     fetchUserProfile();
   }, []);
 
-  // Loading State
-  if (!userData) {
+  // Show Shimmer Loading Effect
+  if (loading) {
     return (
-      <div className="min-h-screen flex justify-center items-center bg-white">
-        <p>Loading...</p>
+      <div className="min-h-screen flex flex-col bg-white">
+        <Header />
+        <div className="flex-1 flex justify-center items-center p-6">
+          <ShimmerEffect />
+        </div>
+        <Footer />
       </div>
     );
   }
@@ -51,7 +90,7 @@ export default function UserProfile() {
   return (
     <div className="min-h-screen flex flex-col bg-white">
       <Header />
-      <div className="min-h-screen flex flex-col items-center p-6 bg-white">
+      <div className="flex-1 flex justify-center items-center p-6">
         <div className="w-full max-w-2xl bg-white rounded-lg shadow-lg overflow-hidden">
           {/* Profile Header */}
           <div className="bg-black p-6 text-white">

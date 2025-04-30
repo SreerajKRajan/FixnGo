@@ -7,6 +7,11 @@ import UserWorkshops from "./UserWorkshops"
 import Footer from "./Footer"
 import axiosInstance from "../../utils/axiosInstance"
 
+// Shimmer Effect Component
+const ShimmerEffect = ({ className }) => (
+  <div className={`animate-pulse bg-gray-200 rounded ${className}`}></div>
+);
+
 export default function UserHomePage() {
   const [activeTab, setActiveTab] = useState(() => {
     return localStorage.getItem("activeTab") || "map"
@@ -55,7 +60,21 @@ export default function UserHomePage() {
                 <div className="relative h-[calc(100vh-250px)] w-full rounded-lg overflow-hidden shadow-lg">
                   {loading && (
                     <div className="absolute inset-0 z-10 flex justify-center items-center bg-white bg-opacity-70">
-                      <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500"></div>
+                      {/* Shimmer effect for map loading */}
+                      <div className="w-full h-full">
+                        {/* Map location pins shimmer */}
+                        <ShimmerEffect className="absolute top-1/4 left-1/4 h-4 w-4 rounded-full" />
+                        <ShimmerEffect className="absolute top-1/2 left-1/3 h-4 w-4 rounded-full" />
+                        <ShimmerEffect className="absolute top-1/3 left-1/2 h-4 w-4 rounded-full" />
+                        <ShimmerEffect className="absolute bottom-1/4 right-1/4 h-4 w-4 rounded-full" />
+                        
+                        {/* Map UI elements shimmer */}
+                        <ShimmerEffect className="absolute top-4 right-4 h-8 w-8 rounded" />
+                        <ShimmerEffect className="absolute top-16 right-4 h-8 w-8 rounded" />
+                        
+                        {/* Map overlay shimmer */}
+                        <div className="absolute inset-0 bg-gray-100 opacity-20"></div>
+                      </div>
                     </div>
                   )}
                   <MapComponent userLocation={userLocation} workshops={workshops} />
@@ -76,4 +95,3 @@ export default function UserHomePage() {
     </div>
   )
 }
-

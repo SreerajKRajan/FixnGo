@@ -153,7 +153,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         data = json.loads(text_data)
         message = data["message"]
         user = self.scope["user"]
-
+        print("somethingg")
         if user.is_authenticated:
             sender_user = user if isinstance(user, User) else None
             sender_workshop = user if isinstance(user, Workshop) else None

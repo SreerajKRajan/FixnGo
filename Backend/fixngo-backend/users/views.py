@@ -34,6 +34,9 @@ from rest_framework.decorators import api_view
 from rest_framework import status
 from django.conf import settings
 from utils.s3_utils import get_s3_file_url
+from math import radians, cos
+from rest_framework.pagination import PageNumberPagination
+
 
 # Create your views here.
 
@@ -340,27 +343,41 @@ class UserProfileView(APIView):
 
 
 
+
 class NearbyWorkshopsView(APIView):
     def get(self, request):
         user_lat = request.GET.get('latitude')
         user_lon = request.GET.get('longitude')
-        print(f"lat {user_lat} and lon {user_lon}")
-        
+
         if not user_lat or not user_lon:
             return Response({"error": "Latitude or longitude are required."}, status=400)
-        
+
         try:
-            # Get user's latitude and longitude from query parameters
             user_lat = float(user_lat)
             user_lon = float(user_lon)
-
         except (TypeError, ValueError):
             return Response({"error": "Invalid latitude or longitude"}, status=400)
 
-        # Fetch all workshops
-        workshops = Workshop.objects.filter(is_active=True, is_approved=True)
+        # Define a radius (in km)
+        radius_km = 10
 
-        # Calculate distances using the Haversine formula
+        # Approximate calculation for bounding box (more efficient)
+        lat_delta = radius_km / 111  # ~111 km per degree of latitude
+        lon_delta = radius_km / (111 * cos(radians(user_lat)))
+
+        min_lat = user_lat - lat_delta
+        max_lat = user_lat + lat_delta
+        min_lon = user_lon - lon_delta
+        max_lon = user_lon + lon_delta
+
+        # Filter in DB using bounding box
+        workshops = Workshop.objects.filter(
+            is_active=True,
+            is_approved=True,
+            latitude__range=(min_lat, max_lat),
+            longitude__range=(min_lon, max_lon)
+        )
+
         workshop_distances = []
         for workshop in workshops:
             if workshop.latitude is None or workshop.longitude is None:
@@ -368,26 +385,31 @@ class NearbyWorkshopsView(APIView):
             try:
                 distance = haversine(user_lat, user_lon, workshop.latitude, workshop.longitude)
                 workshop_distances.append({
+                    "id": workshop.id,
                     "name": workshop.name,
                     "email": workshop.email,
                     "phone": workshop.phone,
                     "location": workshop.location,
                     "latitude": workshop.latitude,
                     "longitude": workshop.longitude,
-                    "distance": round(distance, 2),  # Round distance to 2 decimal places
+                    "distance": round(distance, 2),
                 })
             except ValueError:
                 continue
 
-        # Sort workshops by distance and limit to nearest 10
         sorted_workshops = sorted(workshop_distances, key=lambda x: x["distance"])[:10]
-
         return Response(sorted_workshops, status=200)
+
+class UserWorkshopPagination(PageNumberPagination):
+    page_size = 6  # Show 6 items per page
+    page_size_query_param = 'page_size'
+    max_page_size = 100
 
 class UserWorkshopsListView(ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
     queryset = Workshop.objects.filter(is_active=True, is_approved=True, approval_status="approved")
     serializer_class = WorkshopSerializer
+    pagination_class = UserWorkshopPagination
     
 class UserWorkshopDetailView(RetrieveAPIView):
     permission_classes = [permissions.IsAuthenticated]

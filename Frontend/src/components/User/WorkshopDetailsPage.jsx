@@ -19,6 +19,11 @@ import ChatComponent from "../Chat/ChatComponent";
 import { FaVideo } from "react-icons/fa6";
 import unavailableImg from "@/assets/unavailable.svg";
 
+// Shimmer loading component
+const ShimmerEffect = ({ className }) => (
+  <div className={`animate-pulse bg-gray-200 rounded ${className}`}></div>
+);
+
 const WorkshopDetailsPage = () => {
   const reviews = [
     { name: "John Doe", rating: 5, text: "Great service! Highly recommended." },
@@ -105,12 +110,78 @@ const WorkshopDetailsPage = () => {
     }
   };
 
-  if (loading)
+  // Shimmer loading UI
+  if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-[200px]">
-        <Spinner size="lg" color="primary" />
+      <div>
+        <Header />
+        <div className="container mx-auto px-4 py-8">
+          {/* Workshop Info Shimmer */}
+          <div className="bg-white shadow-lg rounded-lg p-6 mb-8">
+            <div className="flex justify-between items-center mb-4">
+              <ShimmerEffect className="h-8 w-64" />
+            </div>
+            <div className="flex items-center mb-2">
+              <ShimmerEffect className="h-5 w-5 mr-2 rounded-full" />
+              <ShimmerEffect className="h-5 w-32" />
+            </div>
+            <div className="flex items-center mb-2">
+              <ShimmerEffect className="h-5 w-5 mr-2 rounded-full" />
+              <ShimmerEffect className="h-5 w-48" />
+            </div>
+            <div className="flex items-center mb-4">
+              <ShimmerEffect className="h-5 w-5 mr-2 rounded-full" />
+              <ShimmerEffect className="h-5 w-64" />
+              <ShimmerEffect className="h-8 w-24 ml-4 rounded" />
+            </div>
+            <div className="flex items-center">
+              {[...Array(5)].map((_, i) => (
+                <ShimmerEffect key={i} className="h-5 w-5 mr-1 rounded-full" />
+              ))}
+              <ShimmerEffect className="h-5 w-10 ml-2" />
+            </div>
+          </div>
+
+          {/* Services Section Shimmer */}
+          <ShimmerEffect className="h-8 w-48 mb-4" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            {[...Array(3)].map((_, index) => (
+              <Card key={index} className="p-4 flex flex-col justify-between h-64">
+                <ShimmerEffect className="h-6 w-3/4 mb-2" />
+                <ShimmerEffect className="h-4 w-full mb-1" />
+                <ShimmerEffect className="h-4 w-full mb-1" />
+                <ShimmerEffect className="h-4 w-2/3 mb-1" />
+                <ShimmerEffect className="h-6 w-1/3 mb-4" />
+                <ShimmerEffect className="h-10 w-full rounded" />
+              </Card>
+            ))}
+          </div>
+
+          {/* Reviews Section Shimmer */}
+          <ShimmerEffect className="h-8 w-32 mb-4" />
+          <div className="space-y-4 mb-8">
+            {[...Array(2)].map((_, index) => (
+              <Card key={index} className="p-4">
+                <div className="flex items-center mb-2">
+                  <ShimmerEffect className="h-8 w-8 rounded-full mr-2" />
+                  <ShimmerEffect className="h-5 w-32" />
+                </div>
+                <div className="flex items-center mb-2">
+                  {[...Array(5)].map((_, i) => (
+                    <ShimmerEffect key={i} className="h-5 w-5 mr-1 rounded-full" />
+                  ))}
+                </div>
+                <ShimmerEffect className="h-4 w-full mb-1" />
+                <ShimmerEffect className="h-4 w-3/4" />
+              </Card>
+            ))}
+          </div>
+          <ShimmerEffect className="h-10 w-32 rounded" />
+        </div>
+        <Footer />
       </div>
     );
+  }
 
   if (!workshop) return <div>Workshop not found.</div>;
 
