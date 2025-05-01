@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
-import { Button, Pagination } from "@nextui-org/react";
+import { Button, Pagination, Input, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@nextui-org/react";
 import axiosInstance from "../../utils/axiosInstance";
 import { Link, useNavigate } from "react-router-dom";
+import { Search, MapPin, ChevronDown } from "lucide-react";
 
 // Shimmer Effect Component
 const ShimmerEffect = ({ className }) => (
@@ -30,6 +31,29 @@ export default function UserWorkshops({ workshops: propWorkshops }) {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
+  
+  // Search and sorting states
+  const [searchQuery, setSearchQuery] = useState("");
+  const [userLocation, setUserLocation] = useState(null);
+  const [sortOption, setSortOption] = useState("relevance");
+  const [searchTimeout, setSearchTimeout] = useState(null);
+
+  // Get user's location on component mount
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setUserLocation({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude
+          });
+        },
+        (error) => {
+          console.error("Error getting user location:", error);
+        }
+      );
+    }
+  }, []);
 
   useEffect(() => {
     // If workshops are passed as props, use them
@@ -47,37 +71,70 @@ export default function UserWorkshops({ workshops: propWorkshops }) {
       return;
     }
 
-    const fetchWorkshops = async (page) => {
-      setLoading(true);
-      try {
-        const response = await axiosInstance.get(
-          `/users/workshops/list/?page=${page}`
-        );
-        console.log("fetched workshops: ", response.data);
+    // Clear any existing timeout when dependency changes
+    if (searchTimeout) {
+      clearTimeout(searchTimeout);
+    }
 
-        const { results, count } = response.data;
-        setWorkshops(results);
-        setTotalItems(count);
-        
-        // Calculate total pages: ceiling of total items divided by page size (6)
-        const calculatedTotalPages = Math.ceil(count / 6);
-        setTotalPages(calculatedTotalPages);
+    // Set a new timeout for search to avoid excessive API calls while typing
+    const timeoutId = setTimeout(() => {
+      fetchWorkshops(currentPage);
+    }, 500);
 
-        // Initialize image loading states
-        const imageStates = {};
-        results.forEach((workshop) => {
-          imageStates[workshop.id] = true; // Start with all images in loading state
-        });
-        setLoadingImages(imageStates);
-      } catch (error) {
-        console.log("Error fetching workshops", error);
-      } finally {
-        setLoading(false);
-      }
+    setSearchTimeout(timeoutId);
+
+    // Cleanup function
+    return () => {
+      if (searchTimeout) clearTimeout(searchTimeout);
     };
+  }, [currentPage, propWorkshops, searchQuery, sortOption, userLocation]);
 
-    fetchWorkshops(currentPage);
-  }, [currentPage, propWorkshops]);
+  const fetchWorkshops = async (page) => {
+    setLoading(true);
+    try {
+      // Build query parameters
+      let queryParams = `page=${page}`;
+      
+      // Add search query if exists
+      if (searchQuery) {
+        queryParams += `&search=${encodeURIComponent(searchQuery)}`;
+      }
+      
+      // Add location for distance-based sorting
+      if (sortOption === "distance" && userLocation) {
+        queryParams += `&latitude=${userLocation.latitude}&longitude=${userLocation.longitude}`;
+      }
+      
+      // Add sort parameter
+      if (sortOption !== "relevance") {
+        queryParams += `&sort=${sortOption}`;
+      }
+      
+      const response = await axiosInstance.get(
+        `/users/workshops/list/?${queryParams}`
+      );
+      console.log("fetched workshops: ", response.data);
+
+      const { results, count } = response.data;
+      setWorkshops(results);
+      setTotalItems(count);
+      
+      // Calculate total pages: ceiling of total items divided by page size (6)
+      const calculatedTotalPages = Math.ceil(count / 6);
+      setTotalPages(calculatedTotalPages);
+
+      // Initialize image loading states
+      const imageStates = {};
+      results.forEach((workshop) => {
+        imageStates[workshop.id] = true; // Start with all images in loading state
+      });
+      setLoadingImages(imageStates);
+    } catch (error) {
+      console.log("Error fetching workshops", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Handle image load completion
   const handleImageLoad = (workshopId) => {
@@ -105,6 +162,16 @@ export default function UserWorkshops({ workshops: propWorkshops }) {
     });
   };
 
+  const handleSearchChange = (e) => {
+    setSearchQuery(e.target.value);
+    setCurrentPage(1); // Reset to first page when search changes
+  };
+
+  const handleSortChange = (key) => {
+    setSortOption(key);
+    setCurrentPage(1); // Reset to first page when sort changes
+  };
+
   // Render shimmer loading state
   if (loading) {
     return (
@@ -122,11 +189,74 @@ export default function UserWorkshops({ workshops: propWorkshops }) {
 
   return (
     <div id="workshops-section" className="bg-gray-100 p-6 rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold mb-6 text-gray-800">
-        Recommended Workshops
-      </h2>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+        <h2 className="text-2xl font-bold text-gray-800 mb-4 md:mb-0">
+          Recommended Workshops
+        </h2>
+        
+        <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
+          {/* Search Input */}
+          <div className="relative flex-grow">
+            <Input
+              placeholder="Search workshops..."
+              value={searchQuery}
+              onChange={handleSearchChange}
+              startContent={<Search size={18} />}
+              className="w-full"
+            />
+          </div>
+          
+          {/* Sort Dropdown */}
+          <Dropdown>
+            <DropdownTrigger>
+              <Button 
+                variant="flat" 
+                className="flex items-center gap-1 bg-white"
+                endContent={<ChevronDown size={16} />}
+              >
+                {sortOption === "distance" ? (
+                  <>
+                    <MapPin size={16} />
+                    <span>Distance</span>
+                  </>
+                ) : sortOption === "name" ? (
+                  "Name (A-Z)"
+                ) : sortOption === "-created_at" ? (
+                  "Newest First"
+                ) : (
+                  "Relevance"
+                )}
+              </Button>
+            </DropdownTrigger>
+            <DropdownMenu 
+              aria-label="Sort options"
+              onAction={handleSortChange}
+              selectedKeys={[sortOption]}
+              selectionMode="single"
+            >
+              <DropdownItem key="relevance">Relevance</DropdownItem>
+              <DropdownItem key="distance" startContent={<MapPin size={16} />}>
+                Distance
+              </DropdownItem>
+              <DropdownItem key="name">Name (A-Z)</DropdownItem>
+              <DropdownItem key="-created_at">Newest First</DropdownItem>
+            </DropdownMenu>
+          </Dropdown>
+        </div>
+      </div>
+      
       {workshops.length === 0 ? (
-        <p className="text-gray-600">No workshops available at the moment.</p>
+        <div className="bg-white p-8 rounded-lg text-center">
+          <p className="text-gray-600 mb-2">No workshops match your search criteria.</p>
+          {searchQuery && (
+            <Button 
+              className="bg-gray-200 text-gray-800 mt-2"
+              onPress={() => setSearchQuery("")}
+            >
+              Clear Search
+            </Button>
+          )}
+        </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {workshops.map((workshop) => (
@@ -155,6 +285,11 @@ export default function UserWorkshops({ workshops: propWorkshops }) {
                 </h3>
                 <p className="text-sm text-gray-600 mb-4">
                   {workshop.location}
+                  {workshop.distance && (
+                    <span className="ml-2 text-blue-600">
+                      ({parseFloat(workshop.distance).toFixed(1)} km)
+                    </span>
+                  )}
                 </p>
                 <Button
                   className="bg-black text-white px-4 py-2 rounded-lg text-sm"

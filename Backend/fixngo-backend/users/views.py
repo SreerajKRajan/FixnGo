@@ -36,7 +36,9 @@ from django.conf import settings
 from utils.s3_utils import get_s3_file_url
 from math import radians, cos
 from rest_framework.pagination import PageNumberPagination
-
+from django.db.models import F, Q
+from django.db.models.expressions import RawSQL
+import math
 
 # Create your views here.
 
@@ -407,9 +409,66 @@ class UserWorkshopPagination(PageNumberPagination):
 
 class UserWorkshopsListView(ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
-    queryset = Workshop.objects.filter(is_active=True, is_approved=True, approval_status="approved")
     serializer_class = WorkshopSerializer
     pagination_class = UserWorkshopPagination
+    
+    def get_queryset(self):
+       queryset = Workshop.objects.filter(
+           is_active=True, 
+           is_approved=True, 
+           approval_status="approved"
+       )
+       
+       # Handle search parameter
+       search_query = self.request.query_params.get('search', None)
+       if search_query:
+           # Combine fields for search
+           queryset = queryset.filter(
+               Q(name__icontains=search_query) | 
+               Q(location__icontains=search_query)
+           )
+       
+       # Get sort parameter
+       sort_param = self.request.query_params.get('sort', None)
+       
+       # Handle distance-based sorting
+       if sort_param == 'distance':
+           # Check if user provided coordinates
+           user_lat = self.request.query_params.get('latitude')
+           user_lng = self.request.query_params.get('longitude')
+           
+           if user_lat and user_lng:
+               try:
+                   user_lat = float(user_lat)
+                   user_lng = float(user_lng)
+                   
+                   # Simple Haversine formula distance calculation using raw SQL
+                   # This works in most SQL databases without special extensions
+                   distance_formula = """
+                       6371 * acos(
+                           cos(radians(%s)) * 
+                           cos(radians(latitude)) * 
+                           cos(radians(longitude) - radians(%s)) + 
+                           sin(radians(%s)) * 
+                           sin(radians(latitude))
+                       )
+                   """
+                   queryset = queryset.annotate(
+                       distance=RawSQL(
+                           distance_formula,
+                           params=[user_lat, user_lng, user_lat]
+                       )
+                   ).order_by('distance')
+                   
+               except (ValueError, TypeError):
+                   # If coordinates are invalid, return queryset without distance sorting
+                   pass
+       elif sort_param == 'name':
+           queryset = queryset.order_by('name')
+       elif sort_param == '-created_at':
+           queryset = queryset.order_by('-created_at')
+       
+       return queryset
     
 class UserWorkshopDetailView(RetrieveAPIView):
     permission_classes = [permissions.IsAuthenticated]

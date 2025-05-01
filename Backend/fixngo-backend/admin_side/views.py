@@ -32,7 +32,7 @@ class WorkshopListView(ListAPIView):
 
 class UserListView(ListAPIView):
     permission_classes = [IsAdminUser]
-    queryset = User.objects.filter(is_superuser=False, is_verified=True)
+    queryset = User.objects.filter(is_superuser=False, is_verified=True).order_by("-created_at")
     serializer_class = UserSerializer
     pagination_class = CommonPagination
     

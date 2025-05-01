@@ -60,6 +60,88 @@ const ratingData = [
   { name: "1 Star", value: 1, fill: "#ef4444" },
 ];
 
+// Shimmer loading animation CSS class
+const shimmerClass = "animate-pulse bg-slate-200 rounded";
+
+// Shimmer loading components
+const ShimmerCard = () => (
+  <Card>
+    <CardHeader className="flex flex-row items-center justify-between pb-2">
+      <div className={`${shimmerClass} h-4 w-24`}></div>
+      <div className={`${shimmerClass} h-4 w-4`}></div>
+    </CardHeader>
+    <CardContent>
+      <div className={`${shimmerClass} h-8 w-20 mb-2`}></div>
+      <div className={`${shimmerClass} h-3 w-32`}></div>
+    </CardContent>
+  </Card>
+);
+
+const ShimmerChart = () => (
+  <Card className="col-span-1">
+    <CardHeader>
+      <div className={`${shimmerClass} h-6 w-40 mb-2`}></div>
+      <div className={`${shimmerClass} h-4 w-64`}></div>
+    </CardHeader>
+    <CardContent>
+      <div className={`${shimmerClass} h-80 w-full`}></div>
+    </CardContent>
+  </Card>
+);
+
+const ShimmerActivity = () => (
+  <div className="flex items-start gap-4">
+    <div className={`${shimmerClass} h-10 w-10 rounded-full`}></div>
+    <div className="flex-1 space-y-2">
+      <div className="flex items-center justify-between">
+        <div className={`${shimmerClass} h-4 w-24`}></div>
+        <div className={`${shimmerClass} h-5 w-20`}></div>
+      </div>
+      <div className={`${shimmerClass} h-4 w-full`}></div>
+      <div className={`${shimmerClass} h-3 w-32`}></div>
+    </div>
+  </div>
+);
+
+const ShimmerTable = () => (
+  <Table>
+    <TableHeader>
+      <TableRow>
+        <TableHead>
+          <div className={`${shimmerClass} h-4 w-24`}></div>
+        </TableHead>
+        <TableHead>
+          <div className={`${shimmerClass} h-4 w-16`}></div>
+        </TableHead>
+        <TableHead>
+          <div className={`${shimmerClass} h-4 w-20`}></div>
+        </TableHead>
+        <TableHead className="text-right">
+          <div className={`${shimmerClass} h-4 w-16 ml-auto`}></div>
+        </TableHead>
+      </TableRow>
+    </TableHeader>
+    <TableBody>
+      {[1, 2, 3, 4].map((i) => (
+        <TableRow key={i}>
+          <TableCell>
+            <div className={`${shimmerClass} h-4 w-32`}></div>
+          </TableCell>
+          <TableCell>
+            <div className={`${shimmerClass} h-4 w-20`}></div>
+          </TableCell>
+          <TableCell>
+            <div className={`${shimmerClass} h-4 w-10`}></div>
+          </TableCell>
+          <TableCell className="text-right">
+            <div className={`${shimmerClass} h-4 w-6 ml-auto`}></div>
+          </TableCell>
+        </TableRow>
+      ))}
+    </TableBody>
+  </Table>
+);
+
 export default function WorkshopDashboard() {
   // State variables for dashboard data
   const [dashboardData, setDashboardData] = useState({
@@ -191,20 +273,6 @@ export default function WorkshopDashboard() {
     fetchDashboardData();
   }, []);
 
-  if (loading) {
-    return (
-      <div className="flex min-h-screen w-full flex-col bg-muted/40">
-        <WorkshopHeader />
-        <main className="flex-1 p-8 flex items-center justify-center">
-          <div className="text-center">
-            <p className="text-lg">Loading dashboard data...</p>
-          </div>
-        </main>
-        <WorkshopFooter />
-      </div>
-    );
-  }
-
   if (error) {
     return (
       <div className="flex min-h-screen w-full flex-col bg-muted/40">
@@ -245,133 +313,150 @@ export default function WorkshopDashboard() {
         <div className="grid gap-6">
           {/* Summary Cards */}
           <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
-            {dashboardData.summaryCards.map((card, i) => (
-              <Card key={i}>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    {card.title}
-                  </CardTitle>
-                  <card.icon className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{card.value}</div>
-                  {card.stars ? (
-                    <div className="flex items-center text-xs text-muted-foreground">
-                      <div className="flex">
-                        {[1, 2, 3, 4, 5].map((star) => (
-                          <Star
-                            key={star}
-                            className={`h-3 w-3 ${
-                              star <= card.stars
-                                ? "fill-yellow-400 text-yellow-400"
-                                : ""
-                            }`}
-                          />
-                        ))}
+            {loading ? (
+              <>
+                {[...Array(5)].map((_, i) => (
+                  <ShimmerCard key={i} />
+                ))}
+              </>
+            ) : (
+              dashboardData.summaryCards.map((card, i) => (
+                <Card key={i}>
+                  <CardHeader className="flex flex-row items-center justify-between pb-2">
+                    <CardTitle className="text-sm font-medium">
+                      {card.title}
+                    </CardTitle>
+                    <card.icon className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{card.value}</div>
+                    {card.stars ? (
+                      <div className="flex items-center text-xs text-muted-foreground">
+                        <div className="flex">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Star
+                              key={star}
+                              className={`h-3 w-3 ${
+                                star <= card.stars
+                                  ? "fill-yellow-400 text-yellow-400"
+                                  : ""
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        <span className="ml-1">based on 156 reviews</span>
                       </div>
-                      <span className="ml-1">based on 156 reviews</span>
-                    </div>
-                  ) : (
-                    <p className="text-xs text-muted-foreground">
-                      {card.change}
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
+                    ) : (
+                      <p className="text-xs text-muted-foreground">
+                        {card.change}
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+              ))
+            )}
           </div>
 
           {/* Charts */}
           <div className="grid gap-6 md:grid-cols-2">
-            <Card className="col-span-1">
-              <CardHeader>
-                <CardTitle>Service Request Trends</CardTitle>
-                <CardDescription>
-                  Number of service requests over time
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="h-80">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={dashboardData.serviceRequestData}>
-                      <CartesianGrid strokeDasharray="10 10" />
-                      <XAxis dataKey="month" />
-                      <YAxis />
-                      <Tooltip
-                        formatter={(value) => [`${value} requests`, "Requests"]}
-                        contentStyle={{
-                          background: "white",
-                          border: "1px solid #ccc",
-                          borderRadius: "8px",
-                        }}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="requests"
-                        stroke="#3b82f6"
-                        strokeWidth={2}
-                        dot={{ fill: "#3b82f6", r: 4 }}
-                        activeDot={{
-                          fill: "#3b82f6",
-                          r: 6,
-                          strokeWidth: 2,
-                          stroke: "#fff",
-                        }}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="col-span-1">
-              <CardHeader>
-                <CardTitle>Rating Distribution</CardTitle>
-                <CardDescription>
-                  Customer feedback ratings (1-5 stars)
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="h-80">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={ratingData}
-                        dataKey="value"
-                        nameKey="name"
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={70}
-                        outerRadius={90}
-                        paddingAngle={2}
-                        cornerRadius={4}
-                        label={({ name, percent }) =>
-                          `${name}: ${(percent * 100).toFixed(0)}%`
-                        }
-                        labelLine={false}
-                      >
-                        {ratingData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.fill} />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        formatter={(value) => [`${value}%`, "Percentage"]}
-                        contentStyle={{
-                          background: "white",
-                          border: "1px solid #ccc",
-                          borderRadius: "8px",
-                        }}
-                      />
-                      <Legend
-                        verticalAlign="middle"
-                        align="right"
-                        layout="vertical"
-                        iconType="circle"
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
+            {loading ? (
+              <>
+                <ShimmerChart />
+                <ShimmerChart />
+              </>
+            ) : (
+              <>
+                <Card className="col-span-1">
+                  <CardHeader>
+                    <CardTitle>Service Request Trends</CardTitle>
+                    <CardDescription>
+                      Number of service requests over time
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-80">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={dashboardData.serviceRequestData}>
+                          <CartesianGrid strokeDasharray="10 10" />
+                          <XAxis dataKey="month" />
+                          <YAxis />
+                          <Tooltip
+                            formatter={(value) => [`${value} requests`, "Requests"]}
+                            contentStyle={{
+                              background: "white",
+                              border: "1px solid #ccc",
+                              borderRadius: "8px",
+                            }}
+                          />
+                          <Line
+                            type="monotone"
+                            dataKey="requests"
+                            stroke="#3b82f6"
+                            strokeWidth={2}
+                            dot={{ fill: "#3b82f6", r: 4 }}
+                            activeDot={{
+                              fill: "#3b82f6",
+                              r: 6,
+                              strokeWidth: 2,
+                              stroke: "#fff",
+                            }}
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card className="col-span-1">
+                  <CardHeader>
+                    <CardTitle>Rating Distribution</CardTitle>
+                    <CardDescription>
+                      Customer feedback ratings (1-5 stars)
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-80">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={ratingData}
+                            dataKey="value"
+                            nameKey="name"
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={70}
+                            outerRadius={90}
+                            paddingAngle={2}
+                            cornerRadius={4}
+                            label={({ name, percent }) =>
+                              `${name}: ${(percent * 100).toFixed(0)}%`
+                            }
+                            labelLine={false}
+                          >
+                            {ratingData.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.fill} />
+                            ))}
+                          </Pie>
+                          <Tooltip
+                            formatter={(value) => [`${value}%`, "Percentage"]}
+                            contentStyle={{
+                              background: "white",
+                              border: "1px solid #ccc",
+                              borderRadius: "8px",
+                            }}
+                          />
+                          <Legend
+                            verticalAlign="middle"
+                            align="right"
+                            layout="vertical"
+                            iconType="circle"
+                          />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+              </>
+            )}
           </div>
 
           {/* Recent Activity */}
@@ -384,7 +469,9 @@ export default function WorkshopDashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {dashboardData.recentActivity.length > 0 ? (
+                {loading ? (
+                  [...Array(4)].map((_, i) => <ShimmerActivity key={i} />)
+                ) : dashboardData.recentActivity.length > 0 ? (
                   dashboardData.recentActivity.map((item, i) => (
                     <div key={i} className="flex items-start gap-4">
                       <Avatar>
@@ -437,7 +524,9 @@ export default function WorkshopDashboard() {
               </div>
             </CardHeader>
             <CardContent>
-              {dashboardData.serviceData.length > 0 ? (
+              {loading ? (
+                <ShimmerTable />
+              ) : dashboardData.serviceData.length > 0 ? (
                 <Table>
                   <TableHeader>
                     <TableRow>
