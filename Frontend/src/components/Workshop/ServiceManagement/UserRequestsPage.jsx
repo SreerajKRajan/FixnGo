@@ -15,7 +15,6 @@ import { MdOutlineCurrencyRupee, MdClose } from "react-icons/md";
 import { FaVideo } from "react-icons/fa6";
 import { IoChatbubbleEllipses } from "react-icons/io5";
 import { RiFileListLine } from "react-icons/ri";
-import ChatComponent from "../../Chat/ChatComponent";
 import WorkshopHeader from "@/components/Workshop/WorkshopHeader";
 import WorkshopFooter from "@/components/Workshop/WorkshopFooter";
 import { useDispatch } from "react-redux";
@@ -33,7 +32,7 @@ const capitalizeStatus = (status) => {
 const UserRequestsPage = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  
+
   const [requests, setRequests] = useState([]);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -41,15 +40,10 @@ const UserRequestsPage = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [additionalCost, setAdditionalCost] = useState("");
   const [loading, setLoading] = useState(true);
-  const [selectedChat, setSelectedChat] = useState(null);
 
   const handleLogout = () => {
     dispatch(logout());
     navigate("/workshop/login");
-  };
-
-  const handleChatClick = () => {
-    setSelectedChat(requests); // Set selected workshop to chat
   };
 
   // Prevent back button navigation
@@ -66,23 +60,33 @@ const UserRequestsPage = () => {
     };
   }, []);
 
-  useEffect(() => {
-    const fetchRequests = async (page) => {
-      setLoading(true);
-      try {
-        const response = await axiosInstance.get(
-          `/workshop/service-requests/list/?page=${page}`
+  const fetchRequests = async (page) => {
+    setLoading(true);
+    try {
+      const response = await axiosInstance.get(
+        `/workshop/service-requests/list/?page=${page}`
+      );
+      setRequests(response.data.results);
+      setTotalPages(Math.ceil(response.data.count / 5));
+
+      // Update selected request if it's open
+      if (selectedRequest) {
+        const updatedRequest = response.data.results.find(
+          (req) => req.id === selectedRequest.id
         );
-        console.log("Fetched service requests", response.data);
-        setRequests(response.data.results);
-        setTotalPages(Math.ceil(response.data.count / 5)); // Assuming 5 items per page
-      } catch (error) {
-        console.error("Error fetching service requests:", error);
-        toast.error("Failed to load service requests");
-      } finally {
-        setLoading(false);
+        if (updatedRequest) {
+          setSelectedRequest(updatedRequest);
+        }
       }
-    };
+    } catch (error) {
+      console.error("Error fetching service requests:", error);
+      toast.error("Failed to load service requests");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchRequests(currentPage);
   }, [currentPage]);
 
@@ -91,21 +95,36 @@ const UserRequestsPage = () => {
   };
 
   const updateRequestStatus = async (requestId, status) => {
+    // Close modal immediately for better UX
+    closeModal();
+
+    // Update UI optimistically
+    setRequests((prev) =>
+      prev.map((req) => (req.id === requestId ? { ...req, status } : req))
+    );
+
     try {
+      // Make API call in the background
       await axiosInstance.post(
         `/workshop/service-requests/${requestId}/update/`,
-        {
-          status,
-        }
+        { status }
       );
+
       toast.success(`Request ${status} successfully.`);
-      setRequests((prev) =>
-        prev.map((req) => (req.id === requestId ? { ...req, status } : req))
-      );
-      closeModal(); // Close modal after updating status
+
+      // Optionally fetch the latest data to ensure everything is in sync
+      fetchRequests(currentPage);
     } catch (error) {
-      console.error(`Error updating request status: ${error}`);
+      // Revert optimistic update on error
+      setRequests((prev) =>
+        prev.map((req) =>
+          req.id === requestId ? { ...req, status: req.status } : req
+        )
+      );
       toast.error("Failed to update request status");
+
+      // Refresh data to get correct state
+      fetchRequests(currentPage);
     }
   };
 
@@ -117,34 +136,35 @@ const UserRequestsPage = () => {
   const closeModal = () => {
     setSelectedRequest(null);
     setIsModalOpen(false);
-    setAdditionalCost(""); // Reset additional cost
+    setAdditionalCost("");
   };
 
   const handleSendPaymentRequest = async (requestId) => {
     try {
       const basePrice = selectedRequest?.base_price || 0;
       const additionalCharges = parseFloat(additionalCost) || 0;
-      const totalCost = parseFloat(basePrice) + additionalCharges; // Calculate total cost
-      console.log("Total cost: ", totalCost);
+      const totalCost = parseFloat(basePrice) + additionalCharges;
 
       if (!totalCost) {
         toast.error("Total cost is missing for this request.");
         return;
       }
 
-      const response = await axiosInstance.post(
-        `/workshop/send-payment-request/`,
-        {
-          requestId,
-          totalCost,
-        }
+      await axiosInstance.post(`/workshop/send-payment-request/`, {
+        requestId,
+        totalCost,
+      });
+
+      setRequests((prev) =>
+        prev.map((req) =>
+          req.id === requestId ? { ...req, status: "IN_PROGRESS" } : req
+        )
       );
 
       toast.success("Payment request sent successfully.");
-      console.log("Payment request response:", response.data);
-      closeModal(); // Close modal after sending payment request
+      closeModal();
+      fetchRequests(currentPage);
     } catch (error) {
-      console.error("Error sending payment request:", error);
       toast.error("Failed to send payment request.");
     }
   };
@@ -152,17 +172,163 @@ const UserRequestsPage = () => {
   const EmptyState = () => (
     <div className="flex flex-col items-center justify-center py-16 bg-gray-50 rounded-lg">
       <RiFileListLine className="text-gray-400" size={80} />
-      <p className="mt-4 text-xl font-medium text-gray-500">No service requests found</p>
-      <p className="mt-2 text-gray-400">When new service requests arrive, they will appear here</p>
+      <p className="mt-4 text-xl font-medium text-gray-500">
+        No service requests found
+      </p>
+      <p className="mt-2 text-gray-400">
+        When new service requests arrive, they will appear here
+      </p>
     </div>
   );
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "accepted":
+        return "bg-green-500";
+      case "rejected":
+        return "bg-red-500";
+      case "completed":
+        return "bg-blue-500";
+      case "IN_PROGRESS":
+        return "bg-yellow-500";
+      case "PENDING":
+        return "bg-orange-500";
+      default:
+        return "bg-gray-500";
+    }
+  };
+
+  const renderCompletedServiceDetails = () => {
+    if (!selectedRequest) return null;
+
+    return (
+      <div className="mt-3 p-2 border border-gray-200 rounded-md">
+        <p className="font-medium text-gray-700">Service Summary</p>
+        <p className="text-sm mt-1 text-gray-600">
+          Vehicle: {selectedRequest.vehicle_type}
+        </p>
+        <p className="text-sm mt-1 text-gray-600">
+          Service: {selectedRequest.workshop_service_name}
+        </p>
+        <p className="text-sm mt-1 text-gray-600">
+          Customer: {selectedRequest.user_name}
+        </p>
+        <p className="text-sm mt-1 text-gray-600">
+          Completion Date: {new Date().toLocaleDateString()}
+        </p>
+      </div>
+    );
+  };
+
+  const renderModalActions = () => {
+    if (!selectedRequest) return null;
+
+    const { status, id } = selectedRequest;
+
+    // For pending requests - show accept/reject buttons
+    if (status === "PENDING") {
+      return (
+        <div className="mt-4 flex space-x-4">
+          <button
+            className="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600"
+            onClick={() => updateRequestStatus(id, "accepted")}
+          >
+            Accept Request
+          </button>
+          <button
+            className="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600"
+            onClick={() => updateRequestStatus(id, "rejected")}
+          >
+            Reject Request
+          </button>
+        </div>
+      );
+    }
+
+    // For accepted requests - show payment request form
+    if (status === "accepted") {
+      return (
+        <>
+          <p className="mb-2 flex items-center">
+            <strong>Base Price:</strong>&nbsp;
+            <MdOutlineCurrencyRupee className="mt-1" />
+            {selectedRequest.base_price}
+          </p>
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700">
+              Additional Charges:
+            </label>
+            <input
+              type="number"
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+              placeholder="Enter additional charges"
+              value={additionalCost}
+              onChange={(e) => setAdditionalCost(e.target.value)}
+            />
+          </div>
+          <Button
+            onPress={() => handleSendPaymentRequest(id)}
+            color="primary"
+            fullWidth
+          >
+            Send Payment Request
+          </Button>
+        </>
+      );
+    }
+
+    // For in-progress status - show payment sent and communication options
+    if (status === "IN_PROGRESS") {
+      return (
+        <div className="mt-4 p-3">
+          <div className="bg-green-200 p-3 rounded-md text-green-800">
+            <p>Payment Request Already Sent</p>
+          </div>
+        </div>
+      );
+    }
+
+    // For completed status - show service completion message
+    if (status === "completed") {
+      return (
+        <div className="mt-4 p-3">
+          <div className="bg-blue-200 p-3 rounded-md text-blue-800">
+            <p className="font-medium">Service Completed</p>
+            <p className="text-sm mt-1">
+              This service has been successfully completed and payment has been
+              processed.
+            </p>
+          </div>
+          {renderCompletedServiceDetails()}
+        </div>
+      );
+    }
+
+    // For rejected status
+    if (status === "rejected") {
+      return (
+        <div className="mt-4 p-3">
+          <div className="bg-red-200 p-3 rounded-md text-red-800">
+            <p className="font-medium">Request Rejected</p>
+            <p className="text-sm mt-1">
+              This service request has been rejected.
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    return null;
+  };
 
   return (
     <div className="min-h-screen bg-white text-black">
       <WorkshopHeader onLogout={handleLogout} />
-      
+
       <div className="container mx-auto px-4 py-8 min-h-screen flex flex-col">
-        <h1 className="text-3xl font-bold mb-8 text-center">Service Requests</h1>
+        <h1 className="text-3xl font-bold mb-8 text-center">
+          Service Requests
+        </h1>
 
         {loading ? (
           <div className="flex-grow flex justify-center items-center">
@@ -189,13 +355,9 @@ const UserRequestsPage = () => {
                       <TableCell>{request.vehicle_type}</TableCell>
                       <TableCell>
                         <span
-                          className={`px-3 py-1 rounded-full text-white ${
-                            request.status === "accepted"
-                              ? "bg-green-500"
-                              : request.status === "rejected"
-                              ? "bg-red-500"
-                              : "bg-yellow-500"
-                          }`}
+                          className={`px-3 py-1 rounded-full text-white ${getStatusColor(
+                            request.status
+                          )}`}
                         >
                           {capitalizeStatus(request.status)}
                         </span>
@@ -239,7 +401,6 @@ const UserRequestsPage = () => {
               className="bg-white rounded-lg shadow-lg p-6 max-w-md w-full relative"
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Close button */}
               <button
                 onClick={closeModal}
                 className="absolute top-4 right-4 text-gray-600 hover:text-gray-900"
@@ -252,7 +413,8 @@ const UserRequestsPage = () => {
                 <strong>User:</strong> {selectedRequest.user_name}
               </p>
               <p className="mb-2">
-                <strong>Service:</strong> {selectedRequest.workshop_service_name}
+                <strong>Service:</strong>{" "}
+                {selectedRequest.workshop_service_name}
               </p>
               <p className="mb-2">
                 <strong>Vehicle:</strong> {selectedRequest.vehicle_type}
@@ -260,97 +422,22 @@ const UserRequestsPage = () => {
               <p className="mb-2">
                 <strong>Description:</strong> {selectedRequest.description}
               </p>
+              <p className="mb-2">
+                <strong>Status:</strong>{" "}
+                {capitalizeStatus(selectedRequest.status)}
+              </p>
 
-              {/* Display base price and option to enter total cost */}
-              {selectedRequest.status === "accepted" && (
-                <>
-                  <p className="mb-2 flex items-center">
-                    <strong>Base Price:</strong>&nbsp;
-                    <MdOutlineCurrencyRupee className="mt-1" />
-                    {selectedRequest.base_price}
-                  </p>
+              {renderModalActions()}
 
-                  {/* Form to add total cost */}
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700">
-                      Additional Charges:
-                    </label>
-                    <input
-                      type="number"
-                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
-                      placeholder="Enter additional charges"
-                      value={additionalCost}
-                      onChange={(e) => setAdditionalCost(e.target.value)}
-                    />
-                  </div>
-
-                  <Button
-                    onPress={() => handleSendPaymentRequest(selectedRequest.id)}
-                    color="primary"
-                    fullWidth
-                  >
-                    Send Payment Request
-                  </Button>
-                </>
-              )}
-
-              {/* For IN_PROGRESS status, show requested payment */}
-              {selectedRequest.status === "IN_PROGRESS" && (
-                <div className="mt-4 p-3">
-                  {/* Text with background */}
-                  <div className="bg-green-200 p-3 rounded-md text-green-800">
-                    <p>Payment Request Already Sent</p>
-                  </div>
-
-                  {/* Icon Buttons Row centered horizontally */}
-                  <div className="flex justify-center gap-4 mt-4">
-                    {/* Video Call Button */}
-                    <button className="text-blue-500 text-2xl hover:text-blue-700 transition">
-                      <FaVideo />
-                    </button>
-
-                    {/* Chat Button */}
-                    <button
-                      className="text-gray-800 text-2xl hover:text-gray-900 transition"
-                      onClick={handleChatClick}
-                    >
-                      <IoChatbubbleEllipses />
-                    </button>
-                  </div>
-                </div>
-              )}
-              <ChatComponent newChat={selectedChat} />
-
-              <div className="mt-4 flex space-x-4">
-                {/* Conditionally render buttons based on the request status */}
-                {selectedRequest.status !== "accepted" &&
-                  selectedRequest.status !== "rejected" &&
-                  selectedRequest.status !== "IN_PROGRESS" && (
-                    <>
-                      <button
-                        className="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600"
-                        onClick={() =>
-                          updateRequestStatus(selectedRequest.id, "accepted")
-                        }
-                      >
-                        Accept Request
-                      </button>
-                      <button
-                        className="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600"
-                        onClick={() =>
-                          updateRequestStatus(selectedRequest.id, "rejected")
-                        }
-                      >
-                        Reject Request
-                      </button>
-                    </>
-                  )}
-              </div>
+              {/* Chat component */}
+              {/* {selectedRequest.status === "IN_PROGRESS" && (
+                <ChatComponent newChat={selectedChat} />
+              )} */}
             </div>
           </div>
         )}
       </div>
-      
+
       <WorkshopFooter />
     </div>
   );

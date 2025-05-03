@@ -274,8 +274,12 @@ export default function UserWorkshops({
       {workshops.length === 0 ? (
         <div className="bg-white p-8 rounded-lg text-center">
           <p className="text-gray-600 mb-2">
-            No workshops match your search criteria.
+            No workshops found for "
+            <span className="font-semibold">{searchQuery}</span>".
+            <br />
+            Please check the name or location and try again.
           </p>
+
           {searchQuery && (
             <Button
               className="bg-gray-200 text-gray-800 mt-2"

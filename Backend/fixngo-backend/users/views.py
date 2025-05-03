@@ -347,55 +347,69 @@ class UserProfileView(APIView):
 
 
 class NearbyWorkshopsView(APIView):
-    def get(self, request):
-        user_lat = request.GET.get('latitude')
-        user_lon = request.GET.get('longitude')
-
-        if not user_lat or not user_lon:
-            return Response({"error": "Latitude or longitude are required."}, status=400)
-
-        try:
-            user_lat = float(user_lat)
-            user_lon = float(user_lon)
-        except (TypeError, ValueError):
-            return Response({"error": "Invalid latitude or longitude"}, status=400)
-
-        # Get all active and approved workshops
-        workshops = Workshop.objects.filter(
-            is_active=True,
-            is_approved=True,
-            approval_status="approved"
-        )
-
-        # Filter out workshops without coordinates
-        valid_workshops = []
-        for workshop in workshops:
-            if workshop.latitude is None or workshop.longitude is None:
-                continue
-                
-            try:
-                # Calculate distance using Haversine formula
-                distance = haversine(user_lat, user_lon, workshop.latitude, workshop.longitude)
-                
-                # Add workshop with distance to list
-                valid_workshops.append({
-                    "id": workshop.id,
-                    "name": workshop.name,
-                    "email": workshop.email,
-                    "phone": workshop.phone,
-                    "location": workshop.location,
-                    "latitude": workshop.latitude,
-                    "longitude": workshop.longitude,
-                    "distance": round(distance, 2),
-                    "document": workshop.document.url if workshop.document else None,
-                })
-            except ValueError:
-                # Skip workshops with invalid coordinates
-                continue
-
-        # Sort by distance and limit to 10 nearest
-        sorted_workshops = sorted(valid_workshops, key=lambda x: x["distance"])[:10]
-        return Response(sorted_workshops, status=200)
+     def get(self, request):
+         user_lat = request.GET.get('latitude')
+         user_lon = request.GET.get('longitude')
+         print(f"lat {user_lat} and lon {user_lon}")
+         
+ 
+         if not user_lat or not user_lon:
+             return Response({"error": "Latitude or longitude are required."}, status=400)
+         
+ 
+         try:
+             # Get user's latitude and longitude from query parameters
+             user_lat = float(user_lat)
+             user_lon = float(user_lon)
+ 
+         except (TypeError, ValueError):
+             return Response({"error": "Invalid latitude or longitude"}, status=400)
+ 
+         # Define a radius (in km)
+         radius_km = 10
+ 
+         # Approximate calculation for bounding box (more efficient)
+         lat_delta = radius_km / 111  # ~111 km per degree of latitude
+         lon_delta = radius_km / (111 * cos(radians(user_lat)))
+ 
+         min_lat = user_lat - lat_delta
+         max_lat = user_lat + lat_delta
+         min_lon = user_lon - lon_delta
+         max_lon = user_lon + lon_delta
+ 
+         # Filter in DB using bounding box
+         workshops = Workshop.objects.filter(
+             is_active=True,
+             is_approved=True,
+             latitude__range=(min_lat, max_lat),
+             longitude__range=(min_lon, max_lon)
+         )
+ 
+         # Calculate distances using the Haversine formula
+         nearby_workshops = []
+         for workshop in workshops:
+             if workshop.latitude is not None and workshop.longitude is not None:
+                 try:
+                     distance = haversine(user_lat, user_lon, workshop.latitude, workshop.longitude)
+                     if distance <= radius_km:  # Only include if truly within radius
+                         nearby_workshops.append({
+                             "id": workshop.id,
+                             "name": workshop.name,
+                             "email": workshop.email,
+                             "phone": workshop.phone,
+                             "location": workshop.location,
+                             "latitude": workshop.latitude,
+                             "longitude": workshop.longitude,
+                             "distance": round(distance, 2),
+                             "document": workshop.document.url if workshop.document else None,
+                         })
+                 except ValueError:
+                     continue
+ 
+         # Sort workshops by distance within 10km
+         sorted_workshops = sorted(nearby_workshops, key=lambda x: x["distance"])
+ 
+         return Response(sorted_workshops, status=200)
 
 
 class UserWorkshopPagination(PageNumberPagination):
