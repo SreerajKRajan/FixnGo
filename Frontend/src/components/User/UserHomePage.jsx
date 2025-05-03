@@ -19,13 +19,24 @@ export default function UserHomePage() {
   const [userLocation, setUserLocation] = useState(null)
   const [workshops, setWorkshops] = useState([])
   const [loading, setLoading] = useState(false)
+  // Add search query state at parent level
+  const [searchQuery, setSearchQuery] = useState("")
+  // Add sort option state at parent level
+  const [sortOption, setSort] = useState("relevance")
 
+  // Handle location selection from search
   const handleLocationSelect = (location) => {
     setUserLocation(location)
-    fetchNearbyWorkshops(location)
+    // Only fetch nearby workshops if on map tab
+    if (activeTab === "map") {
+      fetchNearbyWorkshops(location)
+    }
   }
 
+  // Fetch workshops for map view
   const fetchNearbyWorkshops = async (location) => {
+    if (!location || !location.lat || !location.lng) return
+    
     setLoading(true)
     try {
       const response = await axiosInstance.get(
@@ -40,21 +51,60 @@ export default function UserHomePage() {
     }
   }
 
+  // Handle tab change
+  const handleTabChange = (tab) => {
+    setActiveTab(tab)
+    
+    // Removed automatic fetching of workshops when switching to map tab
+  }
+
+  // Save active tab to localStorage
   useEffect(() => {
     localStorage.setItem("activeTab", activeTab)
   }, [activeTab])
+
+  // Get user's current location when "Detect Current Location" button is clicked
+  // This will be triggered by the button in SearchBar component
+  const handleGetCurrentLocation = () => {
+    if (navigator.geolocation) {
+      setLoading(true)
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const location = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          }
+          setUserLocation(location)
+          fetchNearbyWorkshops(location)
+        },
+        (error) => {
+          console.error("Error getting user location:", error)
+          setLoading(false)
+          alert("Unable to get your location. Please check browser permissions.")
+        }
+      )
+    } else {
+      alert("Geolocation is not supported by your browser.")
+    }
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Header />
       <main className="flex-grow container mx-auto mt-8 px-4 mb-12">
         <h1 className="text-4xl font-bold text-gray-800 mb-8 text-center">Welcome to FixnGo</h1>
-        <Tabs activeTab={activeTab} setActiveTab={setActiveTab} />
+        <Tabs 
+          activeTab={activeTab} 
+          setActiveTab={handleTabChange} 
+        />
         <div className="mt-8">
           {activeTab === "map" && (
             <div className="flex flex-col lg:flex-row justify-between gap-8">
               <div className="lg:w-1/3">
-                <SearchBar onLocationSelect={handleLocationSelect} />
+                <SearchBar 
+                  onLocationSelect={handleLocationSelect} 
+                  onGetCurrentLocation={handleGetCurrentLocation}
+                />
               </div>
               <div className="lg:w-2/3">
                 <div className="relative h-[calc(100vh-250px)] w-full rounded-lg overflow-hidden shadow-lg">
@@ -85,7 +135,16 @@ export default function UserHomePage() {
 
           {activeTab === "workshops" && (
             <div className="mt-8">
-              <UserWorkshops workshops={workshops} />
+              <UserWorkshops 
+                userLocation={userLocation} 
+                // Pass null for workshops to force the component to fetch its own data
+                workshops={null}
+                // Pass handlers for state sharing
+                searchQuery={searchQuery}
+                setSearchQuery={setSearchQuery}
+                sortOption={sortOption}
+                setSortOption={setSort}
+              />
             </div>
           )}
     

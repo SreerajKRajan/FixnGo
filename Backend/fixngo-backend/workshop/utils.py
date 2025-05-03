@@ -5,7 +5,7 @@ def get_coordinates(address):
     """
     Get latitude and longitude for a given address using the Geopy library.
     """
-    geolocator = Nominatim(user_agent="fixngo")
+    geolocator = Nominatim(user_agent="fixngo") 
     location = geolocator.geocode(address)
     if location:
         return location.latitude, location.longitude
@@ -15,14 +15,22 @@ def get_coordinates(address):
 def haversine(lat1, lon1, lat2, lon2):
     """
     Calculate the great-circle distance between two points on the Earth's surface.
-    """
-    if None in(lat1, lon1, lat2, lon2):
-        raise ValueError("All coordinates must be valid number.")
     
-    R = 6371.0  # Earth's radius in kilometers
+    Parameters:
+    - lat1, lon1: Coordinates of the first point in decimal degrees
+    - lat2, lon2: Coordinates of the second point in decimal degrees
+    
+    Returns:
+    - Distance in kilometers
+    """
+    if None in (lat1, lon1, lat2, lon2):
+        raise ValueError("All coordinates must be valid numbers.")
+    
+    # Earth's radius in kilometers
+    R = 6371.0  
 
     # Convert degrees to radians
-    lat1, lon1, lat2, lon2 = map(math.radians, [lat1, lon1, lat2, lon2])
+    lat1, lon1, lat2, lon2 = map(math.radians, [float(lat1), float(lon1), float(lat2), float(lon2)])
 
     # Differences in coordinates
     dlat = lat2 - lat1
@@ -34,4 +42,3 @@ def haversine(lat1, lon1, lat2, lon2):
     distance = R * c
 
     return distance
-

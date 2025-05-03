@@ -33,11 +33,13 @@ const MapComponent = ({ userLocation, workshops }) => {
   }, [userLocation]);
 
   // Filter workshops with valid coordinates
-  const validWorkshops = workshops.filter(
-    (workshop) =>
-      typeof workshop.latitude === "number" &&
-      typeof workshop.longitude === "number"
-  );
+  const validWorkshops = Array.isArray(workshops) 
+    ? workshops.filter(
+        (workshop) =>
+          typeof workshop.latitude === "number" &&
+          typeof workshop.longitude === "number"
+      )
+    : [];
 
   // Slightly offset markers if same location exists
   const locationCount = {};
@@ -76,7 +78,7 @@ const MapComponent = ({ userLocation, workshops }) => {
       )}
 
       {/* Workshop Markers with Clustering */}
-      {Array.isArray(workshops) && (
+      {validWorkshops.length > 0 && (
         <MarkerClusterGroup disableClusteringAtZoom={18}>
           {validWorkshops.map((workshop, index) => {
             const offsetPosition = getOffsetLatLng(

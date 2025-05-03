@@ -1,7 +1,15 @@
 import React, { useEffect, useState } from "react";
-import { Button, Pagination, Input, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@nextui-org/react";
+import {
+  Button,
+  Pagination,
+  Input,
+  Dropdown,
+  DropdownTrigger,
+  DropdownMenu,
+  DropdownItem,
+} from "@nextui-org/react";
 import axiosInstance from "../../utils/axiosInstance";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Search, MapPin, ChevronDown } from "lucide-react";
 
 // Shimmer Effect Component
@@ -21,49 +29,48 @@ const WorkshopCardShimmer = () => (
   </div>
 );
 
-export default function UserWorkshops({ workshops: propWorkshops }) {
-  const [workshops, setWorkshops] = useState(propWorkshops || []);
-  const [loading, setLoading] = useState(
-    !propWorkshops || propWorkshops.length === 0
-  );
+export default function UserWorkshops({
+  workshops: propWorkshops,
+  userLocation,
+  searchQuery: parentSearchQuery,
+  setSearchQuery: setParentSearchQuery,
+  sortOption: parentSortOption,
+  setSortOption: setParentSortOption,
+}) {
+  const [workshops, setWorkshops] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [loadingImages, setLoadingImages] = useState({});
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
-  
-  // Search and sorting states
-  const [searchQuery, setSearchQuery] = useState("");
-  const [userLocation, setUserLocation] = useState(null);
-  const [sortOption, setSortOption] = useState("relevance");
+
+  // Local search and sorting states - will sync with parent
+  const [searchQuery, setSearchQuery] = useState(parentSearchQuery || "");
+  const [sortOption, setSortOption] = useState(parentSortOption || "relevance");
   const [searchTimeout, setSearchTimeout] = useState(null);
 
-  // Get user's location on component mount
+  // Keep local state in sync with parent state
   useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setUserLocation({
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude
-          });
-        },
-        (error) => {
-          console.error("Error getting user location:", error);
-        }
-      );
+    if (parentSearchQuery !== undefined && parentSearchQuery !== searchQuery) {
+      setSearchQuery(parentSearchQuery);
     }
-  }, []);
 
+    if (parentSortOption !== undefined && parentSortOption !== sortOption) {
+      setSortOption(parentSortOption);
+    }
+  }, [parentSearchQuery, parentSortOption]);
+
+  // Effect to fetch workshops based on current state
   useEffect(() => {
-    // If workshops are passed as props, use them
-    if (propWorkshops && propWorkshops.length > 0) {
+    // If we received workshops via props and this is initial render, use them
+    if (propWorkshops && propWorkshops.length > 0 && loading) {
       setWorkshops(propWorkshops);
 
       // Initialize image loading states
       const imageStates = {};
       propWorkshops.forEach((workshop) => {
-        imageStates[workshop.id] = true; // Start with all images in loading state
+        imageStates[workshop.id] = true;
       });
       setLoadingImages(imageStates);
 
@@ -71,17 +78,20 @@ export default function UserWorkshops({ workshops: propWorkshops }) {
       return;
     }
 
-    // Clear any existing timeout when dependency changes
-    if (searchTimeout) {
-      clearTimeout(searchTimeout);
+    // If propWorkshops is explicitly null, always fetch from API
+    if (propWorkshops === null) {
+      // Clear any existing timeout
+      if (searchTimeout) {
+        clearTimeout(searchTimeout);
+      }
+
+      // Set a new timeout to debounce API calls
+      const timeoutId = setTimeout(() => {
+        fetchWorkshops(currentPage);
+      }, 500);
+
+      setSearchTimeout(timeoutId);
     }
-
-    // Set a new timeout for search to avoid excessive API calls while typing
-    const timeoutId = setTimeout(() => {
-      fetchWorkshops(currentPage);
-    }, 500);
-
-    setSearchTimeout(timeoutId);
 
     // Cleanup function
     return () => {
@@ -94,43 +104,42 @@ export default function UserWorkshops({ workshops: propWorkshops }) {
     try {
       // Build query parameters
       let queryParams = `page=${page}`;
-      
+
       // Add search query if exists
       if (searchQuery) {
         queryParams += `&search=${encodeURIComponent(searchQuery)}`;
       }
-      
+
       // Add location for distance-based sorting
       if (sortOption === "distance" && userLocation) {
-        queryParams += `&latitude=${userLocation.latitude}&longitude=${userLocation.longitude}`;
+        queryParams += `&latitude=${userLocation.lat}&longitude=${userLocation.lng}`;
       }
-      
+
       // Add sort parameter
       if (sortOption !== "relevance") {
         queryParams += `&sort=${sortOption}`;
       }
-      
+
       const response = await axiosInstance.get(
         `/users/workshops/list/?${queryParams}`
       );
-      console.log("fetched workshops: ", response.data);
 
       const { results, count } = response.data;
       setWorkshops(results);
       setTotalItems(count);
-      
-      // Calculate total pages: ceiling of total items divided by page size (6)
+
+      // Calculate total pages
       const calculatedTotalPages = Math.ceil(count / 6);
       setTotalPages(calculatedTotalPages);
 
       // Initialize image loading states
       const imageStates = {};
       results.forEach((workshop) => {
-        imageStates[workshop.id] = true; // Start with all images in loading state
+        imageStates[workshop.id] = true;
       });
       setLoadingImages(imageStates);
     } catch (error) {
-      console.log("Error fetching workshops", error);
+      console.error("Error fetching workshops", error);
     } finally {
       setLoading(false);
     }
@@ -150,32 +159,43 @@ export default function UserWorkshops({ workshops: propWorkshops }) {
       ...prev,
       [workshopId]: false,
     }));
-    // You could also set a flag to show a placeholder/fallback image
   };
 
   const handlePageChange = (page) => {
     setCurrentPage(page);
     // Scroll to top of workshops section
     window.scrollTo({
-      top: document.getElementById('workshops-section')?.offsetTop || 0,
-      behavior: 'smooth'
+      top: document.getElementById("workshops-section")?.offsetTop || 0,
+      behavior: "smooth",
     });
   };
 
   const handleSearchChange = (e) => {
-    setSearchQuery(e.target.value);
-    setCurrentPage(1); // Reset to first page when search changes
+    const newSearchQuery = e.target.value;
+    setSearchQuery(newSearchQuery);
+    // Update parent state if callback provided
+    if (setParentSearchQuery) {
+      setParentSearchQuery(newSearchQuery);
+    }
+    setCurrentPage(1); // Reset to first page
   };
 
   const handleSortChange = (key) => {
     setSortOption(key);
-    setCurrentPage(1); // Reset to first page when sort changes
+    // Update parent state if callback provided
+    if (setParentSortOption) {
+      setParentSortOption(key);
+    }
+    setCurrentPage(1); // Reset to first page
   };
 
   // Render shimmer loading state
   if (loading) {
     return (
-      <div id="workshops-section" className="bg-gray-100 p-6 rounded-lg shadow-md">
+      <div
+        id="workshops-section"
+        className="bg-gray-100 p-6 rounded-lg shadow-md"
+      >
         <ShimmerEffect className="h-8 w-64 mb-6" /> {/* Title shimmer */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* Generate 6 shimmer cards */}
@@ -188,29 +208,35 @@ export default function UserWorkshops({ workshops: propWorkshops }) {
   }
 
   return (
-    <div id="workshops-section" className="bg-gray-100 p-6 rounded-lg shadow-md">
+    <div
+      id="workshops-section"
+      className="bg-gray-100 p-6 rounded-lg shadow-md"
+    >
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
         <h2 className="text-2xl font-bold text-gray-800 mb-4 md:mb-0">
           Recommended Workshops
         </h2>
-        
+
         <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
           {/* Search Input */}
-          <div className="relative flex-grow">
+          <div className="relative flex-grow md:min-w-[260px] md:max-w-[320px]">
             <Input
-              placeholder="Search workshops..."
+              placeholder="Search by workshop name or location..."
               value={searchQuery}
               onChange={handleSearchChange}
               startContent={<Search size={18} />}
-              className="w-full"
+              className="w-full placeholder-ellipsis"
+              classNames={{
+                input: "truncate placeholder:text-ellipsis",
+              }}
             />
           </div>
-          
+
           {/* Sort Dropdown */}
           <Dropdown>
             <DropdownTrigger>
-              <Button 
-                variant="flat" 
+              <Button
+                variant="flat"
                 className="flex items-center gap-1 bg-white"
                 endContent={<ChevronDown size={16} />}
               >
@@ -228,7 +254,7 @@ export default function UserWorkshops({ workshops: propWorkshops }) {
                 )}
               </Button>
             </DropdownTrigger>
-            <DropdownMenu 
+            <DropdownMenu
               aria-label="Sort options"
               onAction={handleSortChange}
               selectedKeys={[sortOption]}
@@ -244,14 +270,19 @@ export default function UserWorkshops({ workshops: propWorkshops }) {
           </Dropdown>
         </div>
       </div>
-      
+
       {workshops.length === 0 ? (
         <div className="bg-white p-8 rounded-lg text-center">
-          <p className="text-gray-600 mb-2">No workshops match your search criteria.</p>
+          <p className="text-gray-600 mb-2">
+            No workshops match your search criteria.
+          </p>
           {searchQuery && (
-            <Button 
+            <Button
               className="bg-gray-200 text-gray-800 mt-2"
-              onPress={() => setSearchQuery("")}
+              onPress={() => {
+                setSearchQuery("");
+                if (setParentSearchQuery) setParentSearchQuery("");
+              }}
             >
               Clear Search
             </Button>
@@ -302,7 +333,7 @@ export default function UserWorkshops({ workshops: propWorkshops }) {
           ))}
         </div>
       )}
-      
+
       {/* Pagination - only show if we have more than one page */}
       {totalPages > 1 && (
         <div className="flex justify-center mt-8">
@@ -319,7 +350,7 @@ export default function UserWorkshops({ workshops: propWorkshops }) {
             classNames={{
               wrapper: "gap-2",
               item: "bg-white text-black hover:bg-gray-200",
-              cursor: "bg-black text-white"
+              cursor: "bg-black text-white",
             }}
           />
         </div>

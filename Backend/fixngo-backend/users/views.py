@@ -360,33 +360,25 @@ class NearbyWorkshopsView(APIView):
         except (TypeError, ValueError):
             return Response({"error": "Invalid latitude or longitude"}, status=400)
 
-        # Define a radius (in km)
-        radius_km = 10
-
-        # Approximate calculation for bounding box (more efficient)
-        lat_delta = radius_km / 111  # ~111 km per degree of latitude
-        lon_delta = radius_km / (111 * cos(radians(user_lat)))
-
-        min_lat = user_lat - lat_delta
-        max_lat = user_lat + lat_delta
-        min_lon = user_lon - lon_delta
-        max_lon = user_lon + lon_delta
-
-        # Filter in DB using bounding box
+        # Get all active and approved workshops
         workshops = Workshop.objects.filter(
             is_active=True,
             is_approved=True,
-            latitude__range=(min_lat, max_lat),
-            longitude__range=(min_lon, max_lon)
+            approval_status="approved"
         )
 
-        workshop_distances = []
+        # Filter out workshops without coordinates
+        valid_workshops = []
         for workshop in workshops:
             if workshop.latitude is None or workshop.longitude is None:
                 continue
+                
             try:
+                # Calculate distance using Haversine formula
                 distance = haversine(user_lat, user_lon, workshop.latitude, workshop.longitude)
-                workshop_distances.append({
+                
+                # Add workshop with distance to list
+                valid_workshops.append({
                     "id": workshop.id,
                     "name": workshop.name,
                     "email": workshop.email,
@@ -395,12 +387,16 @@ class NearbyWorkshopsView(APIView):
                     "latitude": workshop.latitude,
                     "longitude": workshop.longitude,
                     "distance": round(distance, 2),
+                    "document": workshop.document.url if workshop.document else None,
                 })
             except ValueError:
+                # Skip workshops with invalid coordinates
                 continue
 
-        sorted_workshops = sorted(workshop_distances, key=lambda x: x["distance"])[:10]
+        # Sort by distance and limit to 10 nearest
+        sorted_workshops = sorted(valid_workshops, key=lambda x: x["distance"])[:10]
         return Response(sorted_workshops, status=200)
+
 
 class UserWorkshopPagination(PageNumberPagination):
     page_size = 6  # Show 6 items per page
@@ -413,62 +409,83 @@ class UserWorkshopsListView(ListAPIView):
     pagination_class = UserWorkshopPagination
     
     def get_queryset(self):
-       queryset = Workshop.objects.filter(
-           is_active=True, 
-           is_approved=True, 
-           approval_status="approved"
-       )
+        # Base queryset
+        queryset = Workshop.objects.filter(
+            is_active=True, 
+            is_approved=True, 
+            approval_status="approved"
+        )
        
-       # Handle search parameter
-       search_query = self.request.query_params.get('search', None)
-       if search_query:
-           # Combine fields for search
-           queryset = queryset.filter(
-               Q(name__icontains=search_query) | 
-               Q(location__icontains=search_query)
-           )
+        # Handle search parameter
+        search_query = self.request.query_params.get('search', None)
+        if search_query:
+            # Combine fields for search
+            queryset = queryset.filter(
+                Q(name__icontains=search_query) | 
+                Q(location__icontains=search_query)
+            )
        
-       # Get sort parameter
-       sort_param = self.request.query_params.get('sort', None)
-       
-       # Handle distance-based sorting
-       if sort_param == 'distance':
-           # Check if user provided coordinates
-           user_lat = self.request.query_params.get('latitude')
-           user_lng = self.request.query_params.get('longitude')
-           
-           if user_lat and user_lng:
-               try:
-                   user_lat = float(user_lat)
-                   user_lng = float(user_lng)
-                   
-                   # Simple Haversine formula distance calculation using raw SQL
-                   # This works in most SQL databases without special extensions
-                   distance_formula = """
-                       6371 * acos(
-                           cos(radians(%s)) * 
-                           cos(radians(latitude)) * 
-                           cos(radians(longitude) - radians(%s)) + 
-                           sin(radians(%s)) * 
-                           sin(radians(latitude))
-                       )
-                   """
-                   queryset = queryset.annotate(
-                       distance=RawSQL(
-                           distance_formula,
-                           params=[user_lat, user_lng, user_lat]
-                       )
-                   ).order_by('distance')
-                   
-               except (ValueError, TypeError):
-                   # If coordinates are invalid, return queryset without distance sorting
-                   pass
-       elif sort_param == 'name':
-           queryset = queryset.order_by('name')
-       elif sort_param == '-created_at':
-           queryset = queryset.order_by('-created_at')
-       
-       return queryset
+        # Get sort parameter
+        sort_param = self.request.query_params.get('sort', None)
+        
+        # Handle custom sorting options
+        if sort_param == 'name':
+            return queryset.order_by('name')
+        elif sort_param == '-created_at':
+            return queryset.order_by('-created_at')
+        
+        return queryset
+    
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        
+        # Handle distance-based sorting if needed
+        sort_param = self.request.query_params.get('sort', None)
+        user_lat = self.request.query_params.get('latitude')
+        user_lng = self.request.query_params.get('longitude')
+        
+        # If sorting by distance and coordinates are provided
+        if sort_param == 'distance' and user_lat and user_lng:
+            try:
+                user_lat = float(user_lat)
+                user_lng = float(user_lng)
+                
+                # Filter out workshops without coordinates
+                valid_workshops = []
+                for workshop in queryset:
+                    if workshop.latitude is None or workshop.longitude is None:
+                        continue
+                        
+                    try:
+                        # Calculate distance using Haversine formula from utils
+                        distance = haversine(user_lat, user_lng, workshop.latitude, workshop.longitude)
+                        # Create a dictionary with workshop data and distance
+                        workshop_dict = self.get_serializer(workshop).data
+                        workshop_dict['distance'] = round(distance, 2)
+                        valid_workshops.append(workshop_dict)
+                    except ValueError:
+                        continue
+                
+                # Sort by distance
+                sorted_workshops = sorted(valid_workshops, key=lambda x: x["distance"])
+                
+                # Handle pagination manually
+                page = self.paginate_queryset(sorted_workshops)
+                if page is not None:
+                    return self.get_paginated_response(page)
+                    
+                return Response(sorted_workshops)
+            except (ValueError, TypeError):
+                pass
+        
+        # If not sorting by distance or coordinates are invalid, use regular pagination
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+            
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
     
 class UserWorkshopDetailView(RetrieveAPIView):
     permission_classes = [permissions.IsAuthenticated]
