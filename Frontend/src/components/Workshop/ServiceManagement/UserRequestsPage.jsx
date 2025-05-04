@@ -95,36 +95,34 @@ const UserRequestsPage = () => {
   };
 
   const updateRequestStatus = async (requestId, status) => {
-    // Close modal immediately for better UX
-    closeModal();
-
-    // Update UI optimistically
+    // Don't close modal immediately - show loading state instead
+    const originalRequests = [...requests]; // Keep copy of original state for rollback
+    
+    // Set optimistic UI update for better UX
     setRequests((prev) =>
       prev.map((req) => (req.id === requestId ? { ...req, status } : req))
     );
-
+  
     try {
-      // Make API call in the background
+      // Show loading indicator in modal if needed
+      // You could add a local loading state here if you want to show a spinner in the modal
+      
+      // Make API call
       await axiosInstance.post(
         `/workshop/service-requests/${requestId}/update/`,
         { status }
       );
-
+  
+      // On success, close modal and show success message
+      closeModal();
       toast.success(`Request ${status} successfully.`);
-
-      // Optionally fetch the latest data to ensure everything is in sync
+  
+      // Refresh data to ensure everything is in sync
       fetchRequests(currentPage);
     } catch (error) {
-      // Revert optimistic update on error
-      setRequests((prev) =>
-        prev.map((req) =>
-          req.id === requestId ? { ...req, status: req.status } : req
-        )
-      );
+      // On error, revert the optimistic update
+      setRequests(originalRequests);
       toast.error("Failed to update request status");
-
-      // Refresh data to get correct state
-      fetchRequests(currentPage);
     }
   };
 
@@ -144,27 +142,39 @@ const UserRequestsPage = () => {
       const basePrice = selectedRequest?.base_price || 0;
       const additionalCharges = parseFloat(additionalCost) || 0;
       const totalCost = parseFloat(basePrice) + additionalCharges;
-
+  
       if (!totalCost) {
         toast.error("Total cost is missing for this request.");
         return;
       }
-
-      await axiosInstance.post(`/workshop/send-payment-request/`, {
-        requestId,
-        totalCost,
-      });
-
+  
+      // Optimistic UI update
+      const originalRequests = [...requests]; // Keep copy for rollback
       setRequests((prev) =>
         prev.map((req) =>
           req.id === requestId ? { ...req, status: "IN_PROGRESS" } : req
         )
       );
-
-      toast.success("Payment request sent successfully.");
+  
+      // Make API call
+      await axiosInstance.post(`/workshop/send-payment-request/`, {
+        requestId,
+        totalCost,
+      });
+  
+      // Only close modal after successful API call
       closeModal();
+      toast.success("Payment request sent successfully.");
+      
+      // Refresh data
       fetchRequests(currentPage);
     } catch (error) {
+      // Revert optimistic update on error
+      setRequests((prev) =>
+        prev.map((req) =>
+          req.id === requestId ? { ...req, status: req.status } : req
+        )
+      );
       toast.error("Failed to send payment request.");
     }
   };
@@ -197,6 +207,42 @@ const UserRequestsPage = () => {
         return "bg-gray-500";
     }
   };
+
+  // Inline shimmer effect rendering
+  const renderShimmerEffect = () => (
+    <div className="w-full animate-pulse">
+      {/* Table Header Shimmer */}
+      <div className="flex w-full bg-gray-100 p-4 rounded-t-lg">
+        <div className="w-1/6 h-8 bg-gray-200 rounded-md"></div>
+        <div className="w-1/6 h-8 bg-gray-200 rounded-md ml-4"></div>
+        <div className="w-1/6 h-8 bg-gray-200 rounded-md ml-4"></div>
+        <div className="w-1/6 h-8 bg-gray-200 rounded-md ml-4"></div>
+        <div className="w-1/6 h-8 bg-gray-200 rounded-md ml-4"></div>
+        <div className="w-1/6 h-8 bg-gray-200 rounded-md ml-4"></div>
+      </div>
+      
+      {/* Table Rows Shimmer */}
+      {[...Array(5)].map((_, index) => (
+        <div key={index} className="flex w-full border-b border-gray-200 p-4">
+          <div className="w-1/6 h-6 bg-gray-200 rounded-md"></div>
+          <div className="w-1/6 h-6 bg-gray-200 rounded-md ml-4"></div>
+          <div className="w-1/6 h-6 bg-gray-200 rounded-md ml-4"></div>
+          <div className="w-1/6 h-6 bg-gray-200 rounded-md ml-4"></div>
+          <div className="w-1/6 h-6 bg-gray-200 rounded-md ml-4"></div>
+          <div className="w-1/6 h-6 bg-gray-200 rounded-md ml-4"></div>
+        </div>
+      ))}
+      
+      {/* Pagination Shimmer */}
+      <div className="flex justify-center mt-4">
+        <div className="flex space-x-2">
+          {[...Array(3)].map((_, index) => (
+            <div key={index} className="w-8 h-8 bg-gray-200 rounded-full"></div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 
   const renderCompletedServiceDetails = () => {
     if (!selectedRequest) return null;
@@ -331,8 +377,8 @@ const UserRequestsPage = () => {
         </h1>
 
         {loading ? (
-          <div className="flex-grow flex justify-center items-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+          <div className="flex-grow">
+            {renderShimmerEffect()}
           </div>
         ) : requests.length > 0 ? (
           <>
