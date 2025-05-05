@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import User, ServiceRequest
+from .models import User, ServiceRequest, Payment
 from django.contrib.auth import authenticate
 
 class UserSignupSerializer(serializers.ModelSerializer):
@@ -73,3 +73,26 @@ class ServiceRequestSerializer(serializers.ModelSerializer):
         fields = ['id', 'user', 'workshop', 'workshop_service', 'user_name', 'workshop_name', 'workshop_service_name', 'base_price', 'total_cost', 'vehicle_type', 'description', 'status', 'created_at', 'updated_at']
         read_only_fields = ['id', 'status', 'created_at', 'updated_at']
 
+class PaymentSerializer(serializers.ModelSerializer):
+    service_request_details = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Payment
+        fields = ['id', 'service_request', 'razorpay_order_id', 'razorpay_payment_id', 
+                  'amount', 'status', 'created_at', 'service_request_details']
+    
+    def get_service_request_details(self, obj):
+        try:
+            service_request = obj.service_request
+            if service_request:
+                return {
+                    'id': service_request.id,
+                    'workshop_name': service_request.workshop.name if service_request.workshop else "N/A",
+                    'workshop_service_name': service_request.workshop_service.name if service_request.workshop_service else "N/A",
+                    'vehicle_type': service_request.vehicle_type,
+                    'status': service_request.status,
+                    'created_at': service_request.created_at
+                }
+        except ServiceRequest.DoesNotExist:
+            pass
+        return None

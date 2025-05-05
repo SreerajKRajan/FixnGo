@@ -2,7 +2,7 @@ from rest_framework import status, permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.generics import ListAPIView, RetrieveAPIView
-from .serializers import UserSignupSerializer, UserLoginSerializer, UserSerializer, ServiceRequestSerializer
+from .serializers import UserSignupSerializer, UserLoginSerializer, UserSerializer, ServiceRequestSerializer, PaymentSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 import random
 from django.utils import timezone
@@ -643,6 +643,7 @@ class VerifyPaymentAPIView(APIView):
             # Remove the service request associated with this payment
             service_request = payment.service_request
             service_request.status = "COMPLETED"
+            service_request.payment_status = "PAID"
             service_request.save()
 
             return Response({"message": "Payment verified successfully."}, status=status.HTTP_200_OK)
@@ -653,3 +654,24 @@ class VerifyPaymentAPIView(APIView):
                 payment.save()
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
+class UserServiceRequestsHistoryView(ListAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = ServiceRequestSerializer
+    
+    def get_queryset(self):
+        user = self.request.user
+        return ServiceRequest.objects.filter(user=user).order_by('-created_at')
+
+
+class UserPaymentsHistoryView(ListAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = PaymentSerializer
+    
+    def get_queryset(self):
+        user = self.request.user
+        # Use select_related to fetch related objects in a single query
+        return Payment.objects.filter(user=user).order_by('-created_at').select_related(
+            'service_request', 
+            'service_request__workshop', 
+            'service_request__workshop_service'
+        )

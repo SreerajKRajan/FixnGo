@@ -15,6 +15,8 @@ from .views import (
     CreateOrderAPIView,
     VerifyPaymentAPIView,
     google_signup,
+    UserPaymentsHistoryView,
+    UserServiceRequestsHistoryView
 )
 
 urlpatterns = [
@@ -34,4 +36,7 @@ urlpatterns = [
     
     path('create-order/', CreateOrderAPIView.as_view(), name='create_order'),
     path('verify-payment/', VerifyPaymentAPIView.as_view(), name='verify_payment'),
+    
+    path('service-requests/history/', UserServiceRequestsHistoryView.as_view(), name='user-service-requests'),
+    path('payments/history/', UserPaymentsHistoryView.as_view(), name='user-payments'),
 ]

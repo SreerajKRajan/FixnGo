@@ -18,7 +18,7 @@ import UserCreateNewPassword from "./components/User/UserCreateNewPassword";
 import WorkshopForgotPassword from "./components/Workshop/WorkshopForgotPassword";
 import WorkshopCreateNewPassword from "./components/Workshop/WorkshopCreateNewPassword";
 import WorkshopDetailsPage from "./components/User/WorkshopDetailsPage";
-import PaymentRequests from "./components/User/PymentRequests";
+import PaymentRequests from "./components/User/PaymentRequests";
 import Layout from "./components/Layout";
 import WorkshopDashboard from "./components/Workshop/WorkshopDashboard";
 import UserRequestsPage from "./components/Workshop/ServiceManagement/UserRequestsPage";
