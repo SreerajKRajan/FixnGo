@@ -657,6 +657,7 @@ class VerifyPaymentAPIView(APIView):
 class UserServiceRequestsHistoryView(ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = ServiceRequestSerializer
+    pagination_
     
     def get_queryset(self):
         user = self.request.user
