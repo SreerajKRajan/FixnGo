@@ -10,6 +10,7 @@ import {
   PenToolIcon as ToolIcon,
   CreditCardIcon,
 } from "lucide-react";
+import { Pagination } from "@nextui-org/react"; // Added Pagination import
 
 // Status badge component
 const StatusBadge = ({ status }) => {
@@ -84,8 +85,14 @@ export default function UserRequestHistory() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("requests"); // 'requests' or 'payments'
   const [error, setError] = useState("");
+  
+  // Add pagination states
+  const [requestsCurrentPage, setRequestsCurrentPage] = useState(1);
+  const [requestsTotalPages, setRequestsTotalPages] = useState(1);
+  const [paymentsCurrentPage, setPaymentsCurrentPage] = useState(1);
+  const [paymentsTotalPages, setPaymentsTotalPages] = useState(1);
 
-  // Fetch service requests and payments
+  // Fetch service requests and payments with pagination
   useEffect(() => {
     const fetchHistory = async () => {
       setLoading(true);
@@ -93,9 +100,9 @@ export default function UserRequestHistory() {
       try {
         const token = localStorage.getItem("token");
 
-        // Fetch service requests
+        // Fetch service requests with pagination
         const requestsResponse = await axiosInstance.get(
-          "users/service-requests/history/",
+          `users/service-requests/history/?page=${requestsCurrentPage}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -103,23 +110,26 @@ export default function UserRequestHistory() {
           }
         );
 
-        // Fetch payments
+        // Fetch payments with pagination
         const paymentsResponse = await axiosInstance.get(
-          "users/payments/history/",
+          `users/payments/history/?page=${paymentsCurrentPage}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
             },
           }
         );
-        console.log("Payments Response:", paymentsResponse.data.results);
-        console.log(
-          "Service Requests Response:",
-          requestsResponse.data.results
-        );
+        
+        console.log("Payments Response:", paymentsResponse.data);
+        console.log("Service Requests Response:", requestsResponse.data);
 
-        setServiceRequests(requestsResponse.data.results);
-        setPayments(paymentsResponse.data.results);
+        setServiceRequests(requestsResponse.data.results || []);
+        setPayments(paymentsResponse.data.results || []);
+        
+        // Set pagination information
+        setRequestsTotalPages(Math.ceil(requestsResponse.data.count / 6)); // Assuming 6 items per page
+        setPaymentsTotalPages(Math.ceil(paymentsResponse.data.count / 6)); // Assuming 6 items per page
+        
       } catch (error) {
         console.error("Failed to fetch history", error);
         setError("Failed to load history. Please try again later.");
@@ -129,7 +139,7 @@ export default function UserRequestHistory() {
     };
 
     fetchHistory();
-  }, []);
+  }, [requestsCurrentPage, paymentsCurrentPage, activeTab]); // Add dependencies to reload when pages change
 
   // Loading state
   if (loading) {
@@ -202,92 +212,105 @@ export default function UserRequestHistory() {
               </p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th
-                      scope="col"
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
-                      Service
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
-                      Workshop
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
-                      Vehicle
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
-                      Status
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
-                      Cost
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
-                      Date
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {serviceRequests.map((request) => (
-                    <tr key={request.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">
-                          {request.workshop_service_name}
-                        </div>
-                        <div className="text-sm text-gray-500 truncate max-w-xs">
-                          {request.description}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          {request.workshop_name}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          {request.vehicle_type}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <StatusBadge status={request.status} />
-                        {request.payment_status === "PAID" && (
-                          <div className="mt-1">
-                            <StatusBadge status={request.payment_status} />
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          {request.total_cost
-                            ? `₹${request.total_cost}`
-                            : "Pending"}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {formatDate(request.created_at)}
-                      </td>
+            <>
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th
+                        scope="col"
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      >
+                        Service
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      >
+                        Workshop
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      >
+                        Vehicle
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      >
+                        Status
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      >
+                        Cost
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      >
+                        Date
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {serviceRequests.map((request) => (
+                      <tr key={request.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">
+                            {request.workshop_service_name}
+                          </div>
+                          <div className="text-sm text-gray-500 truncate max-w-xs">
+                            {request.description}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">
+                            {request.workshop_name}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">
+                            {request.vehicle_type}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <StatusBadge status={request.status} />
+                          {request.payment_status === "PAID" && (
+                            <div className="mt-1">
+                              <StatusBadge status={request.payment_status} />
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">
+                            {request.total_cost
+                              ? `₹${request.total_cost}`
+                              : "Pending"}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {formatDate(request.created_at)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              
+              {/* Pagination for service requests */}
+              <div className="flex justify-center mt-4">
+                {requestsTotalPages > 1 && (
+                  <Pagination
+                    total={requestsTotalPages}
+                    initialPage={requestsCurrentPage}
+                    onChange={(page) => setRequestsCurrentPage(page)}
+                  />
+                )}
+              </div>
+            </>
           )}
         </div>
       )}
@@ -305,77 +328,90 @@ export default function UserRequestHistory() {
               </p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th
-                      scope="col"
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
-                      Payment ID
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
-                      Service Request
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
-                      Amount
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
-                      Status
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
-                      Date
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {payments.map((payment) => (
-                    <tr key={payment.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          {payment.razorpay_payment_id || "Pending"}
-                        </div>
-                        <div className="text-xs text-gray-500 truncate max-w-xs">
-                          {payment.razorpay_order_id}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          {payment.service_request_details?.workshop_service_name || "Unknown Service"}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          {payment.service_request_details?.workshop_name || "Unknown Workshop"}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">
-                          ₹{payment.amount}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <StatusBadge status={payment.status} />
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {formatDate(payment.created_at)}
-                      </td>
+            <>
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th
+                        scope="col"
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      >
+                        Payment ID
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      >
+                        Service Request
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      >
+                        Amount
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      >
+                        Status
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      >
+                        Date
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {payments.map((payment) => (
+                      <tr key={payment.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">
+                            {payment.razorpay_payment_id || "Pending"}
+                          </div>
+                          <div className="text-xs text-gray-500 truncate max-w-xs">
+                            {payment.razorpay_order_id}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">
+                            {payment.service_request_details?.workshop_service_name || "Unknown Service"}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {payment.service_request_details?.workshop_name || "Unknown Workshop"}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">
+                            ₹{payment.amount}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <StatusBadge status={payment.status} />
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {formatDate(payment.created_at)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              
+              {/* Pagination for payments */}
+              <div className="flex justify-center mt-4">
+                {paymentsTotalPages > 1 && (
+                  <Pagination
+                    total={paymentsTotalPages}
+                    initialPage={paymentsCurrentPage}
+                    onChange={(page) => setPaymentsCurrentPage(page)}
+                  />
+                )}
+              </div>
+            </>
           )}
         </div>
       )}

@@ -563,8 +563,17 @@ class ServiceRequestAPIView(APIView):
     
 class WorkshopPaymentRequests(ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
-    queryset = ServiceRequest.objects.filter(status='IN_PROGRESS').order_by('-created_at')
     serializer_class = ServiceRequestSerializer
+    
+    def get_queryset(self):
+        return (
+            ServiceRequest.objects.filter(
+                user=self.request.user,
+                status="IN_PROGRESS",
+                payment_status="PENDING"
+            )
+            .order_by('-created_at')
+        )
     
 
 # Initialize Razorpay Client
@@ -657,7 +666,7 @@ class VerifyPaymentAPIView(APIView):
 class UserServiceRequestsHistoryView(ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = ServiceRequestSerializer
-    pagination_
+    pagination_class = UserWorkshopPagination
     
     def get_queryset(self):
         user = self.request.user
@@ -667,6 +676,7 @@ class UserServiceRequestsHistoryView(ListAPIView):
 class UserPaymentsHistoryView(ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = PaymentSerializer
+    pagination_class = UserWorkshopPagination
     
     def get_queryset(self):
         user = self.request.user

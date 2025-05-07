@@ -9,6 +9,7 @@ import { useEffect, useState } from "react"
 import axiosInstance from "../../utils/axiosInstance"
 import EditProfileModal from "./EditProfileModal"
 import UserRequestHistory from "../User/UserRequestHistory"
+import defaultProfileImage from "../../assets/no-profile.png"
 
 // Shimmer Loading Component
 const ShimmerEffect = () => {
@@ -130,7 +131,7 @@ export default function UserProfile() {
                 <div className="flex flex-col items-center">
                   <div className="w-32 h-32 bg-white rounded-full overflow-hidden border-4 border-white shadow-md">
                     <img
-                      src={userData.profile_image_url || "/placeholder.svg"}
+                      src={userData.profile_image_url || defaultProfileImage }
                       alt="Profile"
                       className="w-full h-full object-cover"
                     />
