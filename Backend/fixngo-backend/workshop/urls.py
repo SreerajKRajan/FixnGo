@@ -16,6 +16,7 @@ from .views import (
     ServiceRequestTrendsAPIView,
     RecentActivityAPIView,
     WorkshopServicesAPIView,
+    WorkshopRatingDistributionAPIView,
 )
 
 urlpatterns = [
@@ -37,5 +38,7 @@ urlpatterns = [
     path('dashboard/service-requests/trends/', ServiceRequestTrendsAPIView.as_view(), name='service-request-trends'),
     path('dashboard/recent-activity/', RecentActivityAPIView.as_view(), name='recent-activity'),
     path('dashboard/services/', WorkshopServicesAPIView.as_view(), name='workshop-services'),
+    path('dashboard/rating-distribution/', WorkshopRatingDistributionAPIView.as_view(), name='rating-distribution'),
+
 ]
 

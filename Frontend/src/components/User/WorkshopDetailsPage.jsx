@@ -16,7 +16,6 @@ import * as Yup from "yup";
 import { toast } from "sonner";
 import { IoChatbubbleEllipses } from "react-icons/io5";
 import ChatComponent from "../Chat/ChatComponent";
-import ReviewModal from "./ReviewModal";
 import unavailableImg from "@/assets/unavailable.svg";
 
 // Shimmer loading component
@@ -32,9 +31,7 @@ const WorkshopDetailsPage = () => {
   const [totalReviews, setTotalReviews] = useState(0);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
-  const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [selectedService, setSelectedService] = useState(null);
-  const [completedRequests, setCompletedRequests] = useState([]);
   const { WorkshopId } = useParams();
 
   const [selectedChat, setSelectedChat] = useState(null);
@@ -82,17 +79,6 @@ const WorkshopDetailsPage = () => {
       setReviews(response.data.reviews);
       setAvgRating(response.data.avg_rating);
       setTotalReviews(response.data.total_reviews);
-      
-      // Check if the current user has already left a review
-      // This assumes the API returns user information with each review
-      const userReviews = response.data.reviews.filter(review => 
-        review.user === localStorage.getItem('userId') || // If you store userId in localStorage
-        review.is_own_review === true // Or if your API marks reviews made by current user
-      );
-      
-      // If user has not left a review, we'll assume they might have a completed service
-      // This is a simplified approach since we don't have the endpoint
-      setCompletedRequests(userReviews.length === 0 ? [{ id: 'dummy-id' }] : []);
     } catch (error) {
       console.error("Error fetching reviews:", error);
     }
@@ -133,27 +119,6 @@ const WorkshopDetailsPage = () => {
       console.error("Error submitting service request:", error);
       toast.error(error.response?.data?.error || "Failed to submit service request");
     }
-  };
-  
-  const handleOpenReviewModal = () => {
-    setReviewModalOpen(true);
-  };
-
-  // Handle new review submission
-  const handleReviewSubmit = (newReviewData) => {
-    // Assuming the API returns the complete new review object
-    const newReview = newReviewData.review || newReviewData;
-    
-    // Add the new review to the reviews list
-    setReviews(prevReviews => [newReview, ...prevReviews]);
-    
-    // Update the average rating and total reviews count
-    const newTotalReviews = totalReviews + 1;
-    const newAvgRating = 
-      (avgRating * totalReviews + newReview.rating) / newTotalReviews;
-    
-    setTotalReviews(newTotalReviews);
-    setAvgRating(newAvgRating);
   };
 
   // Shimmer loading UI
@@ -222,7 +187,6 @@ const WorkshopDetailsPage = () => {
               </Card>
             ))}
           </div>
-          <ShimmerEffect className="h-10 w-32 rounded" />
         </div>
         <Footer />
       </div>
@@ -361,7 +325,6 @@ const WorkshopDetailsPage = () => {
             ))
           )}
         </div>
-        <Button color="primary" onClick={handleOpenReviewModal}>Add Review</Button>
       </div>
 
       {/* Service Request Modal */}
@@ -418,14 +381,6 @@ const WorkshopDetailsPage = () => {
           )}
         </Formik>
       </Modal>
-      
-      {/* Review Modal */}
-      <ReviewModal 
-        isOpen={reviewModalOpen} 
-        onClose={() => setReviewModalOpen(false)} 
-        workshopId={WorkshopId}
-        onReviewSubmit={handleReviewSubmit}
-      />
 
       <Footer />
     </div>

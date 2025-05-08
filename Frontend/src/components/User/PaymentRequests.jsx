@@ -7,16 +7,20 @@ import axiosInstance from "../../utils/axiosInstance";
 import { MdOutlineCurrencyRupee } from "react-icons/md";
 import { toast } from "sonner";
 import { useSelector } from "react-redux";
+import ReviewModal from "./ReviewModal";
 
 const PaymentRequests = () => {
   const [paymentRequests, setPaymentRequests] = useState([]);
-  const [loading, setLoading] = useState(true); // Loading state
+  const [loading, setLoading] = useState(true);
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const [currentWorkshopId, setCurrentWorkshopId] = useState(null);
+  const [completedRequest, setCompletedRequest] = useState(null);
   const user = useSelector((state) => state.userAuth.user);
 
   useEffect(() => {
     const fetchPaymentRequests = async () => {
       try {
-        setLoading(true); // Set loading to true before fetching data
+        setLoading(true);
         const response = await axiosInstance.get(
           "/users/workshops/payment-requests/"
         );
@@ -26,7 +30,7 @@ const PaymentRequests = () => {
         console.error("Error fetching requests", error);
         toast.error("Failed to fetch payment requests.");
       } finally {
-        setLoading(false); // Set loading to false after fetching
+        setLoading(false);
       }
     };
     fetchPaymentRequests();
@@ -73,9 +77,22 @@ const PaymentRequests = () => {
               verifyResponse.data.message === "Payment verified successfully."
             ) {
               toast.success("Payment successful!");
+              
+              // Store both the completed request and workshop ID
+              setCompletedRequest({
+                ...selectedRequest,
+                id: selectedRequest.id,
+                workshop_id: selectedRequest.workshop // This ensures we have the workshop ID
+              });
+              
+              // Set the current workshop ID from the selected request
+              setCurrentWorkshopId(selectedRequest.workshop);
+              setReviewModalOpen(true);
+              
+              // Remove the paid request from the list
               setPaymentRequests((prev) =>
                 prev.filter((req) => req.id !== id)
-              ); // Remove the paid request
+              );
             } else {
               toast.error("Payment verification failed!");
             }
@@ -98,6 +115,11 @@ const PaymentRequests = () => {
     } catch (error) {
       toast.error("Failed to initiate payment!");
     }
+  };
+
+  const handleReviewSubmit = (reviewData) => {
+    console.log("Review submitted:", reviewData);
+    toast.success("Thank you for your feedback!");
   };
 
   return (
@@ -150,6 +172,18 @@ const PaymentRequests = () => {
           </div>
         )}
       </div>
+      
+      {/* Review Modal */}
+      {currentWorkshopId && (
+        <ReviewModal 
+          isOpen={reviewModalOpen}
+          onClose={() => setReviewModalOpen(false)}
+          workshopId={currentWorkshopId}
+          onReviewSubmit={handleReviewSubmit}
+          serviceRequest={completedRequest}
+        />
+      )}
+      
       <div className="mt-52">
         <Footer />
       </div>

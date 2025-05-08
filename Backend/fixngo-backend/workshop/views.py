@@ -20,12 +20,12 @@ from django.utils.http import urlsafe_base64_encode
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.http import urlsafe_base64_decode
 from rest_framework.generics import ListAPIView
-from users.models import ServiceRequest, Payment
+from users.models import ServiceRequest, Payment, Review
 from users.serializers import ServiceRequestSerializer
 import socketio
 import requests
 from admin_side.views import CommonPagination
-from django.db.models import Sum, Count
+from django.db.models import Sum, Count, Avg
 from dateutil.relativedelta import relativedelta
 from django.db.models.functions import ExtractMonth, TruncMonth
 
@@ -640,6 +640,60 @@ class ServiceRequestTrendsAPIView(APIView):
             "trends": trends
         })
 
+
+class WorkshopRatingDistributionAPIView(APIView):
+    authentication_classes = [WorkshopJWTAuthentication]
+    permission_classes = [IsWorkshopUser]
+    
+    def get(self, request):
+        workshop = request.user
+        
+        # Get the rating distribution
+        rating_distribution = Review.objects.filter(
+            workshop=workshop
+        ).values('rating').annotate(
+            count=Count('rating')
+        ).order_by('rating')
+        
+        # Calculate average rating
+        avg_rating = Review.objects.filter(
+            workshop=workshop
+        ).aggregate(
+            average_rating=Avg('rating')
+        )['average_rating'] or 0
+        
+        # Initialize all ratings with 0 count
+        distribution = {
+            'one_star': 0,
+            'two_star': 0,
+            'three_star': 0,
+            'four_star': 0,
+            'five_star': 0,
+            'average_rating': round(avg_rating, 1),
+            'total_reviews': 0,
+        }
+        
+        # Update counts based on actual data
+        total_reviews = 0
+        for item in rating_distribution:
+            rating = item['rating']
+            count = item['count']
+            total_reviews += count
+            
+            if rating == 1:
+                distribution['one_star'] = count
+            elif rating == 2:
+                distribution['two_star'] = count
+            elif rating == 3:
+                distribution['three_star'] = count
+            elif rating == 4:
+                distribution['four_star'] = count
+            elif rating == 5:
+                distribution['five_star'] = count
+        
+        distribution['total_reviews'] = total_reviews
+        
+        return Response(distribution)
 
 class RecentActivityAPIView(APIView):
     authentication_classes = [WorkshopJWTAuthentication]

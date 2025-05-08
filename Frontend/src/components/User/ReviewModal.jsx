@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Modal, ModalHeader, ModalBody, ModalFooter } from "../uis/Modal";
 import { Button } from "@nextui-org/react";
 import { StarIcon } from "@heroicons/react/24/solid";
@@ -6,10 +6,26 @@ import { StarIcon as StarIconOutline } from "@heroicons/react/24/outline";
 import { toast } from "sonner";
 import axiosInstance from "../../utils/axiosInstance";
 
-const ReviewModal = ({ isOpen, onClose, workshopId, onReviewSubmitted }) => {
+const ReviewModal = ({ isOpen, onClose, workshopId, onReviewSubmit, serviceRequest }) => {
   const [rating, setRating] = useState(0);
   const [reviewText, setReviewText] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Reset form when modal opens with new data
+  useEffect(() => {
+    if (isOpen) {
+      setRating(0);
+      setReviewText("");
+    }
+  }, [isOpen]);
+
+  // Debug log to ensure workshopId is available
+  useEffect(() => {
+    if (isOpen && workshopId) {
+      console.log("Review modal opened for workshop ID:", workshopId);
+      console.log("Service request:", serviceRequest);
+    }
+  }, [isOpen, workshopId, serviceRequest]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -24,22 +40,39 @@ const ReviewModal = ({ isOpen, onClose, workshopId, onReviewSubmitted }) => {
       return;
     }
     
+    // Validate workshop ID
+    if (!workshopId) {
+      toast.error("Workshop information is missing");
+      console.error("Missing workshop ID for review submission");
+      return;
+    }
+    
     setIsSubmitting(true);
     
     try {
-      // Since we don't have a service request ID, the backend will need to handle this
-      // You may need to modify your backend to allow reviews without a service request ID
-      // or to find a completed service request for the current user and this workshop
-      const response = await axiosInstance.post(`/users/workshops/${workshopId}/reviews/`, {
+      // Prepare review data
+      const reviewData = {
         rating,
         text: reviewText
-      });
+      };
+      
+      // Include service request ID if available
+      if (serviceRequest && serviceRequest.id) {
+        reviewData.service_request_id = serviceRequest.id;
+      }
+      
+      console.log(`Submitting review to /users/workshops/${workshopId}/reviews/`, reviewData);
+      
+      const response = await axiosInstance.post(
+        `/users/workshops/${workshopId}/reviews/`, 
+        reviewData
+      );
       
       toast.success("Review submitted successfully!");
       
       // Call the callback function with the new review data
-      if (onReviewSubmitted && typeof onReviewSubmitted === 'function') {
-        onReviewSubmitted(response.data);
+      if (onReviewSubmit && typeof onReviewSubmit === 'function') {
+        onReviewSubmit(response.data);
       }
       
       // Reset form and close modal
@@ -55,6 +88,8 @@ const ReviewModal = ({ isOpen, onClose, workshopId, onReviewSubmitted }) => {
       } else if (error.response?.status === 400) {
         // Common validation error
         toast.error("You need to complete a service before reviewing. If you've completed a service, try again later.");
+      } else if (error.response?.status === 404) {
+        toast.error("Workshop not found. Please try again later.");
       } else {
         toast.error("Failed to submit review");
       }
@@ -63,11 +98,26 @@ const ReviewModal = ({ isOpen, onClose, workshopId, onReviewSubmitted }) => {
     }
   };
 
+  // Don't render if no workshop ID is available
+  if (!workshopId && isOpen) {
+    console.warn("Attempted to open review modal without workshop ID");
+    return null;
+  }
+
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
-      <ModalHeader>Write a Review</ModalHeader>
+      <ModalHeader>How was your experience?</ModalHeader>
       <form onSubmit={handleSubmit}>
         <ModalBody>
+          {serviceRequest && (
+            <div className="mb-4">
+              <h3 className="font-medium text-gray-700">
+                {serviceRequest.workshop_service_name}
+              </h3>
+              <p className="text-sm text-gray-500">{serviceRequest.workshop_name}</p>
+            </div>
+          )}
+          
           <div className="mb-4">
             <label className="block text-gray-700 mb-2">Rating</label>
             <div className="flex items-center">
@@ -99,7 +149,7 @@ const ReviewModal = ({ isOpen, onClose, workshopId, onReviewSubmitted }) => {
         </ModalBody>
         <ModalFooter>
           <Button color="error" onClick={onClose} disabled={isSubmitting}>
-            Cancel
+            Maybe Later
           </Button>
           <Button 
             type="submit" 
