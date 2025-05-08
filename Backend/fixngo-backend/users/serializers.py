@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import User, ServiceRequest, Payment
+from .models import User, ServiceRequest, Payment, Review
 from django.contrib.auth import authenticate
 
 class UserSignupSerializer(serializers.ModelSerializer):
@@ -96,3 +96,14 @@ class PaymentSerializer(serializers.ModelSerializer):
         except ServiceRequest.DoesNotExist:
             pass
         return None
+    
+    
+class ReviewSerializer(serializers.ModelSerializer):
+    user_name = serializers.CharField(source='user.username', read_only=True)
+    user_image = serializers.CharField(source='user.profile_image_url', read_only=True)
+    
+    class Meta:
+        model = Review
+        fields = ['id', 'user', 'workshop', 'service_request', 'rating', 'text', 
+                  'created_at', 'updated_at', 'user_name', 'user_image']
+        read_only_fields = ['id', 'created_at', 'updated_at']

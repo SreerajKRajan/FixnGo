@@ -16,7 +16,7 @@ import * as Yup from "yup";
 import { toast } from "sonner";
 import { IoChatbubbleEllipses } from "react-icons/io5";
 import ChatComponent from "../Chat/ChatComponent";
-import { FaVideo } from "react-icons/fa6";
+import ReviewModal from "./ReviewModal";
 import unavailableImg from "@/assets/unavailable.svg";
 
 // Shimmer loading component
@@ -25,16 +25,16 @@ const ShimmerEffect = ({ className }) => (
 );
 
 const WorkshopDetailsPage = () => {
-  const reviews = [
-    { name: "John Doe", rating: 5, text: "Great service! Highly recommended." },
-    { name: "Jane Smith", rating: 4, text: "Good experience overall." },
-  ];
-
   const [workshop, setWorkshop] = useState(null);
   const [services, setServices] = useState([]);
+  const [reviews, setReviews] = useState([]);
+  const [avgRating, setAvgRating] = useState(0);
+  const [totalReviews, setTotalReviews] = useState(0);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [selectedService, setSelectedService] = useState(null);
+  const [completedRequests, setCompletedRequests] = useState([]);
   const { WorkshopId } = useParams();
 
   const [selectedChat, setSelectedChat] = useState(null);
@@ -63,6 +63,9 @@ const WorkshopDetailsPage = () => {
         );
         setWorkshop(response.data.workshop);
         setServices(response.data.services);
+        
+        // Fetch reviews
+        await fetchReviews();
       } catch (error) {
         console.error("Error fetching workshop details:", error);
       } finally {
@@ -72,6 +75,28 @@ const WorkshopDetailsPage = () => {
 
     fetchWorkshopDetails();
   }, [WorkshopId]);
+  
+  const fetchReviews = async () => {
+    try {
+      const response = await axiosInstance.get(`/users/workshops/${WorkshopId}/reviews/`);
+      setReviews(response.data.reviews);
+      setAvgRating(response.data.avg_rating);
+      setTotalReviews(response.data.total_reviews);
+      
+      // Check if the current user has already left a review
+      // This assumes the API returns user information with each review
+      const userReviews = response.data.reviews.filter(review => 
+        review.user === localStorage.getItem('userId') || // If you store userId in localStorage
+        review.is_own_review === true // Or if your API marks reviews made by current user
+      );
+      
+      // If user has not left a review, we'll assume they might have a completed service
+      // This is a simplified approach since we don't have the endpoint
+      setCompletedRequests(userReviews.length === 0 ? [{ id: 'dummy-id' }] : []);
+    } catch (error) {
+      console.error("Error fetching reviews:", error);
+    }
+  };
 
   const validationSchema = Yup.object({
     vehicleType: Yup.string().required("Vehicle type is required"),
@@ -106,8 +131,29 @@ const WorkshopDetailsPage = () => {
       resetForm();
     } catch (error) {
       console.error("Error submitting service request:", error);
-      alert("Failed to submit service request. Please try again.");
+      toast.error(error.response?.data?.error || "Failed to submit service request");
     }
+  };
+  
+  const handleOpenReviewModal = () => {
+    setReviewModalOpen(true);
+  };
+
+  // Handle new review submission
+  const handleReviewSubmit = (newReviewData) => {
+    // Assuming the API returns the complete new review object
+    const newReview = newReviewData.review || newReviewData;
+    
+    // Add the new review to the reviews list
+    setReviews(prevReviews => [newReview, ...prevReviews]);
+    
+    // Update the average rating and total reviews count
+    const newTotalReviews = totalReviews + 1;
+    const newAvgRating = 
+      (avgRating * totalReviews + newReview.rating) / newTotalReviews;
+    
+    setTotalReviews(newTotalReviews);
+    setAvgRating(newAvgRating);
   };
 
   // Shimmer loading UI
@@ -214,11 +260,11 @@ const WorkshopDetailsPage = () => {
               <StarIcon
                 key={i}
                 className={`h-5 w-5 ${
-                  i < 4 ? "text-yellow-400" : "text-gray-300"
+                  i < avgRating ? "text-yellow-400" : "text-gray-300"
                 }`}
               />
             ))}
-            <span className="ml-2 text-gray-600">(4.0)</span>
+            <span className="ml-2 text-gray-600">({avgRating.toFixed(1)}) • {totalReviews} {totalReviews === 1 ? 'review' : 'reviews'}</span>
           </div>
         </div>
 
@@ -234,12 +280,6 @@ const WorkshopDetailsPage = () => {
           >
             <IoChatbubbleEllipses />
           </button>
-          <button
-            className="p-3 rounded-full bg-red-500 hover:bg-red-600 text-white shadow-lg transition duration-300"
-            style={{ fontSize: "1.25rem" }}
-          >
-            <FaVideo />
-          </button>
         </div>
 
         {/* Pass selectedChat to ChatComponent */}
@@ -252,7 +292,7 @@ const WorkshopDetailsPage = () => {
         {services.length === 0 ? (
           <div className="flex flex-col items-center justify-center text-center text-gray-500 py-10">
             <img
-              src={unavailableImg} // You can use a relevant image or icon here
+              src={unavailableImg}
               alt="No services"
               className="w-40 h-40 mb-4"
             />
@@ -286,29 +326,45 @@ const WorkshopDetailsPage = () => {
 
         <h2 className="text-2xl font-semibold mb-4">Reviews</h2>
         <div className="space-y-4 mb-8">
-          {reviews.map((review, index) => (
-            <Card key={index} className="p-4">
-              <div className="flex items-center mb-2">
-                <Avatar name={review.name} size="sm" className="mr-2" />
-                <span className="font-semibold">{review.name}</span>
-              </div>
-              <div className="flex items-center mb-2">
-                {[...Array(5)].map((_, i) => (
-                  <StarIcon
-                    key={i}
-                    className={`h-5 w-5 ${
-                      i < review.rating ? "text-yellow-400" : "text-gray-300"
-                    }`}
+          {reviews.length === 0 ? (
+            <div className="flex flex-col items-center justify-center text-center text-gray-500 py-6">
+              <p className="text-lg font-medium">No reviews yet</p>
+              <p className="text-sm text-gray-400">Be the first to review this workshop!</p>
+            </div>
+          ) : (
+            reviews.map((review, index) => (
+              <Card key={index} className="p-4">
+                <div className="flex items-center mb-2">
+                  <Avatar 
+                    name={review.user_name} 
+                    src={review.user_image || undefined} 
+                    size="sm" 
+                    className="mr-2" 
                   />
-                ))}
-              </div>
-              <p className="text-gray-600">{review.text}</p>
-            </Card>
-          ))}
+                  <span className="font-semibold">{review.user_name}</span>
+                  <span className="text-gray-400 text-sm ml-2">
+                    {new Date(review.created_at).toLocaleDateString()}
+                  </span>
+                </div>
+                <div className="flex items-center mb-2">
+                  {[...Array(5)].map((_, i) => (
+                    <StarIcon
+                      key={i}
+                      className={`h-5 w-5 ${
+                        i < review.rating ? "text-yellow-400" : "text-gray-300"
+                      }`}
+                    />
+                  ))}
+                </div>
+                <p className="text-gray-600">{review.text}</p>
+              </Card>
+            ))
+          )}
         </div>
-        <Button color="primary">Add Review</Button>
+        <Button color="primary" onClick={handleOpenReviewModal}>Add Review</Button>
       </div>
 
+      {/* Service Request Modal */}
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)}>
         <ModalHeader>Request Service</ModalHeader>
         <Formik
@@ -362,6 +418,14 @@ const WorkshopDetailsPage = () => {
           )}
         </Formik>
       </Modal>
+      
+      {/* Review Modal */}
+      <ReviewModal 
+        isOpen={reviewModalOpen} 
+        onClose={() => setReviewModalOpen(false)} 
+        workshopId={WorkshopId}
+        onReviewSubmit={handleReviewSubmit}
+      />
 
       <Footer />
     </div>

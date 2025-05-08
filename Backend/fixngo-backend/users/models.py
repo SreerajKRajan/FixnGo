@@ -105,3 +105,23 @@ class Payment(models.Model):
     def __str__(self):
         return f"Payment {self.id} - {self.status}"
     
+class Review(models.Model):
+    RATING_CHOICES = [
+        (1, '1 Star'),
+        (2, '2 Stars'),
+        (3, '3 Stars'),
+        (4, '4 Stars'),
+        (5, '5 Stars'),
+    ]
+    
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reviews')
+    workshop = models.ForeignKey(Workshop, on_delete=models.CASCADE, related_name='reviews')
+    service_request = models.OneToOneField(ServiceRequest, on_delete=models.CASCADE, related_name='review')
+    rating = models.IntegerField(choices=RATING_CHOICES)
+    text = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    def __str__(self):
+        return f"Review by {self.user.username} for {self.workshop.name} - {self.rating} stars"
+    

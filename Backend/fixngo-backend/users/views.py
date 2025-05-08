@@ -2,11 +2,11 @@ from rest_framework import status, permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.generics import ListAPIView, RetrieveAPIView
-from .serializers import UserSignupSerializer, UserLoginSerializer, UserSerializer, ServiceRequestSerializer, PaymentSerializer
+from .serializers import UserSignupSerializer, UserLoginSerializer, UserSerializer, ServiceRequestSerializer, PaymentSerializer, ReviewSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 import random
 from django.utils import timezone
-from .models import User, Otp, ServiceRequest, Payment
+from .models import User, Otp, ServiceRequest, Payment, Review
 from datetime import timedelta
 from utils.s3_utils import upload_to_s3
 from django.contrib.auth.tokens import default_token_generator
@@ -36,7 +36,7 @@ from django.conf import settings
 from utils.s3_utils import get_s3_file_url
 from math import radians, cos
 from rest_framework.pagination import PageNumberPagination
-from django.db.models import F, Q
+from django.db.models import F, Q, Avg
 from django.db.models.expressions import RawSQL
 import math
 
@@ -686,3 +686,94 @@ class UserPaymentsHistoryView(ListAPIView):
             'service_request__workshop', 
             'service_request__workshop_service'
         )
+        
+class WorkshopReviewsView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get(self, request, workshop_id):
+        """Get all reviews for a specific workshop"""
+        try:
+            reviews = Review.objects.filter(workshop_id=workshop_id).order_by('-created_at')
+            serializer = ReviewSerializer(reviews, many=True)
+            
+            # Calculate average rating
+            avg_rating = reviews.aggregate(Avg('rating'))['rating__avg'] or 0
+            avg_rating = round(avg_rating, 1)  # Round to 1 decimal place
+            
+            return Response({
+                'reviews': serializer.data,
+                'avg_rating': avg_rating,
+                'total_reviews': reviews.count()
+            })
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+    
+    def post(self, request, workshop_id):
+        """Create a review for a workshop"""
+        try:
+            # Check if service request exists and is completed
+            service_request_id = request.data.get('service_request')
+            
+            if service_request_id:
+                # If service_request_id is provided, validate it
+                try:
+                    service_request = ServiceRequest.objects.get(id=service_request_id)
+                    
+                    # Verify service request belongs to the user and is for this workshop
+                    if service_request.user.id != request.user.id:
+                        return Response({'error': 'You can only review your own service requests'}, 
+                                      status=status.HTTP_403_FORBIDDEN)
+                        
+                    if service_request.workshop.id != int(workshop_id):
+                        return Response({'error': 'Service request does not belong to this workshop'}, 
+                                      status=status.HTTP_400_BAD_REQUEST)
+                        
+                    # Check if service is completed
+                    if service_request.status != 'COMPLETED':
+                        return Response({'error': 'You can only review completed services'}, 
+                                      status=status.HTTP_400_BAD_REQUEST)
+                        
+                    # Check if review already exists
+                    if Review.objects.filter(service_request=service_request).exists():
+                        return Response({'error': 'You have already reviewed this service'}, 
+                                      status=status.HTTP_400_BAD_REQUEST)
+                except ServiceRequest.DoesNotExist:
+                    return Response({'error': 'Service request not found'}, status=status.HTTP_404_NOT_FOUND)
+            else:
+                # If no service_request_id, find a completed service request for this user and workshop
+                completed_requests = ServiceRequest.objects.filter(
+                    user=request.user,
+                    workshop_id=workshop_id,
+                    status='COMPLETED'
+                )
+                
+                # Filter out requests that already have reviews
+                unreviewed_requests = []
+                for req in completed_requests:
+                    if not Review.objects.filter(service_request=req).exists():
+                        unreviewed_requests.append(req)
+                
+                if not unreviewed_requests:
+                    return Response(
+                        {'error': 'You need to complete a service before reviewing or you have already reviewed all your completed services'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                
+                # Use the first unreviewed completed request
+                service_request = unreviewed_requests[0]
+            
+            # Create the review
+            serializer = ReviewSerializer(data={
+                **request.data,
+                'user': request.user.id,
+                'workshop': workshop_id,
+                'service_request': service_request.id
+            })
+            
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
