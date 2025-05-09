@@ -217,9 +217,7 @@ class DashboardAPIView(APIView):
         total_users = User.objects.filter(is_active=True).count()
         last_month_users = User.objects.filter(created_at__lt=last_month, is_active=True).count()
         user_growth_pct = round(((total_users - last_month_users) / max(last_month_users, 1)) * 100, 1)
-        print(total_users, "Total Users")
-        print(last_month_users, "last_month_users")
-        print(user_growth_pct, "user_growth_pct")
+        
         # Get workshop statistics
         total_workshops = Workshop.objects.filter(is_active=True).count()
         new_workshops = Workshop.objects.filter(created_at__gte=last_week).count()
@@ -234,26 +232,52 @@ class DashboardAPIView(APIView):
         in_progress_requests = ServiceRequest.objects.filter(status='IN_PROGRESS').count()
         completed_requests = ServiceRequest.objects.filter(status='COMPLETED').count()
         
-        # Get revenue statistics - FIX: Specify the output_field as DecimalField
+        # Get revenue statistics - with admin fees broken out
         successful_payments = Payment.objects.filter(status='SUCCESS')
+        
+        # Total revenue
         total_revenue = successful_payments.aggregate(
             total=Coalesce(Sum('amount'), Value(0), output_field=DecimalField())
         )['total']
         
-        # Calculate last month's revenue - FIX: Specify the output_field as DecimalField
-        last_month_revenue = successful_payments.filter(created_at__lt=last_month).aggregate(
+        # Admin fee revenue
+        admin_fee_revenue = successful_payments.aggregate(
+            total=Coalesce(Sum('platform_fee'), Value(0), output_field=DecimalField())
+        )['total']
+        
+        # Workshop revenue
+        workshop_revenue = successful_payments.aggregate(
+            total=Coalesce(Sum('workshop_amount'), Value(0), output_field=DecimalField())
+        )['total']
+        
+        # Calculate last month's revenue 
+        last_month_payments = successful_payments.filter(created_at__lt=last_month)
+        
+        last_month_revenue = last_month_payments.aggregate(
             total=Coalesce(Sum('amount'), Value(0), output_field=DecimalField())
+        )['total']
+        
+        last_month_admin_fee = last_month_payments.aggregate(
+            total=Coalesce(Sum('platform_fee'), Value(0), output_field=DecimalField())
         )['total']
         
         # Handle division by zero and calculate growth
         if float(last_month_revenue) > 0:
             revenue_growth_pct = round(((float(total_revenue) - float(last_month_revenue)) / float(last_month_revenue)) * 100, 1)
+            admin_fee_growth_pct = round(((float(admin_fee_revenue) - float(last_month_admin_fee)) / float(last_month_admin_fee)) * 100, 1) if float(last_month_admin_fee) > 0 else 100.0
         else:
             revenue_growth_pct = 100.0 if float(total_revenue) > 0 else 0.0
+            admin_fee_growth_pct = 100.0 if float(admin_fee_revenue) > 0 else 0.0
         
-        # Pending revenue - FIX: Specify the output_field as DecimalField
-        pending_revenue = Payment.objects.filter(status='PENDING').aggregate(
+        # Pending revenue
+        pending_payments = Payment.objects.filter(status='PENDING')
+        
+        pending_revenue = pending_payments.aggregate(
             total=Coalesce(Sum('amount'), Value(0), output_field=DecimalField())
+        )['total']
+        
+        pending_admin_fee = pending_payments.aggregate(
+            total=Coalesce(Sum('platform_fee'), Value(0), output_field=DecimalField())
         )['total']
         
         # Get service distribution data
@@ -268,7 +292,7 @@ class DashboardAPIView(APIView):
         
         for service in top_services:
             service_distribution.append({
-                'name': service['workshop_service__name'] or 'Unknown Service',  # Handle potential None values
+                'name': service['workshop_service__name'] or 'Unknown Service',
                 'count': service['count']
             })
         
@@ -282,32 +306,33 @@ class DashboardAPIView(APIView):
             
             for service in top_services:
                 service_distribution.append({
-                    'name': service['name'] or 'Unknown Service',  # Handle potential None values
+                    'name': service['name'] or 'Unknown Service',
                     'count': service['count']
                 })
         
-        # Get payment distribution - FIX: Specify the output_field as DecimalField
+        # Get payment distribution with platform fee breakdown
         payment_distribution = []
-        # Check if STATUS_CHOICES is defined in Payment model
-        try:
-            status_choices = Payment.STATUS_CHOICES
-        except AttributeError:
-            # Fallback to hardcoded values if not defined
-            status_choices = [
-                ('SUCCESS', 'Success'),
-                ('PENDING', 'Pending'),
-                ('FAILED', 'Failed')
-            ]
-            
-        for status_code, label in status_choices:
+        for status_code, label in Payment.STATUS_CHOICES:
+            # Get total amount
             amount = Payment.objects.filter(status=status_code).aggregate(
                 total=Coalesce(Sum('amount'), Value(0), output_field=DecimalField())
+            )['total']
+            
+            # Split into platform fee and workshop amounts
+            platform_fee = Payment.objects.filter(status=status_code).aggregate(
+                total=Coalesce(Sum('platform_fee'), Value(0), output_field=DecimalField())
+            )['total']
+            
+            workshop_amount = Payment.objects.filter(status=status_code).aggregate(
+                total=Coalesce(Sum('workshop_amount'), Value(0), output_field=DecimalField())
             )['total']
             
             payment_distribution.append({
                 'name': label,
                 'status': status_code,
-                'value': float(amount)
+                'value': float(amount),
+                'platformFee': float(platform_fee),
+                'workshopAmount': float(workshop_amount)
             })
         
         # Get user growth data (monthly for the last 6 months)
@@ -325,11 +350,14 @@ class DashboardAPIView(APIView):
                 'count': user_count
             })
         
-        # Get recent service requests - use more defensive coding to handle potential missing relationships
+        # Get paginated recent service requests
+        # For initial dashboard load, only get first 5 requests
+        limit = 5  # Default limit for initial load
         recent_requests = []
+        
         for req in ServiceRequest.objects.select_related(
             'user', 'workshop', 'workshop_service'
-        ).order_by('-created_at')[:10]:
+        ).order_by('-created_at')[:limit]:
             # Handle potential None values or missing attributes
             try:
                 time_diff = timezone.now() - req.created_at
@@ -347,6 +375,20 @@ class DashboardAPIView(APIView):
                 service_name = req.workshop_service.name if req.workshop_service else "Unknown Service"
                 workshop_name = req.workshop.name if req.workshop else "Unknown Workshop"
                 
+                # Get payment information if available
+                payment_info = {}
+                try:
+                    payment = Payment.objects.filter(service_request=req).first()
+                    if payment:
+                        payment_info = {
+                            'amount': float(payment.amount),
+                            'platformFee': float(payment.platform_fee),
+                            'workshopAmount': float(payment.workshop_amount),
+                            'status': payment.status
+                        }
+                except Exception:
+                    pass
+                
                 recent_requests.append({
                     'id': req.id,
                     'userName': username,
@@ -355,7 +397,8 @@ class DashboardAPIView(APIView):
                     'workshopName': workshop_name,
                     'status': req.status,
                     'timeAgo': time_ago,
-                    'createdAt': req.created_at.isoformat()
+                    'createdAt': req.created_at.isoformat(),
+                    'payment': payment_info
                 })
             except (AttributeError, TypeError):
                 # Skip this record if there are issues
@@ -382,7 +425,16 @@ class DashboardAPIView(APIView):
             'revenueStats': {
                 'total': float(total_revenue),
                 'growth': revenue_growth_pct,
-                'pending': float(pending_revenue)
+                'pending': float(pending_revenue),
+                'adminFee': {
+                    'total': float(admin_fee_revenue),
+                    'growth': admin_fee_growth_pct,
+                    'pending': float(pending_admin_fee)
+                },
+                'workshopAmount': {
+                    'total': float(workshop_revenue),
+                    'pending': float(pending_revenue) - float(pending_admin_fee)
+                }
             },
             'serviceDistribution': service_distribution,
             'paymentDistribution': payment_distribution,
@@ -391,3 +443,79 @@ class DashboardAPIView(APIView):
         }
         
         return Response(dashboard_data, status=status.HTTP_200_OK)
+    
+class ServiceRequestListAPIView(APIView):
+    """API endpoint to provide paginated service requests for the admin dashboard"""
+    permission_classes = [IsAdminUser]
+    
+    def get(self, request):
+        # Get pagination parameters
+        page = int(request.query_params.get('page', 1))
+        limit = int(request.query_params.get('limit', 5))
+        
+        # Calculate offset
+        offset = (page - 1) * limit
+        
+        # Get paginated service requests
+        requests_queryset = ServiceRequest.objects.select_related(
+            'user', 'workshop', 'workshop_service'
+        ).order_by('-created_at')[offset:offset + limit]
+        
+        # Format requests data
+        results = []
+        
+        for req in requests_queryset:
+            try:
+                time_diff = timezone.now() - req.created_at
+                
+                if time_diff.days > 0:
+                    time_ago = f"{time_diff.days} {'day' if time_diff.days == 1 else 'days'} ago"
+                elif time_diff.seconds // 3600 > 0:
+                    hours = time_diff.seconds // 3600
+                    time_ago = f"{hours} {'hour' if hours == 1 else 'hours'} ago"
+                else:
+                    minutes = time_diff.seconds // 60
+                    time_ago = f"{minutes} {'minute' if minutes == 1 else 'minutes'} ago"
+                
+                username = req.user.username if req.user else "Unknown User"
+                service_name = req.workshop_service.name if req.workshop_service else "Unknown Service"
+                workshop_name = req.workshop.name if req.workshop else "Unknown Workshop"
+                
+                # Get payment information if available
+                payment_info = {}
+                try:
+                    payment = Payment.objects.filter(service_request=req).first()
+                    if payment:
+                        payment_info = {
+                            'amount': float(payment.amount),
+                            'platformFee': float(payment.platform_fee),
+                            'workshopAmount': float(payment.workshop_amount),
+                            'status': payment.status
+                        }
+                except Exception:
+                    pass
+                
+                results.append({
+                    'id': req.id,
+                    'userName': username,
+                    'serviceName': service_name,
+                    'vehicleType': req.vehicle_type or "Not specified",
+                    'workshopName': workshop_name,
+                    'status': req.status,
+                    'timeAgo': time_ago,
+                    'createdAt': req.created_at.isoformat(),
+                    'payment': payment_info
+                })
+            except (AttributeError, TypeError):
+                # Skip this record if there are issues
+                continue
+        
+        # Check if there are more results
+        has_more = ServiceRequest.objects.count() > (offset + limit)
+        
+        return Response({
+            'results': results,
+            'page': page,
+            'limit': limit,
+            'hasMore': has_more
+        }, status=status.HTTP_200_OK)

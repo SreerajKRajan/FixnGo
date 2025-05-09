@@ -79,7 +79,7 @@ class PaymentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Payment
         fields = ['id', 'service_request', 'razorpay_order_id', 'razorpay_payment_id', 
-                  'amount', 'status', 'created_at', 'service_request_details']
+                  'amount', 'platform_fee', 'workshop_amount', 'status', 'created_at', 'service_request_details']
     
     def get_service_request_details(self, obj):
         try:

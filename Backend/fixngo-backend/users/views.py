@@ -602,13 +602,21 @@ class CreateOrderAPIView(APIView):
                 "currency": "INR",
                 "payment_capture": 1
             })
+            
+            # Platform fee calculation
+            PLATFORM_FEE_PERCENTAGE = 10  # You can later move this to settings.py
+            total_amount_paise = int(amount)
+            platform_fee_paise = int(total_amount_paise * PLATFORM_FEE_PERCENTAGE / 100)
+            workshop_amount_paise = total_amount_paise - platform_fee_paise
 
             # Save payment record in the database
             Payment.objects.create(
                 user_id=user_id,
                 service_request=service_request,
                 razorpay_order_id=order["id"],
-                amount=float(amount) / 100,  # Store in rupees
+                amount=total_amount_paise / 100,             # rupees
+                platform_fee=platform_fee_paise / 100,       # rupees
+                workshop_amount=workshop_amount_paise / 100, # rupees
                 status="PENDING",
             )
 
