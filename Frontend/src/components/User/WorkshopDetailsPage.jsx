@@ -232,7 +232,7 @@ const WorkshopDetailsPage = () => {
           </div>
         </div>
 
-        {/* Fixed Chat and Video Buttons */}
+        {/* Fixed Chat Button */}
         <div
           className="fixed right-4 bottom-96 flex flex-col space-y-4 z-40"
           style={{ pointerEvents: "auto" }}

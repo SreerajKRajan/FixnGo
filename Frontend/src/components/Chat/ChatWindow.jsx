@@ -61,8 +61,6 @@
         };
       }
     };
-    console.log(messages, 'all messages,')
-
     // Dummy user info
     const currentUser = { id: "current123", username: "CurrentUser" };
     const isWorkshop = false;
