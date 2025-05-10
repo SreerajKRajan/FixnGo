@@ -2,8 +2,6 @@
 
 **FixnGo** is a full-stack automobile service booking platform where users can connect with verified workshops to request repair and maintenance services. Built using **Django REST Framework (Backend)** and **React + Redux (Frontend)** with real-time features and background task handling.
 
----
-
 ## 🚀 Features
 
 - 👤 **Multi-role authentication**: User, Workshop, and Admin (JWT-based)
@@ -15,8 +13,6 @@
 - 📁 **Document & profile image storage** via **AWS S3**
 - 💳 **Secure payments** using **Razorpay**
 - 📩 **OTP verification** with Celery & Redis
-
----
 
 ## 🧰 Tech Stack
 
@@ -31,36 +27,95 @@
 | Payment     | Razorpay                             |
 | Database    | PostgreSQL                           |
 
----
-
 ## 🛠 Setup Instructions
 
-### 🔁 1. Clone the Repository
+### 🔁 Clone the Repository
 
 ```bash
 git clone https://github.com/SreerajKRajan/FixnGo.git
 cd fixngo
+```
 
-⚙️ 2. Backend Setup
+### ⚙️ Backend Setup
 
+```bash
 cd backend
 python3 -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
+
+# Configure environment variables
+cp .env.example .env
+# Edit .env with your configuration
+
+# Setup database
 python manage.py migrate
 python manage.py runserver
+```
 
-💡 Ensure you configure a .env file with necessary secrets like AWS, DB credentials, email config, etc.
+### 💻 Frontend Setup
 
-💻 3. Frontend Setup
-
+```bash
 cd frontend
 npm install
 npm run dev
+```
 
-🎉 You're All Set!
-Your FixnGo platform is now live locally! Users can discover workshops, book services, chat in real-time, and enjoy a secure and smooth experience for all their vehicle repair and service needs.
+### 📋 Environment Variables
 
-Happy coding! 💻✨ For issues or contributions, please refer to the project documentation or open an issue in the repository.
+Create a `.env` file in the backend directory with the following variables:
 
-🏁 Drive forward with FixnGo! 🔧🛠️
+```
+# Database
+DB_NAME=fixngo_db
+DB_USER=postgres
+DB_PASSWORD=your_password
+DB_HOST=localhost
+DB_PORT=5432
+
+# AWS S3
+AWS_ACCESS_KEY_ID=your_access_key
+AWS_SECRET_ACCESS_KEY=your_secret_key
+AWS_STORAGE_BUCKET_NAME=your_bucket_name
+
+# Razorpay
+RAZORPAY_KEY_ID=your_key_id
+RAZORPAY_KEY_SECRET=your_key_secret
+
+# Email
+EMAIL_HOST=smtp.example.com
+EMAIL_PORT=587
+EMAIL_HOST_USER=your_email@example.com
+EMAIL_HOST_PASSWORD=your_email_password
+```
+
+## 🧪 Running Tests
+
+```bash
+# Backend tests
+cd backend
+python manage.py test
+
+# Frontend tests
+cd frontend
+npm test
+```
+
+## 🔄 Workflow
+
+1. Workshops register and submit verification documents
+2. Admin approves workshops and their service offerings
+3. Users discover nearby workshops and book services
+4. Real-time notifications keep all parties updated
+5. Secure payments process service fees
+6. Feedback and ratings improve service quality
+
+## 📞 Contact
+
+Sreeraj K Rajan - [GitHub](https://github.com/SreerajKRajan)
+
+Project Link: [https://github.com/SreerajKRajan/FixnGo](https://github.com/SreerajKRajan/FixnGo)
+
+---
+
+🎉 **Drive forward with FixnGo!** 🔧🛠️
