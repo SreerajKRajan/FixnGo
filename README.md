@@ -64,4 +64,3 @@ Your FixnGo platform is now live locally! Users can discover workshops, book ser
 Happy coding! 💻✨ For issues or contributions, please refer to the project documentation or open an issue in the repository.
 
 🏁 Drive forward with FixnGo! 🔧🛠️
-
