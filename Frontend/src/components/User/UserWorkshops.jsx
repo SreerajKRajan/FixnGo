@@ -32,6 +32,7 @@ const WorkshopCardShimmer = () => (
 export default function UserWorkshops({
   workshops: propWorkshops,
   userLocation,
+  setUserLocation,
   searchQuery: parentSearchQuery,
   setSearchQuery: setParentSearchQuery,
   sortOption: parentSortOption,
@@ -98,6 +99,30 @@ export default function UserWorkshops({
       if (searchTimeout) clearTimeout(searchTimeout);
     };
   }, [currentPage, propWorkshops, searchQuery, sortOption, userLocation]);
+
+  useEffect(() => {
+    if (sortOption === "distance" && !userLocation) {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const location = {
+              lat: position.coords.latitude,
+              lng: position.coords.longitude,
+            };
+            if (typeof setUserLocation === "function") {
+              setUserLocation(location);
+            }
+          },
+          (error) => {
+            alert("Location permission denied. Cannot sort by distance.");
+            console.error("Geolocation error:", error);
+          }
+        );
+      } else {
+        alert("Geolocation is not supported by your browser.");
+      }
+    }
+  }, [sortOption, userLocation]);
 
   const fetchWorkshops = async (page) => {
     setLoading(true);

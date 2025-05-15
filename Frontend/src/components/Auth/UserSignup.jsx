@@ -7,9 +7,9 @@ import { useDispatch, useSelector } from "react-redux"
 import { userSignup } from "../../store/userAuthSlice"
 import { useNavigate } from "react-router-dom"
 import { toast } from "sonner"
-import { GoogleOAuthProvider, GoogleLogin } from "@react-oauth/google"
+// import { GoogleOAuthProvider, GoogleLogin } from "@react-oauth/google"
 import { jwtDecode } from "jwt-decode";
-import { userGoogleSignup } from "../../store/userAuthSlice"
+// import { userGoogleSignup } from "../../store/userAuthSlice"
 
 const SignupSchema = Yup.object().shape({
   username: Yup.string().min(2, "Too Short!").max(50, "Too Long!").required("Required"),
@@ -83,7 +83,7 @@ export default function UserSignup() {
           </div>
 
                   {/* Replace your custom Google button with the GoogleOAuthProvider and GoogleLogin */}
-                  <GoogleOAuthProvider 
+                  {/* <GoogleOAuthProvider 
         clientId="111926382141-a0gum91dmvct79964hk0rn7b20fpv9pn.apps.googleusercontent.com"
       >
         <div className="mt-4">
@@ -122,7 +122,7 @@ export default function UserSignup() {
             }}
           />
         </div>
-      </GoogleOAuthProvider>
+      </GoogleOAuthProvider> */}
 
           {/* Google Sign Up Button */}
           {/* <div className="mt-4">
@@ -153,14 +153,14 @@ export default function UserSignup() {
           </div> */}
 
           {/* Separator */}
-          <div className="mt-4 relative">
+          {/* <div className="mt-4 relative">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-gray-300"></div>
             </div>
             <div className="relative flex justify-center text-sm">
               <span className="px-2 bg-white text-xs text-gray-500">Or</span>
             </div>
-          </div>
+          </div> */}
 
           <Formik
             initialValues={{

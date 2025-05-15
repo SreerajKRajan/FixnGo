@@ -2,48 +2,46 @@ import React, { useState, useEffect } from "react";
 import { Search, MessageSquare, ChevronUp, ChevronDown } from "lucide-react";
 import MessageList from "./MessageList";
 import ChatWindow from "./ChatWindow";
+import axiosInstance from "../../utils/axiosInstance";
 
-const ChatComponent = ({ newChat, onChatClose }) => {
+const ChatComponent = ({ role, newChat, onChatClose }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [activeChat, setActiveChat] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
-
-  const chats = []
-  
-  // Dummy chat threads data
-  const dummyThreads = [
-    {
-      id: "chat1",
-      user_details: { username: "JohnDoe", profile_image_url: "/default-avatar.png" },
-      workshop_details: null,
-      last_message: "Hey, when is the next workshop?",
-      last_message_timestamp: "2025-03-17T14:23:00Z",
-      unread_count: 2,
-      created_at: "2025-03-15T10:00:00Z"
-    },
-    {
-      id: "chat2",
-      user_details: null,
-      workshop_details: { name: "Photography Basics", document: "/default-avatar.png" },
-      last_message: "We'll cover lighting techniques tomorrow",
-      last_message_timestamp: "2025-03-18T09:12:00Z",
-      unread_count: 0,
-      created_at: "2025-03-10T16:30:00Z"
-    },
-    {
-      id: "chat3",
-      user_details: { username: "SarahSmith", profile_image_url: "/default-avatar.png" },
-      workshop_details: null,
-      last_message: "Thanks for the feedback!",
-      last_message_timestamp: "2025-03-16T18:45:00Z",
-      unread_count: 1,
-      created_at: "2025-03-08T11:20:00Z"
-    }
-  ];
-  
-  const [threads, setThreads] = useState(dummyThreads);
+  const [threads, setThreads] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  // Fetch chat threads when component mounts
+  useEffect(() => {
+    fetchChatThreads();
+  }, []);
+
+  // Fetch chat threads from the API
+  const fetchChatThreads = async () => {
+    try {
+      setLoading(true);
+      console.log("Fetching chat threads...");
+      const response = await axiosInstance.get('/chat/threads/');
+      console.log("Chat threads response:", response.data);
+      
+      if (response.data && Array.isArray(response.data)) {
+        setThreads(response.data);
+      } else {
+        // If response is not an array, use empty array
+        console.warn("Chat threads response is not an array:", response.data);
+        setThreads([]);
+      }
+    } catch (error) {
+      console.error("Failed to fetch chat threads:", error);
+      setError("Failed to load chats. Please try again.");
+      
+      // Fall back to empty array for threads
+      setThreads([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Toggle the chat panel
   const toggleExpand = () => setIsExpanded(!isExpanded);
@@ -64,8 +62,6 @@ const ChatComponent = ({ newChat, onChatClose }) => {
   useEffect(() => {
     if (newChat && (!activeChat || newChat.id !== activeChat.id)) {
       setActiveChat(newChat);
-      // Don't auto-expand the message list when a new chat is initialized from outside
-      // setIsExpanded(true); - removing this line
     }
   }, [newChat, activeChat]);
 
@@ -95,26 +91,29 @@ const ChatComponent = ({ newChat, onChatClose }) => {
               <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
             </div>
             <MessageList
+              role={role}
               searchQuery={searchQuery}
               onChatOpen={openChat}
               chatThreads={threads}
               loading={loading}
               error={error}
+              onRefresh={fetchChatThreads}
             />
           </div>
         )}
       </div>
       {activeChat && (
         <ChatWindow
-          chat = {activeChat}
+          chat={activeChat}
           roomId={activeChat.id} 
-          user={activeChat.user_details || activeChat.user} 
-          workshop={activeChat.workshop_details || activeChat.workshop}
-          onClose={closeChat} 
+          user={activeChat.user_details} 
+          workshop={activeChat.workshop_details}
+          onClose={closeChat}
+          onMessageSent={fetchChatThreads} // Refresh threads when message sent
         />
       )}
     </div>
   );
 };
 
-export default ChatComponent; 
+export default ChatComponent;

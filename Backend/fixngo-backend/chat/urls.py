@@ -1,14 +1,7 @@
-# from django.urls import path
-# from .views import ChatThreadsView, ChatMessagesView
-
-# urlpatterns = [
-#     path('threads/', ChatThreadsView.as_view(), name='chat-threads'),
-#     path('messages/<int:room_id>/', ChatMessagesView.as_view(), name='chat-messages'),
-# ]
-
 from django.urls import path
-from chat.views import ChatHistoryView
+from .views import ChatHistoryAPIView, ChatThreadsAPIView
 
 urlpatterns = [
-    path("history/<str:room_name>/", ChatHistoryView.as_view(), name="chat-history"),
+    path('history/<int:user_id>/<int:target_id>/', ChatHistoryAPIView.as_view(), name='chat_history'),
+    path('threads/', ChatThreadsAPIView.as_view(), name='chat_threads'),
 ]

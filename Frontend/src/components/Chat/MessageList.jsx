@@ -1,7 +1,7 @@
 import React from "react";
 import { formatDistanceToNow } from "date-fns";
 
-const MessageList = ({ searchQuery, onChatOpen, chatThreads, loading, error }) => {
+const MessageList = ({ role, searchQuery, onChatOpen, chatThreads, loading, error }) => {
   // Show a loader if chat threads are being fetched
   if (loading) return <div className="p-4 text-center">Loading chats...</div>;
 
@@ -38,9 +38,9 @@ const MessageList = ({ searchQuery, onChatOpen, chatThreads, loading, error }) =
         const isCurrentUserWorkshop = chat.user_details && !chat.workshop_details;
         
         // Display the other party's info
-        const name = isCurrentUserWorkshop 
-          ? (chat.workshop_details?.name || "Unknown Workshop") 
-          : (chat.user_details?.username || "Unknown User");
+        // const name = isCurrentUserWorkshop 
+        //   ? (chat.workshop_details?.name || "Unknown Workshop") 
+        //   : (chat.user_details?.username || "Unknown User");
           
         const image = isCurrentUserWorkshop 
           ? (chat.workshop_details?.document) 
@@ -59,7 +59,7 @@ const MessageList = ({ searchQuery, onChatOpen, chatThreads, loading, error }) =
             <div className="flex items-center relative">
               <img 
                 src={image} 
-                alt={name} 
+                alt=''
                 className="w-10 h-10 rounded-full mr-3 object-cover"
                 onError={(e) => {
                   e.target.onerror = null;
@@ -74,7 +74,7 @@ const MessageList = ({ searchQuery, onChatOpen, chatThreads, loading, error }) =
             </div>
 
             <div className="flex-1 min-w-0">
-              <p className="font-medium truncate">{name}</p>
+              <p className="font-medium truncate">{chat?.user_details?.name}</p>
               <p className="text-gray-500 truncate text-sm">{lastMessage}</p>
             </div>
 

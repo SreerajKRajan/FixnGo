@@ -391,6 +391,7 @@ class NearbyWorkshopsView(APIView):
              if workshop.latitude is not None and workshop.longitude is not None:
                  try:
                      distance = haversine(user_lat, user_lon, workshop.latitude, workshop.longitude)
+                     print("distance: ", distance)
                      if distance <= radius_km:  # Only include if truly within radius
                          nearby_workshops.append({
                              "id": workshop.id,
@@ -444,7 +445,7 @@ class UserWorkshopsListView(ListAPIView):
         
         # Handle custom sorting options
         if sort_param == 'name':
-            return queryset.order_by('name')
+            return queryset.order_by('name', 'location')
         elif sort_param == '-created_at':
             return queryset.order_by('-created_at')
         
@@ -457,6 +458,7 @@ class UserWorkshopsListView(ListAPIView):
         sort_param = self.request.query_params.get('sort', None)
         user_lat = self.request.query_params.get('latitude')
         user_lng = self.request.query_params.get('longitude')
+        print(f"lat {user_lat} and lon {user_lng}")
         
         # If sorting by distance and coordinates are provided
         if sort_param == 'distance' and user_lat and user_lng:
@@ -473,6 +475,7 @@ class UserWorkshopsListView(ListAPIView):
                     try:
                         # Calculate distance using Haversine formula from utils
                         distance = haversine(user_lat, user_lng, workshop.latitude, workshop.longitude)
+                        print("distance: ", distance)
                         # Create a dictionary with workshop data and distance
                         workshop_dict = self.get_serializer(workshop).data
                         workshop_dict['distance'] = round(distance, 2)

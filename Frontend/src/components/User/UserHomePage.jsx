@@ -137,6 +137,7 @@ export default function UserHomePage() {
             <div className="mt-8">
               <UserWorkshops 
                 userLocation={userLocation} 
+                setUserLocation={setUserLocation}
                 // Pass null for workshops to force the component to fetch its own data
                 workshops={null}
                 // Pass handlers for state sharing
