@@ -36,6 +36,7 @@ class WorkshopSerializer(serializers.ModelSerializer):
     class Meta:
         model = Workshop
         fields = '__all__'
+        read_only_fields = ['profile_image', 'document']
 
     def get_document(self, obj):
         # Generate presigned URL directly using the original document URL

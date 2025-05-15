@@ -11,6 +11,7 @@ import {
 import axiosInstance from "../../utils/axiosInstance";
 import { useNavigate } from "react-router-dom";
 import { Search, MapPin, ChevronDown } from "lucide-react";
+import defaultProfileImage from "../../assets/no-profile.png"
 
 // Shimmer Effect Component
 const ShimmerEffect = ({ className }) => (
@@ -330,7 +331,7 @@ export default function UserWorkshops({
                   <ShimmerEffect className="absolute inset-0 rounded-t-lg h-48 w-full" />
                 )}
                 <img
-                  src={workshop.document}
+                  src={workshop.profile_image || defaultProfileImage}
                   alt={workshop.name}
                   className={`rounded-t-lg h-48 w-full object-cover ${
                     loadingImages[workshop.id] ? "opacity-0" : "opacity-100"

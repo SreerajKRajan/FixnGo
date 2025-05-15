@@ -7,7 +7,7 @@ import Header from "./WorkshopHeader";
 import Footer from "./WorkshopFooter";
 import { useEffect, useState } from "react";
 import axiosInstance from "../../utils/axiosInstance";
-import EditWorkshopModal from "./EditWorkshopModal";
+import EditWorkshopModal from "./EditWorkshopProfileModal";
 import defaultProfileImage from "../../assets/no-profile.png"
 
 // Shimmer Loading Component

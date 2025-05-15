@@ -7,7 +7,7 @@ import Header from "./Header"
 import Footer from "./Footer"
 import { useEffect, useState } from "react"
 import axiosInstance from "../../utils/axiosInstance"
-import EditProfileModal from "./EditProfileModal"
+import EditProfileModal from "./EditUserProfileModal"
 import UserRequestHistory from "../User/UserRequestHistory"
 import defaultProfileImage from "../../assets/no-profile.png"
 

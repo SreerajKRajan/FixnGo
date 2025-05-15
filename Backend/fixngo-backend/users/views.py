@@ -404,6 +404,7 @@ class NearbyWorkshopsView(APIView):
                              "longitude": workshop.longitude,
                              "distance": round(distance, 2),
                              "document": workshop.document.url if workshop.document else None,
+                             "profile_image": workshop.profile_image.url if workshop.profile_image else None,
                          })
                  except ValueError:
                      continue
@@ -476,7 +477,6 @@ class UserWorkshopsListView(ListAPIView):
                     try:
                         # Calculate distance using Haversine formula from utils
                         distance = haversine(user_lat, user_lng, workshop.latitude, workshop.longitude)
-                        print("distance: ", distance)
                         # Create a dictionary with workshop data and distance
                         workshop_dict = self.get_serializer(workshop).data
                         workshop_dict['distance'] = round(distance, 2)

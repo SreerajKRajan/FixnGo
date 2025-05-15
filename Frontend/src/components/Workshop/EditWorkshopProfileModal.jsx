@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import React, { useState } from "react";
 
 function EditWorkshopModal({ workshopData, onClose, onProfileUpdate }) {
-  const [previewImage, setPreviewImage] = useState(workshopData?.profile_image_url || null);
+  const [previewImage, setPreviewImage] = useState(workshopData?.profile_image || null);
   const [documentName, setDocumentName] = useState("No file chosen");
 
   const formik = useFormik({

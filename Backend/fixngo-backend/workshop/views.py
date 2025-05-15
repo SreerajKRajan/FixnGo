@@ -826,16 +826,17 @@ class WorkshopProfileView(APIView):
                 
             try:
                 s3_file_path = f"media/workshop_documents/{workshop.id}/"
-                s3_key = upload_to_s3(document, s3_file_path)
-                document_url = get_s3_file_url(document.name, s3_file_path)
+                s3_key = f"{s3_file_path}{document.name}"
+                upload_to_s3(document, s3_file_path)
                 
                 # Save the document to the workshop model
-                workshop.document = document_url
+                workshop.document = s3_key
                 workshop.save()
             except Exception as e:
                 return Response({"error": f"Failed to upload document: {str(e)}"}, status=500)
-        
-        serializer = WorkshopSerializer(workshop, data=request.data, partial=True)
+            
+        data = {key: value for key, value in request.data.items() if key not in ['document', 'profile_image']}
+        serializer = WorkshopSerializer(workshop, data=data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response({"message": "Workshop profile updated successfully!"})
