@@ -315,6 +315,7 @@ class UserProfileView(APIView):
 
     def put(self, request):
         user = request.user
+        print("User, ", user)
 
         # Handle profile image upload
         if 'profile_image' in request.FILES:

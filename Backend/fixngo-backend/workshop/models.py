@@ -22,6 +22,7 @@ class Workshop(AbstractBaseUser):
     latitude = models.FloatField(null=True, blank=True)
     longitude = models.FloatField(null=True, blank=True)
     phone       = models.CharField(max_length=15, unique=True)
+    profile_image = models.URLField(max_length=500)
     document = models.FileField(max_length=500, validators=[FileExtensionValidator(allowed_extensions=['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png'])])
     rejection_reason = models.TextField(blank=True, null=True)
     approval_status = models.CharField(max_length=50, default='pending', choices=[('pending', 'Pending'), ('approved', 'Approved'), ('rejected', 'Rejected')])

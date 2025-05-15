@@ -17,6 +17,7 @@ from .views import (
     RecentActivityAPIView,
     WorkshopServicesAPIView,
     WorkshopRatingDistributionAPIView,
+    WorkshopProfileView,
 )
 
 urlpatterns = [
@@ -26,6 +27,7 @@ urlpatterns = [
     path('logout/', WorkshopLogoutView.as_view(), name='workshop-logout'),
     path('forgot-password/', WorkshopForgotPasswordView.as_view(), name='workshop-forgot-password'),
     path('reset-password/<uidb64>/<token>/', WorkshopResetPasswordView.as_view(), name='workshop-reset-password'),
+    path('profile/', WorkshopProfileView.as_view(), name='workshop-profile'),
     
     path('services/', WorkshopServiceCreateAPIView.as_view(), name='workshop-service-create'),
     path('services/list/', WorkshopServiceListAPIView.as_view(), name='workshop-service-list'),

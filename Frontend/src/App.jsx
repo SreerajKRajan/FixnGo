@@ -22,6 +22,7 @@ import PaymentRequests from "./components/User/PaymentRequests";
 import Layout from "./components/Layout";
 import WorkshopDashboard from "./components/Workshop/WorkshopDashboard";
 import UserRequestsPage from "./components/Workshop/ServiceManagement/UserRequestsPage";
+import WorkshopProfile from "./components/Workshop/WorkshopProfile";
 
 function App() {
   return (
@@ -181,6 +182,16 @@ function App() {
               <ProtectedRoute role="workshop">
                 <Layout>
                   <WorkshopServiceManagement />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/workshop/profile"
+            element={
+              <ProtectedRoute role="workshop">
+                <Layout>
+                  <WorkshopProfile />
                 </Layout>
               </ProtectedRoute>
             }

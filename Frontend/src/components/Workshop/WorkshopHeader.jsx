@@ -26,10 +26,12 @@ const WorkshopHeader = () => {
           </button>
           <button className="p-2 rounded-full bg-gray-800 hover:bg-gray-700 text-white">
             <FaVideo />
-          </button>
+          </button> */}
+          <Link to={"/workshop/profile"}>
           <button className="p-2 rounded-full bg-gray-800 hover:bg-gray-700 text-white">
             <FaUser />
-          </button> */}
+          </button>
+          </Link>
           <Link to={"/workshop/services"}>
             <button className="bg-white text-black py-1 px-3 rounded-md hover:bg-gray-200 transition duration-300">
               Service List

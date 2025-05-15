@@ -1,14 +1,14 @@
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from .serializers import WorkshopSignupSerializer, WorkshopLoginSerializer, WorkshopServiceSerializer
+from .serializers import WorkshopSignupSerializer, WorkshopLoginSerializer, WorkshopServiceSerializer, WorkshopSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 from .models import Workshop, WorkshopOtp, WorkshopService
 from datetime import timedelta
 from django.utils import timezone
 import random
 from .tokens import WorkshopToken
-from utils.s3_utils import upload_to_s3
+from utils.s3_utils import upload_to_s3, get_s3_file_url
 from .authentication import WorkshopJWTAuthentication
 from .permissions import IsWorkshopUser
 from service.models import Service
@@ -28,7 +28,7 @@ from admin_side.views import CommonPagination
 from django.db.models import Sum, Count, Avg
 from dateutil.relativedelta import relativedelta
 from django.db.models.functions import ExtractMonth, TruncMonth
-
+import logging
 
 
 class WorkshopSignupView(APIView):
@@ -762,3 +762,82 @@ class WorkshopServicesAPIView(APIView):
             })
         
         return Response(result)
+    
+    
+class WorkshopProfileView(APIView):
+    authentication_classes = [WorkshopJWTAuthentication]
+    permission_classes = [IsWorkshopUser]
+    
+    def get(self, request):
+        workshop = request.user
+
+        # Check if the workshop is approved
+        if not workshop.is_approved:
+            return Response({
+                "error": "Your workshop account is not approved yet or has been rejected.",
+                "status": workshop.approval_status,
+                "rejection_reason": workshop.rejection_reason
+            }, status=status.HTTP_403_FORBIDDEN)
+
+        serializer = WorkshopSerializer(workshop)
+        return Response(serializer.data)
+
+    def put(self, request):
+        workshop = request.user
+
+        # Check if the workshop is approved before allowing updates
+        if not workshop.is_approved:
+            return Response({
+                "error": "Your workshop account is not approved yet or has been rejected.",
+                "status": workshop.approval_status,
+                "rejection_reason": workshop.rejection_reason
+            }, status=status.HTTP_403_FORBIDDEN)
+
+        # Handle profile image upload
+        if 'profile_image' in request.FILES:
+            profile_image = request.FILES['profile_image']
+
+            # Validate it's an image
+            if not profile_image.content_type.startswith('image/'):
+                return Response({"error": "Only image files are allowed for profile image."}, status=400)
+
+            try:
+                s3_file_path = f"media/workshop_profile_images/{workshop.id}/"
+                s3_key = upload_to_s3(profile_image, s3_file_path)
+                image_url = get_s3_file_url(profile_image.name, s3_file_path)
+
+                # Save the full S3 image URL to workshop model
+                workshop.profile_image = image_url
+                workshop.save()
+            except Exception as e:
+                return Response({"error": f"Failed to upload profile image: {str(e)}"}, status=500)
+
+        # Handle document upload if provided
+        if 'document' in request.FILES:
+            document = request.FILES['document']
+            
+            # Validate allowed document types
+            allowed_types = ['application/pdf', 'application/msword', 
+                            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                            'image/jpeg', 'image/png']
+            
+            if document.content_type not in allowed_types:
+                return Response({"error": "Only PDF, DOC, DOCX, JPG, JPEG or PNG files are allowed for documents."}, status=400)
+                
+            try:
+                s3_file_path = f"media/workshop_documents/{workshop.id}/"
+                s3_key = upload_to_s3(document, s3_file_path)
+                document_url = get_s3_file_url(document.name, s3_file_path)
+                
+                # Save the document to the workshop model
+                workshop.document = document_url
+                workshop.save()
+            except Exception as e:
+                return Response({"error": f"Failed to upload document: {str(e)}"}, status=500)
+        
+        serializer = WorkshopSerializer(workshop, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"message": "Workshop profile updated successfully!"})
+
+        return Response(serializer.errors, status=400)
