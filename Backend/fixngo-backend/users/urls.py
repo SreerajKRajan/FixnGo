@@ -17,7 +17,10 @@ from .views import (
     google_signup,
     UserPaymentsHistoryView,
     UserServiceRequestsHistoryView,
-    WorkshopReviewsView
+    WorkshopReviewsView,
+    UserChatThreadsAPIView,
+    UserChatHistoryAPIView,
+    UserMarkMessagesReadView,
 )
 
 urlpatterns = [
@@ -42,4 +45,9 @@ urlpatterns = [
     path('payments/history/', UserPaymentsHistoryView.as_view(), name='user-payments'),
     
     path('workshops/<int:workshop_id>/reviews/', WorkshopReviewsView.as_view(), name='workshop-reviews'),
+    
+    path('chat/threads/', UserChatThreadsAPIView.as_view(), name='user-chat-threads'),
+    path('chat/history/<str:workshop_id>/', UserChatHistoryAPIView.as_view(), name='user-chat-history'),
+    path('chat/mark-read/<str:room_id>/', UserMarkMessagesReadView.as_view(), name='user-mark-messages-read'),
+
 ]

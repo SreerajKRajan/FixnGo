@@ -4,7 +4,7 @@ import * as Yup from "yup";
 import { useDispatch } from "react-redux";
 import { toast } from "sonner";
 import { sendForgotPasswordEmail } from "../../store/userAuthSlice";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 const ForgotPasswordSchema = Yup.object().shape({
   email: Yup.string().email("Invalid email").required("Email is required"),
@@ -12,13 +12,15 @@ const ForgotPasswordSchema = Yup.object().shape({
 
 export default function UserForgotPassword() {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
 
   const handleSubmit = async (values, { setSubmitting }) => {
     try {
       await dispatch(sendForgotPasswordEmail(values)).unwrap();
       toast.success(
-        "Password reset email sent! Please check your inbox for the reset link."
+        "Password reset email sent! Please check your inbox for the reset link." 
       );
+      navigate("/login");
     } catch (error) {
       console.error("Failed to send password reset email:", error);
 

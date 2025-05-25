@@ -18,6 +18,7 @@ const NewPasswordSchema = Yup.object().shape({
 
 export default function UserCreateNewPassword() {
   const [showPassword, setShowPassword] = useState(false);
+  const [expiredLink, setExpiredLink] = useState(false);
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { uidb64, token } = useParams(); // Assume token is passed via URL
@@ -29,7 +30,12 @@ export default function UserCreateNewPassword() {
   const handleSubmit = async (values, { setSubmitting }) => {
     try {
       const response = await dispatch(
-        resetPassword({ uidb64, token, password: values.password, confirmPassword: values.confirmPassword })
+        resetPassword({
+          uidb64,
+          token,
+          password: values.password,
+          confirmPassword: values.confirmPassword,
+        })
       ).unwrap();
       toast.success("Password reset successful!");
       navigate("/login");
@@ -37,7 +43,11 @@ export default function UserCreateNewPassword() {
       console.error("Password reset failed:", error);
       const errorMessage =
         error?.error || error?.detail || "Failed to reset password. Try again.";
-      toast.error(errorMessage);
+      if (errorMessage === "Invalid or expired token.") {
+        setExpiredLink(true);
+      } else {
+        toast.error(errorMessage);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -56,91 +66,104 @@ export default function UserCreateNewPassword() {
             </p>
           </div>
 
-          <Formik
-            initialValues={{
-              password: "",
-              confirmPassword: "",
-            }}
-            validationSchema={NewPasswordSchema}
-            onSubmit={handleSubmit}
-          >
-            {({ isSubmitting }) => (
-              <Form className="mt-4 space-y-4">
-                <div>
-                  <label
-                    htmlFor="password"
-                    className="block text-xs font-medium text-gray-700"
-                  >
-                    New Password
-                  </label>
-                  <div className="mt-1 relative">
-                    <Field
-                      type={showPassword ? "text" : "password"}
-                      name="password"
-                      id="password"
-                      className="appearance-none block w-full pr-10 px-2 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-black focus:border-black sm:text-xs"
-                      placeholder="••••••••"
-                    />
-                    <button
-                      type="button"
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                      onClick={togglePasswordVisibility}
+          {expiredLink ? (
+            <div className="text-center text-red-600 text-sm mt-4">
+              This password reset link is invalid or has already been used.
+              <br />
+              <a
+                href="/forgot-password"
+                className="text-blue-600 underline hover:text-blue-800"
+              >
+                Request a new password reset link
+              </a>
+            </div>
+          ) : (
+            <Formik
+              initialValues={{
+                password: "",
+                confirmPassword: "",
+              }}
+              validationSchema={NewPasswordSchema}
+              onSubmit={handleSubmit}
+            >
+              {({ isSubmitting }) => (
+                <Form className="mt-4 space-y-4">
+                  <div>
+                    <label
+                      htmlFor="password"
+                      className="block text-xs font-medium text-gray-700"
                     >
-                      {!showPassword ? (
-                        <EyeSlashIcon
-                          className="h-5 w-5 text-gray-400"
-                          aria-hidden="true"
-                        />
-                      ) : (
-                        <EyeIcon
-                          className="h-5 w-5 text-gray-400"
-                          aria-hidden="true"
-                        />
-                      )}
+                      New Password
+                    </label>
+                    <div className="mt-1 relative">
+                      <Field
+                        type={showPassword ? "text" : "password"}
+                        name="password"
+                        id="password"
+                        className="appearance-none block w-full pr-10 px-2 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-black focus:border-black sm:text-xs"
+                        placeholder="••••••••"
+                      />
+                      <button
+                        type="button"
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                        onClick={togglePasswordVisibility}
+                      >
+                        {!showPassword ? (
+                          <EyeSlashIcon
+                            className="h-5 w-5 text-gray-400"
+                            aria-hidden="true"
+                          />
+                        ) : (
+                          <EyeIcon
+                            className="h-5 w-5 text-gray-400"
+                            aria-hidden="true"
+                          />
+                        )}
+                      </button>
+                    </div>
+                    <ErrorMessage
+                      name="password"
+                      component="div"
+                      className="mt-1 text-xs text-red-600"
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="confirmPassword"
+                      className="block text-xs font-medium text-gray-700"
+                    >
+                      Confirm New Password
+                    </label>
+                    <div className="mt-1">
+                      <Field
+                        type="password"
+                        name="confirmPassword"
+                        id="confirmPassword"
+                        className="appearance-none block w-full px-2 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-black focus:border-black sm:text-xs"
+                        placeholder="••••••••"
+                      />
+                    </div>
+                    <ErrorMessage
+                      name="confirmPassword"
+                      component="div"
+                      className="mt-1 text-xs text-red-600"
+                    />
+                  </div>
+
+                  <div>
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-xs font-medium text-white bg-black hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black transition duration-150 ease-in-out"
+                    >
+                      {isSubmitting ? "Saving..." : "Save Password"}
                     </button>
                   </div>
-                  <ErrorMessage
-                    name="password"
-                    component="div"
-                    className="mt-1 text-xs text-red-600"
-                  />
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="confirmPassword"
-                    className="block text-xs font-medium text-gray-700"
-                  >
-                    Confirm New Password
-                  </label>
-                  <div className="mt-1">
-                    <Field
-                      type="password"
-                      name="confirmPassword"
-                      id="confirmPassword"
-                      className="appearance-none block w-full px-2 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-black focus:border-black sm:text-xs"
-                      placeholder="••••••••"
-                    />
-                  </div>
-                  <ErrorMessage
-                    name="confirmPassword"
-                    component="div"
-                    className="mt-1 text-xs text-red-600"
-                  />
-                </div>
-
-                <div>
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-xs font-medium text-white bg-black hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black transition duration-150 ease-in-out"
-                  >
-                    {isSubmitting ? "Saving..." : "Save Password"}
-                  </button>
-                </div>
-              </Form>
-            )}
-          </Formik>
+                </Form>
+              )}
+            </Formik>
+          )}
         </div>
       </div>
     </div>

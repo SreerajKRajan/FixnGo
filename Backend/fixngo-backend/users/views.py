@@ -39,6 +39,8 @@ from rest_framework.pagination import PageNumberPagination
 from django.db.models import F, Q, Avg
 from django.db.models.expressions import RawSQL
 import math
+from chat.models import Message
+from chat.serializers import MessageSerializer
 
 # Create your views here.
 
@@ -299,7 +301,7 @@ class ResetPasswordView(APIView):
         if new_password != confirm_password:
             return Response({"error": "Passwords do not match."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Update the password
+        # Update the passwordcd 
         user.set_password(new_password)
         user.save()
 
@@ -404,7 +406,7 @@ class NearbyWorkshopsView(APIView):
                              "longitude": workshop.longitude,
                              "distance": round(distance, 2),
                              "document": workshop.document.url if workshop.document else None,
-                             "profile_image": workshop.profile_image.url if workshop.profile_image else None,
+                            #  "profile_image": workshop.profile_image.url if workshop.profile_image else None,
                          })
                  except ValueError:
                      continue
@@ -789,3 +791,126 @@ class WorkshopReviewsView(APIView):
             
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        
+        
+class UserChatHistoryAPIView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get(self, request, workshop_id):
+        """
+        Get chat history between the logged-in user and a specific workshop
+        
+        workshop_id: The ID of the workshop to get chat history with
+        """
+        try:
+            user = request.user
+            
+            # Find the workshop
+            workshop = Workshop.objects.filter(id=workshop_id).first()
+            
+            if not workshop:
+                return Response(
+                    {"error": "Workshop not found"},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+                
+            # Construct the room name based on the convention
+            room_name = f"chat_{user.id}_{workshop_id}"
+            
+            # Get messages for this room
+            messages = Message.objects.filter(room_name=room_name)
+            
+            # Serialize and return the messages
+            serializer = MessageSerializer(messages, many=True)
+            return Response(serializer.data)
+            
+        except Exception as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+class UserChatThreadsAPIView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        """
+        Get all chat threads for the logged-in user with various workshops
+        """
+        try:
+            user = request.user
+            
+            # Fetch messages involving the current user
+            messages = Message.objects.filter(
+                Q(sender_user=user) | Q(receiver_user=user)
+            ).order_by('room_name', '-timestamp').distinct('room_name')
+
+            threads = []
+            
+            for msg in messages:
+                workshop = None
+                
+                # Determine which workshop the user is chatting with
+                if msg.sender_workshop:
+                    workshop = msg.sender_workshop
+                elif msg.receiver_workshop:
+                    workshop = msg.receiver_workshop
+                
+                if not workshop:
+                    continue
+
+                # Count unread messages in this thread
+                unread_count = Message.objects.filter(
+                    room_name=msg.room_name,
+                    is_read=False
+                ).exclude(sender_user=user).count()
+
+                # Build thread response with workshop details
+                thread = {
+                    'id': msg.room_name,
+                    'workshop_details': {
+                        'id': workshop.id,
+                        'name': workshop.name,
+                        'document': workshop.document.url if workshop.document and hasattr(workshop.document, 'name') else '/default-avatar.png'
+                    },
+                    'last_message': msg.message,
+                    'last_message_timestamp': msg.timestamp,
+                    'unread_count': unread_count,
+                    'created_at': msg.timestamp
+                }
+                
+                threads.append(thread)
+
+            return Response(threads)
+
+        except Exception as e:
+            return Response(
+                {"error": str(e)}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+            
+class UserMarkMessagesReadView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def post(self, request, room_id):
+        try:
+            user = request.user
+            
+            # Parse room ID to extract workshop ID
+            # Format: chat_[user_id]_[workshop_id]
+            parts = room_id.split('_')
+            if len(parts) != 3:
+                return Response({"error": "Invalid room ID format"}, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Mark all messages as read where the user is the receiver
+            Message.objects.filter(
+                room_name=room_id,
+                receiver_user=user,
+                is_read=False
+            ).update(is_read=True)
+            
+            return Response({"success": True})
+            
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
