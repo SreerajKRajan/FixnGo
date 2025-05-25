@@ -22,17 +22,18 @@ class ChatConsumer(AsyncWebsocketConsumer):
         await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
 
     async def receive(self, text_data):
-        print(text_data, 'text_data', type(text_data))
         data = json.loads(text_data)
-        print(data, 'data', type(data))
         message = data['message']
+        temporary_id = data.get('temporary_id')
         user = self.scope["user"]
         
-        print(user, user.is_authenticated, 'ddd')
         if user.is_authenticated:
             # Determine if the authenticated user is a regular user or workshop
             sender_user = user if isinstance(user, User) else None
             sender_workshop = user if isinstance(user, Workshop) else None
+            
+            # Determine the sender's ID for the message
+            sender_id = sender_user.id if sender_user else sender_workshop.id if sender_workshop else None
             
             # Determine receiver (whether it's a user-to-workshop or user-to-user chat)
             receiver_user = None
@@ -40,10 +41,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
             
             # If sender is a user, the other party is determined by workshop_id
             if sender_user:
-                # If workshop_id is not 0, it's a user-to-workshop chat
                 if int(self.workshop_id) > 0:
                     receiver_workshop = await self.get_workshop(int(self.workshop_id))
-                # Otherwise, it's a user-to-user chat
                 else:
                     receiver_user = await self.get_user(int(self.user_id))
             # If sender is a workshop, the receiver is the user
@@ -67,8 +66,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     "type": "chat_message",
                     "message": message,
                     "username": user.email,
+                    "sender_id": sender_id,
                     "timestamp": str(timestamp),
-                    "message_id": message_obj.id if message_obj else None
+                    "message_id": message_obj.id if message_obj else None,
+                    "temporary_id": temporary_id
                 }
             )
 

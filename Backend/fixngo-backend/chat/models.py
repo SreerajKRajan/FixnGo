@@ -14,7 +14,7 @@ class Message(models.Model):
     is_read = models.BooleanField(default=False)
 
     class Meta:
-        ordering = ['-timestamp']
+        ordering = ['timestamp']
 
     def __str__(self):
         return f"{self.sender_user or self.sender_workshop} -> {self.receiver_user or self.receiver_workshop}: {self.message}"

@@ -12,50 +12,50 @@ const ChatComponent = ({ role, newChat, onChatClose }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Fetch chat threads when component mounts
+  // Fetch chat threads when component mounts or role changes
   useEffect(() => {
     fetchChatThreads();
-  }, []);
+  }, [role]);
 
-  // Fetch chat threads from the API
+  // Fetch chat threads from the API based on role
   const fetchChatThreads = async () => {
     try {
       setLoading(true);
-      console.log("Fetching chat threads...");
-      const response = await axiosInstance.get('/chat/threads/');
-      console.log("Chat threads response:", response.data);
+      const endpoint = role === 'workshop' ? '/workshop/chat/threads/' : '/users/chat/threads/';
+      const response = await axiosInstance.get(endpoint);
       
       if (response.data && Array.isArray(response.data)) {
-        setThreads(response.data);
+        // Sort threads by last message timestamp (newest first)
+        const sortedThreads = response.data.sort((a, b) => 
+          new Date(b.last_message_timestamp) - new Date(a.last_message_timestamp)
+        );
+        
+        // Fix: Deduplicate threads based on unique user IDs for workshop side
+        if (role === 'workshop') {
+          const uniqueThreads = [];
+          const seenUserIds = new Set();
+          
+          for (const thread of sortedThreads) {
+            const userId = thread.user_details?.id;
+            if (userId && !seenUserIds.has(userId)) {
+              seenUserIds.add(userId);
+              uniqueThreads.push(thread);
+            }
+          }
+          setThreads(uniqueThreads);
+        } else {
+          setThreads(sortedThreads);
+        }
       } else {
-        // If response is not an array, use empty array
-        console.warn("Chat threads response is not an array:", response.data);
         setThreads([]);
       }
     } catch (error) {
       console.error("Failed to fetch chat threads:", error);
       setError("Failed to load chats. Please try again.");
-      
-      // Fall back to empty array for threads
       setThreads([]);
     } finally {
       setLoading(false);
     }
-  };
-
-  // Toggle the chat panel
-  const toggleExpand = () => setIsExpanded(!isExpanded);
-
-  // Open a chat window
-  const openChat = (chat) => {
-    setActiveChat(chat);
-  };
-
-  // Close a chat window
-  const closeChat = () => {
-    setActiveChat(null);
-    // Call the onChatClose prop if it exists
-    if (onChatClose) onChatClose();
   };
 
   // Handle new chat prop changes
@@ -70,11 +70,13 @@ const ChatComponent = ({ role, newChat, onChatClose }) => {
       <div className="w-80 bg-white border border-gray-300 rounded-t-lg shadow-lg">
         <div
           className="flex items-center justify-between p-3 cursor-pointer bg-black text-white rounded-t-lg"
-          onClick={toggleExpand}
+          onClick={() => setIsExpanded(!isExpanded)}
         >
           <div className="flex items-center space-x-2">
             <MessageSquare size={20} />
-            <span className="font-semibold">Messaging</span>
+            <span className="font-semibold">
+              {role === 'workshop' ? 'Customer Messages' : 'Workshop Messages'}
+            </span>
           </div>
           {isExpanded ? <ChevronDown size={20} /> : <ChevronUp size={20} />}
         </div>
@@ -93,7 +95,7 @@ const ChatComponent = ({ role, newChat, onChatClose }) => {
             <MessageList
               role={role}
               searchQuery={searchQuery}
-              onChatOpen={openChat}
+              onChatOpen={setActiveChat}
               chatThreads={threads}
               loading={loading}
               error={error}
@@ -106,10 +108,17 @@ const ChatComponent = ({ role, newChat, onChatClose }) => {
         <ChatWindow
           chat={activeChat}
           roomId={activeChat.id} 
-          user={activeChat.user_details} 
-          workshop={activeChat.workshop_details}
-          onClose={closeChat}
-          onMessageSent={fetchChatThreads} // Refresh threads when message sent
+          role={role}
+          chatPartner={
+            role === 'workshop' 
+              ? activeChat.user_details 
+              : activeChat.workshop_details
+          }
+          onClose={() => {
+            setActiveChat(null);
+            if (onChatClose) onChatClose();
+          }}
+          onMessageSent={fetchChatThreads}
         />
       )}
     </div>
