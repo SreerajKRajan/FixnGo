@@ -37,6 +37,7 @@ export default function WorkshopServiceManagement() {
     } catch (error) {
       console.error("Failed to fetch platform fee:", error);
     }
+    
   };
 
   const handleTabChange = (value) => {
