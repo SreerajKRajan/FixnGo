@@ -4,7 +4,7 @@ import {
   TabsContent,
   TabsList,
   TabsTrigger,
-} from "@/components/uis/Tabs";
+} from "@/components/uis/tabs";
 import { Button } from "@/components/ui/button";
 import { PlusCircle } from "lucide-react";
 import { ServiceHeader } from "./ServiceHeader";
@@ -12,7 +12,7 @@ import { GlobalServicesTab } from "./GlobalServicesTab";
 import { MyServicesTab } from "./MyServicesTab";
 import { AllServicesTab } from "./AllServicesTab";
 import { CustomServiceModal } from "./CustomServiceModal";
-import { Toaster } from "@/components/uis/Toaster";
+import { Toaster } from "@/components/uis/toaster";
 import { useToast } from "@/components/uis/use-toast";
 import WorkshopHeader from "@/components/Workshop/WorkshopHeader";
 import WorkshopFooter from "@/components/Workshop/WorkshopFooter";

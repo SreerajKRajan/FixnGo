@@ -9,7 +9,7 @@ import {
   Button,
   Chip,
 } from "@nextui-org/react";
-import { Modal, ModalHeader, ModalBody, ModalFooter } from "../uis/Modal";
+import { Modal, ModalHeader, ModalBody, ModalFooter } from "../uis/modal";
 import axiosInstance from "../../utils/axiosInstance";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";

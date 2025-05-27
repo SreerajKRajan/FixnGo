@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Modal, ModalHeader, ModalBody, ModalFooter } from "../uis/Modal";
+import { Modal, ModalHeader, ModalBody, ModalFooter } from "../uis/modal";
 import { Button } from "@nextui-org/react";
 import { StarIcon } from "@heroicons/react/24/solid";
 import { StarIcon as StarIconOutline } from "@heroicons/react/24/outline";

@@ -16,7 +16,7 @@ import {
   Avatar,
   Badge,
 } from "@nextui-org/react";
-import { Modal, ModalHeader, ModalBody, ModalFooter } from "../uis/Modal";
+import { Modal, ModalHeader, ModalBody, ModalFooter } from "../uis/modal";
 import { toast } from "sonner";
 import axiosInstance from "../../utils/axiosInstance";
 import { Formik, Form, Field, ErrorMessage } from "formik";

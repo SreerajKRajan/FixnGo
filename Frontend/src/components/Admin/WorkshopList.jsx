@@ -17,7 +17,7 @@ import {
 } from "@nextui-org/react";
 import axiosInstance from "../../utils/axiosInstance";
 import { toast } from "sonner";
-import { Modal, ModalHeader, ModalBody, ModalFooter } from "../uis/Modal";
+import { Modal, ModalHeader, ModalBody, ModalFooter } from "../uis/modal";
 
 export function WorkshopList() {
   const [workshops, setWorkshops] = useState([]);
