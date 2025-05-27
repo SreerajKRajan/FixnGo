@@ -5,7 +5,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/uis/Tabs";
-import { Button } from "@/components/ui/Button.jsx";
+import { Button } from "@nextui-org/react";
 import { PlusCircle } from "lucide-react";
 import { ServiceHeader } from "./ServiceHeader";
 import { GlobalServicesTab } from "./GlobalServicesTab";
