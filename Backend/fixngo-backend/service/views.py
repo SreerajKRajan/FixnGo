@@ -65,7 +65,7 @@ class PendingWorkshopServicesAPIView(APIView):
             Workshop.objects.filter(workshop_services__is_approved=False)
             .distinct()
             .values("id", "name", "email")  # Include relevant workshop details
-        )
+        ).order_by("-created_at")
         return Response(workshops, status=status.HTTP_200_OK)
     
 class WorkshopsWithPendingServicesAPIView(APIView):

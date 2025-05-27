@@ -610,9 +610,8 @@ class CreateOrderAPIView(APIView):
             })
             
             # Platform fee calculation
-            PLATFORM_FEE_PERCENTAGE = 10  # You can later move this to settings.py
             total_amount_paise = int(amount)
-            platform_fee_paise = int(total_amount_paise * PLATFORM_FEE_PERCENTAGE / 100)
+            platform_fee_paise = int(total_amount_paise * settings.PLATFORM_FEE_PERCENTAGE  / 100)
             workshop_amount_paise = total_amount_paise - platform_fee_paise
 
             # Save payment record in the database

@@ -32,6 +32,8 @@ from django.db.models.functions import ExtractMonth, TruncMonth
 import logging
 from chat.models import Message
 from chat.serializers import MessageSerializer
+from django.conf import settings
+
 
 class WorkshopSignupView(APIView):
     def post(self, request):
@@ -273,6 +275,11 @@ class WorkshopServiceCreateAPIView(APIView):
     authentication_classes = [WorkshopJWTAuthentication]
     permission_classes = [IsWorkshopUser]
     
+    def get(self, request):
+        return Response({
+            "platform_fee_percentage": getattr(settings, "PLATFORM_FEE_PERCENTAGE")
+        })
+    
     def post(self, request):
         workshop = request.user
         admin_service_id = request.data.get('admin_service_id')
@@ -366,6 +373,7 @@ class WorkshopServiceListAPIView(APIView):
                 "admin_services_added": admin_services_added_serialized,
                 "workshop_services_approved": workshop_services_approved_serialized,
                 "workshop_services_pending": workshop_services_pending_serialized,
+                "platform_fee_percentage": settings.PLATFORM_FEE_PERCENTAGE,
             },
             status=status.HTTP_200_OK,
         )
@@ -531,7 +539,7 @@ class WorkshopDashboardAPIView(APIView):
             service_request__workshop=workshop,
             status="SUCCESS"
         )
-        total_earnings = successful_payments.aggregate(total=Sum('amount'))['total'] or 0
+        total_earnings = successful_payments.aggregate(total=Sum('workshop_amount'))['total'] or 0
         
         # Calculate changes from previous periods for context
         # Last month's service requests

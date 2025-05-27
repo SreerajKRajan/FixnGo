@@ -15,19 +15,15 @@ import * as Yup from "yup";
 
 // Define the validation schema
 const serviceSchema = Yup.object().shape({
-  serviceName: Yup.string()
-    .trim()
-    .required("Service name is required"),
-  description: Yup.string()
-    .trim()
-    .required("Description is required"),
+  serviceName: Yup.string().trim().required("Service name is required"),
+  description: Yup.string().trim().required("Description is required"),
   price: Yup.number()
     .typeError("Price must be a number")
     .positive("Price must be greater than zero")
     .required("Price is required"),
 });
 
-export function CustomServiceModal({ isOpen, onClose, onSubmit }) {
+export function CustomServiceModal({ isOpen, onClose, onSubmit, platformFee }) {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[425px]">
@@ -53,69 +49,66 @@ export function CustomServiceModal({ isOpen, onClose, onSubmit }) {
         >
           {({ isSubmitting }) => (
             <Form>
-              <div className="grid gap-4 py-4">
+              <div className="space-y-4 py-4">
                 {/* Service Name */}
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="serviceName" className="text-right">
-                    Name
-                  </Label>
-                  <div className="col-span-3">
-                    <Field
-                      id="serviceName"
-                      name="serviceName"
-                      as={Input}
-                      className="w-full"
-                    />
-                    <ErrorMessage
-                      name="serviceName"
-                      component="div"
-                      className="text-red-500 text-sm"
-                    />
-                  </div>
+                <div>
+                  <Label htmlFor="serviceName">Name</Label>
+                  <Field
+                    id="serviceName"
+                    name="serviceName"
+                    as={Input}
+                    className="w-full"
+                  />
+                  <ErrorMessage
+                    name="serviceName"
+                    component="div"
+                    className="text-red-500 text-sm"
+                  />
                 </div>
 
                 {/* Description */}
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="description" className="text-right">
-                    Description
-                  </Label>
-                  <div className="col-span-3">
-                    <Field
-                      id="description"
-                      name="description"
-                      as={Textarea}
-                      className="w-full"
-                    />
-                    <ErrorMessage
-                      name="description"
-                      component="div"
-                      className="text-red-500 text-sm"
-                    />
-                  </div>
+                <div>
+                  <Label htmlFor="description">Description</Label>
+                  <Field
+                    id="description"
+                    name="description"
+                    as={Textarea}
+                    className="w-full"
+                  />
+                  <ErrorMessage
+                    name="description"
+                    component="div"
+                    className="text-red-500 text-sm"
+                  />
                 </div>
 
                 {/* Price */}
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="price" className="text-right">
-                    Price
-                  </Label>
-                  <div className="col-span-3">
-                    <Field
-                      id="price"
-                      name="price"
-                      type="number"
-                      as={Input}
-                      className="w-full"
-                    />
-                    <ErrorMessage
-                      name="price"
-                      component="div"
-                      className="text-red-500 text-sm"
-                    />
-                  </div>
+                <div>
+                  <Label htmlFor="price">Price</Label>
+                  <Field
+                    id="price"
+                    name="price"
+                    type="number"
+                    as={Input}
+                    className="w-full"
+                  />
+                  <ErrorMessage
+                    name="price"
+                    component="div"
+                    className="text-red-500 text-sm"
+                  />
                 </div>
+
+                {/* Platform Fee Notice */}
+                {platformFee !== undefined && (
+                  <div className="text-sm text-gray-600 text-center">
+                    Note: A platform fee of {platformFee}% will be deducted from
+                    this service.
+                  </div>
+                )}
               </div>
-              <DialogFooter>
+
+              <DialogFooter className="mt-4">
                 <Button type="submit" disabled={isSubmitting}>
                   {isSubmitting ? "Submitting..." : "Submit for Approval"}
                 </Button>

@@ -15,6 +15,7 @@ import axiosInstance from "../../../utils/axiosInstance";
 export function GlobalServicesTab({ onAddService }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [globalServices, setGlobalServices] = useState([]);
+  const [platformFee, setPlatformFee] = useState(0); // New state for platform fee
   const [message, setMessage] = useState(""); // New state for message
   const [loading, setLoading] = useState(true);
 
@@ -31,6 +32,10 @@ export function GlobalServicesTab({ onAddService }) {
           ? response.data.admin_services_available
           : [];
         setGlobalServices(services);
+
+        if (response.data.platform_fee_percentage) {
+          setPlatformFee(response.data.platform_fee_percentage);
+        }
 
         // Check for the message in the API response
         if (response.data.message) {
@@ -79,6 +84,9 @@ export function GlobalServicesTab({ onAddService }) {
                 <CardTitle>{service.name}</CardTitle>
                 <CardDescription>{service.description}</CardDescription>
                 <CardTitle>{service.base_price}</CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  {platformFee || 10}% platform fee will go to admin
+                </p>
               </CardHeader>
               <CardFooter>
                 <Button

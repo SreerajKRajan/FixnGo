@@ -1,5 +1,10 @@
-import React, { useState } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/uis/Tabs";
+import React, { useState, useEffect } from "react";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/uis/Tabs";
 import { Button } from "@/components/ui/Button";
 import { PlusCircle } from "lucide-react";
 import { ServiceHeader } from "./ServiceHeader";
@@ -18,7 +23,21 @@ export default function WorkshopServiceManagement() {
     return localStorage.getItem("activeTab") || "all";
   });
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [platformFee, setPlatformFee] = useState(0);
   const { toast } = useToast();
+
+  useEffect(() => {
+    fetchPlatformFee();
+  }, []);
+
+  const fetchPlatformFee = async () => {
+    try {
+      const res = await axiosInstance.get("/workshop/services/");
+      setPlatformFee(res.data.platform_fee_percentage);
+    } catch (error) {
+      console.error("Failed to fetch platform fee:", error);
+    }
+  };
 
   const handleTabChange = (value) => {
     setActiveTab(value);
@@ -29,7 +48,7 @@ export default function WorkshopServiceManagement() {
     try {
       await axiosInstance.post("/workshop/services/", {
         admin_service_id: service.id,
-        base_price: 100, // Example data
+        base_price: 100, // Example base price
       });
       toast({
         title: "Service added successfully!",
@@ -40,7 +59,9 @@ export default function WorkshopServiceManagement() {
       toast({
         variant: "destructive",
         title: "Failed to add service",
-        description: "An error occurred while adding the service.",
+        description:
+          error?.response?.data?.error ||
+          "An error occurred while adding the service.",
       });
     }
   };
@@ -62,7 +83,9 @@ export default function WorkshopServiceManagement() {
       toast({
         variant: "destructive",
         title: "Failed to submit custom service",
-        description: "An error occurred while submitting your service.",
+        description:
+          error?.response?.data?.error ||
+          "An error occurred while submitting your service.",
       });
     }
   };
@@ -72,7 +95,11 @@ export default function WorkshopServiceManagement() {
       <WorkshopHeader />
       <div className="flex-grow container mx-auto px-4 py-8">
         <ServiceHeader />
-        <Tabs value={activeTab} onValueChange={handleTabChange} className="mt-8">
+        <Tabs
+          value={activeTab}
+          onValueChange={handleTabChange}
+          className="mt-8"
+        >
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="all">All Services</TabsTrigger>
             <TabsTrigger value="global">Global Services</TabsTrigger>
@@ -88,6 +115,7 @@ export default function WorkshopServiceManagement() {
             <MyServicesTab />
           </TabsContent>
         </Tabs>
+
         <Button
           onClick={() => setIsModalOpen(true)}
           className="fixed bottom-14 right-2 rounded-full shadow-lg"
@@ -95,11 +123,14 @@ export default function WorkshopServiceManagement() {
         >
           <PlusCircle className="mr-2 h-5 w-5" /> Create New Service
         </Button>
+
         <CustomServiceModal
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
           onSubmit={handleCreateCustomService}
+          platformFee={platformFee}
         />
+
         <Toaster />
       </div>
       <WorkshopFooter />

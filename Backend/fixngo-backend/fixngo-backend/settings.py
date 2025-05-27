@@ -72,6 +72,8 @@ GOOGLE_CLIENT_ID = "111926382141-a0gum91dmvct79964hk0rn7b20fpv9pn.apps.googleuse
 
 AUTH_USER_MODEL = 'users.User'
 
+PLATFORM_FEE_PERCENTAGE = 10  # percentage of fee that goes to admin
+
 # Email Configuration
 EMAIL_BACKEND = config('EMAIL_BACKEND')
 EMAIL_HOST = config('EMAIL_HOST')
