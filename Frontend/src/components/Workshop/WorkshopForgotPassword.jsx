@@ -4,7 +4,7 @@ import * as Yup from "yup";
 import { useDispatch } from "react-redux";
 import { toast } from "sonner";
 import { forgotWorkshopPassword } from "../../store/workshopAuthSlice";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 const ForgotPasswordSchema = Yup.object().shape({
   email: Yup.string().email("Invalid email").required("Email is required"),
@@ -12,6 +12,7 @@ const ForgotPasswordSchema = Yup.object().shape({
 
 export default function WorkshopForgotPassword() {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
 
   const handleSubmit = async (values, { setSubmitting }) => {
     try {
@@ -19,6 +20,7 @@ export default function WorkshopForgotPassword() {
       toast.success(
         "Password reset link has been sent to your email. Please check your inbox."
       );
+      navigate("/workshop/login");
     } catch (err) {
       console.error("Failed to send reset link:", err);
 

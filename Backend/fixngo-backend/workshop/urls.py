@@ -18,6 +18,9 @@ from .views import (
     WorkshopServicesAPIView,
     WorkshopRatingDistributionAPIView,
     WorkshopProfileView,
+    WorkshopChatThreadsAPIView,
+    WorkshopChatHistoryAPIView,
+    WorkshopMarkMessagesReadView,
 )
 
 urlpatterns = [
@@ -41,6 +44,11 @@ urlpatterns = [
     path('dashboard/recent-activity/', RecentActivityAPIView.as_view(), name='recent-activity'),
     path('dashboard/services/', WorkshopServicesAPIView.as_view(), name='workshop-services'),
     path('dashboard/rating-distribution/', WorkshopRatingDistributionAPIView.as_view(), name='rating-distribution'),
+    
+    path('chat/threads/', WorkshopChatThreadsAPIView.as_view(), name='workshop-chat-threads'),
+    path('chat/history/<str:user_id>/', WorkshopChatHistoryAPIView.as_view(), name='workshop-chat-history'),
+    path('chat/mark-read/<str:room_id>/', WorkshopMarkMessagesReadView.as_view(), name='workshop-mark-messages-read'),
+
 
 ]
 

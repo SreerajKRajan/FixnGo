@@ -23,6 +23,7 @@ import Layout from "./components/Layout";
 import WorkshopDashboard from "./components/Workshop/WorkshopDashboard";
 import UserRequestsPage from "./components/Workshop/ServiceManagement/UserRequestsPage";
 import WorkshopProfile from "./components/Workshop/WorkshopProfile";
+import WorkshopLayout from "./components/WorkshopLayout";
 
 function App() {
   return (
@@ -170,9 +171,9 @@ function App() {
             path="/workshop/service-requests"
             element={
               <ProtectedRoute role="workshop">
-                <Layout>
+                <WorkshopLayout>
                   <UserRequestsPage />
-                </Layout>
+                </WorkshopLayout>
               </ProtectedRoute>
             }
           />
@@ -180,9 +181,9 @@ function App() {
             path="/workshop/services"
             element={
               <ProtectedRoute role="workshop">
-                <Layout>
+                <WorkshopLayout>
                   <WorkshopServiceManagement />
-                </Layout>
+                </WorkshopLayout>
               </ProtectedRoute>
             }
           />
@@ -190,9 +191,9 @@ function App() {
             path="/workshop/profile"
             element={
               <ProtectedRoute role="workshop">
-                <Layout>
+                <WorkshopLayout>
                   <WorkshopProfile />
-                </Layout>
+                </WorkshopLayout>
               </ProtectedRoute>
             }
           />
@@ -200,9 +201,9 @@ function App() {
             path="/workshop/dashboard"
             element={
               <ProtectedRoute role="workshop">
-                <Layout>
+                <WorkshopLayout>
                   <WorkshopDashboard />
-                </Layout>
+                </WorkshopLayout>
               </ProtectedRoute>
             }
           />

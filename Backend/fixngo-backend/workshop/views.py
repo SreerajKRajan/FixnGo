@@ -25,11 +25,13 @@ from users.serializers import ServiceRequestSerializer
 import socketio
 import requests
 from admin_side.views import CommonPagination
-from django.db.models import Sum, Count, Avg
+from django.db.models import Sum, Count, Avg, Q
+from users.models import User
 from dateutil.relativedelta import relativedelta
 from django.db.models.functions import ExtractMonth, TruncMonth
 import logging
-
+from chat.models import Message
+from chat.serializers import MessageSerializer
 
 class WorkshopSignupView(APIView):
     def post(self, request):
@@ -342,7 +344,7 @@ class WorkshopServiceListAPIView(APIView):
 
         # Admin services already added by workshop
         admin_services_added = WorkshopService.objects.filter(
-            workshop=workshop, service_type="admin"
+            workshop=workshop, service_type="admin", admin_service__status="available"
         ).order_by("-created_at")
         admin_services_added_serialized = WorkshopServiceSerializer(admin_services_added, many=True).data
 
@@ -474,7 +476,23 @@ class SendPaymentRequestView(APIView):
             service_request.payment_status = 'PENDING'
             service_request.save()
             
-            # Additional logic: send notifications or emails (optional)
+            user_id = service_request.user.id
+            workshop_name = service_request.workshop.name
+            message = (
+            f"{workshop_name} has sent a payment request of ₹{total_cost} for your recent service."
+            )
+
+            try:
+                response = requests.post(
+                    "http://localhost:5000/notification",
+                    json={"user_id": user_id, "message": message},
+                    headers={"Content-Type": "application/json"}
+                )
+                print(f"Notification response: {response.status_code}, {response.text}")
+                if response.status_code != 200:
+                    print(f"Error sending notification: {response.text}")
+            except Exception as e:
+                print(f"Error notifying user {user_id}: {str(e)}")
             
             return Response(
                 {"message": "Payment request sent successfully.", 
@@ -842,3 +860,141 @@ class WorkshopProfileView(APIView):
             return Response({"message": "Workshop profile updated successfully!"})
 
         return Response(serializer.errors, status=400)
+    
+class WorkshopChatHistoryAPIView(APIView):
+    authentication_classes = [WorkshopJWTAuthentication]
+    permission_classes = [IsWorkshopUser]
+    
+    def get(self, request, user_id):
+        """
+        Get chat history between the logged-in workshop and a specific user
+        
+        user_id: The ID of the user to get chat history with
+        """
+        try:
+            workshop = request.user
+            
+            # Find the user
+            user = User.objects.filter(id=user_id).first()
+            
+            if not user:
+                return Response(
+                    {"error": "User not found"},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+                
+            # Construct the room name based on the convention
+            room_name = f"chat_{user_id}_{workshop.id}"
+            
+            # Get messages for this room
+            messages = Message.objects.filter(room_name=room_name)
+            
+            # Serialize and return the messages
+            serializer = MessageSerializer(messages, many=True)
+            return Response(serializer.data)
+            
+        except Exception as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+class WorkshopChatThreadsAPIView(APIView):
+    authentication_classes = [WorkshopJWTAuthentication]
+    permission_classes = [IsWorkshopUser]
+
+    def get(self, request):
+        """
+        Get all chat threads for the logged-in workshop with various users
+        """
+        try:
+            workshop = request.user
+            
+            # Fetch all messages involving the current workshop
+            workshop_messages = Message.objects.filter(
+                Q(sender_workshop=workshop) | Q(receiver_workshop=workshop)
+            )
+            
+            # Group by room_name to get unique threads
+            room_names = workshop_messages.values_list('room_name', flat=True).distinct()
+            
+            threads = []
+            
+            for room_name in room_names:
+                # Get the latest message for this thread
+                latest_message = workshop_messages.filter(room_name=room_name).order_by('-timestamp').first()
+                
+                # Skip if no message found
+                if not latest_message:
+                    continue
+                
+                # Determine which user the workshop is chatting with
+                user = None
+                if latest_message.sender_user:
+                    user = latest_message.sender_user
+                elif latest_message.receiver_user:
+                    user = latest_message.receiver_user
+                
+                if not user:
+                    continue
+
+                # Count unread messages in this thread
+                unread_count = workshop_messages.filter(
+                    room_name=room_name,
+                    receiver_workshop=workshop,
+                    is_read=False
+                ).count()
+                
+                # Build thread info
+                thread = {
+                    'id': room_name,
+                    'user_details': {
+                        'id': user.id,
+                        'username': user.email,
+                        'profile_image_url': getattr(user, 'profile_image_url', '')
+                    },
+                    'last_message': latest_message.message,
+                    'last_message_timestamp': latest_message.timestamp,
+                    'unread_count': unread_count,
+                    'created_at': latest_message.timestamp
+                }
+                
+                threads.append(thread)
+            
+            # Sort threads by latest message timestamp (newest first)
+            threads.sort(key=lambda x: x['last_message_timestamp'], reverse=True)
+            
+            return Response(threads)
+
+        except Exception as e:
+            return Response(
+                {"error": str(e)}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+            
+class WorkshopMarkMessagesReadView(APIView):
+    authentication_classes = [WorkshopJWTAuthentication]
+    permission_classes = [IsWorkshopUser]
+    
+    def post(self, request, room_id):
+        try:
+            workshop = request.user
+            
+            # Parse room ID to extract user ID
+            # Format: chat_[user_id]_[workshop_id]
+            parts = room_id.split('_')
+            if len(parts) != 3:
+                return Response({"error": "Invalid room ID format"}, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Mark all messages as read where the workshop is the receiver
+            Message.objects.filter(
+                room_name=room_id,
+                receiver_workshop=workshop,
+                is_read=False
+            ).update(is_read=True)
+            
+            return Response({"success": True})
+            
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

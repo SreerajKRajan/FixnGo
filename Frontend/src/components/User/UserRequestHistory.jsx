@@ -11,6 +11,7 @@ import {
   CreditCardIcon,
 } from "lucide-react";
 import { Pagination } from "@nextui-org/react"; // Added Pagination import
+import { Link } from "react-router-dom";
 
 // Status badge component
 const StatusBadge = ({ status }) => {
@@ -85,7 +86,7 @@ export default function UserRequestHistory() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("requests"); // 'requests' or 'payments'
   const [error, setError] = useState("");
-  
+
   // Add pagination states
   const [requestsCurrentPage, setRequestsCurrentPage] = useState(1);
   const [requestsTotalPages, setRequestsTotalPages] = useState(1);
@@ -119,17 +120,16 @@ export default function UserRequestHistory() {
             },
           }
         );
-        
+
         console.log("Payments Response:", paymentsResponse.data);
         console.log("Service Requests Response:", requestsResponse.data);
 
         setServiceRequests(requestsResponse.data.results || []);
         setPayments(paymentsResponse.data.results || []);
-        
+
         // Set pagination information
         setRequestsTotalPages(Math.ceil(requestsResponse.data.count / 6)); // Assuming 6 items per page
         setPaymentsTotalPages(Math.ceil(paymentsResponse.data.count / 6)); // Assuming 6 items per page
-        
       } catch (error) {
         console.error("Failed to fetch history", error);
         setError("Failed to load history. Please try again later.");
@@ -267,9 +267,11 @@ export default function UserRequestHistory() {
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">
-                            {request.workshop_name}
-                          </div>
+                          <Link to={`/workshops/${request.workshop}`}>
+                            <div className="text-sm text-gray-900">
+                              {request.workshop_name}
+                            </div>
+                          </Link>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-900">
@@ -299,7 +301,7 @@ export default function UserRequestHistory() {
                   </tbody>
                 </table>
               </div>
-              
+
               {/* Pagination for service requests */}
               <div className="flex justify-center mt-4">
                 {requestsTotalPages > 1 && (
@@ -378,10 +380,12 @@ export default function UserRequestHistory() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-900">
-                            {payment.service_request_details?.workshop_service_name || "Unknown Service"}
+                            {payment.service_request_details
+                              ?.workshop_service_name || "Unknown Service"}
                           </div>
                           <div className="text-xs text-gray-500">
-                            {payment.service_request_details?.workshop_name || "Unknown Workshop"}
+                            {payment.service_request_details?.workshop_name ||
+                              "Unknown Workshop"}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -400,7 +404,7 @@ export default function UserRequestHistory() {
                   </tbody>
                 </table>
               </div>
-              
+
               {/* Pagination for payments */}
               <div className="flex justify-center mt-4">
                 {paymentsTotalPages > 1 && (

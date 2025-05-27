@@ -24,7 +24,7 @@ urlpatterns = [
     path('api/admin_side/', include('admin_side.urls')),
     path('api/workshop/', include('workshop.urls')),
     path('api/service/', include('service.urls')),
-    path('api/chat/', include('chat.urls')),
+    # path('api/chat/', include('chat.urls')),
     
     # JWT Token Endpoints
     path('api/token/', jwt_views.TokenObtainPairView.as_view(), name='token_obtain_pair'),

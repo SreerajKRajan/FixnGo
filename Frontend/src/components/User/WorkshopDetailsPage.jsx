@@ -37,14 +37,25 @@ const WorkshopDetailsPage = () => {
   const [selectedChat, setSelectedChat] = useState(null);
 
   const handleChatClick = () => {
+    // Get the actual workshop ID 
+    const workshopId = workshop?.id || WorkshopId;
+    
+    if (!workshopId) {
+      console.error("No workshop ID available");
+      return;
+    }
+    
     // Format the workshop data to match the chat window's expected props
     const chatData = {
-      id: workshop.id || WorkshopId,
+      id: `chat_${workshopId}`, // Format ID as expected by backend
       workshop_details: {
-        name: workshop.name,
-        document: workshop.profile_image || "/default-avatar.png",
-      },
+        id: workshopId,
+        name: workshop?.name || "Workshop",
+        document: workshop?.profile_image || "/default-avatar.png",
+      }
     };
+    
+    console.log("Opening chat with workshop:", chatData);
     setSelectedChat(chatData);
   };
 
@@ -233,23 +244,27 @@ const WorkshopDetailsPage = () => {
         </div>
 
         {/* Fixed Chat Button */}
-        <div
-          className="fixed right-4 bottom-96 flex flex-col space-y-4 z-40"
-          style={{ pointerEvents: "auto" }}
+      <div
+        className="fixed right-4 bottom-96 flex flex-col space-y-4 z-40"
+        style={{ pointerEvents: "auto" }}
+      >
+        <button
+          className="p-3 rounded-full bg-red-500 hover:bg-red-600 text-white shadow-lg transition duration-300"
+          style={{ fontSize: "1.25rem" }}
+          onClick={handleChatClick}
         >
-          <button
-            className="p-3 rounded-full bg-red-500 hover:bg-red-600 text-white shadow-lg transition duration-300"
-            style={{ fontSize: "1.25rem" }}
-            onClick={handleChatClick} // Open chat window with this workshop
-          >
-            <IoChatbubbleEllipses />
-          </button>
-        </div>
+          <IoChatbubbleEllipses />
+        </button>
+      </div>
 
-        {/* Pass selectedChat to ChatComponent */}
-        {selectedChat && (
-          <ChatComponent newChat={selectedChat} onChatClose={handleChatClose} />
-        )}
+      {/* Pass selectedChat to ChatComponent */}
+      {selectedChat && (
+        <ChatComponent 
+          role="user" 
+          newChat={selectedChat} 
+          onChatClose={handleChatClose} 
+        />
+      )}
 
         <h2 className="text-2xl font-semibold mb-4">Services Offered</h2>
 

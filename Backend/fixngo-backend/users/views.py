@@ -525,7 +525,7 @@ class UserWorkshopDetailView(RetrieveAPIView):
 
         # Fetch admin services added
         admin_services_added = WorkshopService.objects.filter(
-            workshop=workshop, service_type="admin", is_available=True
+            workshop=workshop, service_type="admin", is_available=True, admin_service__status="available"
         ).order_by("-created_at")
         admin_services_added_serialized = WorkshopServiceSerializer(admin_services_added, many=True).data
 
