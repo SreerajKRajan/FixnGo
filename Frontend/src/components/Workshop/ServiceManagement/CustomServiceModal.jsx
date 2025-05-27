@@ -6,9 +6,9 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/uis/dialog";
-import { Button } from "@/components/uis/Button";
+import { Button } from "@/components/uis/button";
 import { Input } from "@/components/uis/input";
-import { Textarea } from "@/components/uis/Textarea";
+import { Textarea } from "@/components/uis/textArea";
 import { Label } from "@/components/uis/label";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
