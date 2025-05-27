@@ -5,7 +5,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/uis/Tabs";
-import { Button } from "@nextui-org/react";
+import { Button } from "@/components/ui/button";
 import { PlusCircle } from "lucide-react";
 import { ServiceHeader } from "./ServiceHeader";
 import { GlobalServicesTab } from "./GlobalServicesTab";
@@ -37,7 +37,7 @@ export default function WorkshopServiceManagement() {
     } catch (error) {
       console.error("Failed to fetch platform fee:", error);
     }
-
+    
   };
 
   const handleTabChange = (value) => {
