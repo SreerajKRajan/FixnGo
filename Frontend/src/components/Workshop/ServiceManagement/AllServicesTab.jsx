@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/uis/switch";
 import { Badge } from "@/components/uis/badge";
 import axiosInstance from "@/utils/axiosInstance"; // Make sure axiosInstance is properly configured

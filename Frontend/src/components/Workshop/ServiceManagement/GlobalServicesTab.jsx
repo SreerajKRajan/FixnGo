@@ -8,7 +8,7 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/Card";
+} from "@/components/ui/card";
 import { Search } from "lucide-react";
 import axiosInstance from "../../../utils/axiosInstance";
 
