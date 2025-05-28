@@ -202,7 +202,7 @@ class WorkshopForgotPasswordView(APIView):
         # Generate password reset token and URL
         token = default_token_generator.make_token(workshop)
         uid = urlsafe_base64_encode(force_bytes(workshop.pk))
-        reset_url = f"{request.build_absolute_uri('http://localhost:5173/workshop/reset-password/')}{uid}/{token}/"
+        reset_url = f"{request.build_absolute_uri('https://fixngo.site/workshop/reset-password/')}{uid}/{token}/"
 
         # Email content
         subject = "FixnGo Workshop Password Reset Request"
@@ -446,7 +446,7 @@ class UpdateServiceRequestStatusAPIView(APIView):
         
         try:
             response = requests.post(
-                "http://localhost:5000/notification",
+                "https://fixngo.sitenotification",
                 json={"user_id": user_id, "message": message},
                 headers={"Content-Type": "application/json"}
             )
@@ -492,7 +492,7 @@ class SendPaymentRequestView(APIView):
 
             try:
                 response = requests.post(
-                    "http://localhost:5000/notification",
+                    "https://fixngo.site/notification",
                     json={"user_id": user_id, "message": message},
                     headers={"Content-Type": "application/json"}
                 )

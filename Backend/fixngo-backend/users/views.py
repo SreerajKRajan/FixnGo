@@ -240,7 +240,7 @@ class UserForgotPasswordView(APIView):
         # Generate password reset token and URL
         token = default_token_generator.make_token(user)
         uid = urlsafe_base64_encode(force_bytes(user.pk))
-        reset_url = f"{request.build_absolute_uri('http://localhost:5173/reset-password/')}{uid}/{token}/"
+        reset_url = f"{request.build_absolute_uri('https://fixngo.site/reset-password/')}{uid}/{token}/"
 
         # Email content
         subject = "FixnGo Password Reset Request"
