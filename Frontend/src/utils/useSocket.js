@@ -7,7 +7,7 @@ function useSocket(userId, callback) {
     useEffect(() => {
         // Initialize socket connection if it doesn't exist
         if (!socket) {
-            socket = io('https://fixngo.site', {
+            socket = io('https://ws.fixngo.site', {
                 transports: ['websocket'],
                 reconnection: true,
             });
