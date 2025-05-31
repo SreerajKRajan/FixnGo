@@ -492,7 +492,7 @@ class SendPaymentRequestView(APIView):
 
             try:
                 response = requests.post(
-                    "https://ws.fixngo.site/notificationn",
+                    "https://ws.fixngo.site/notification",
                     json={"user_id": user_id, "message": message},
                     headers={"Content-Type": "application/json"}
                 )
