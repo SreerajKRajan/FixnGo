@@ -17,8 +17,13 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from rest_framework_simplejwt import views as jwt_views
+from django.http import HttpResponse
+
+def home(request):
+    return HttpResponse("FixnGo Backend is running!")
 
 urlpatterns = [
+    path('', home),
     path('admin/', admin.site.urls),
     path('api/users/', include('users.urls')),
     path('api/admin_side/', include('admin_side.urls')),
