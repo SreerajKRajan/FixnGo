@@ -84,8 +84,9 @@ const ChatWindow = ({ chat, roomId, role, chatPartner, onClose, onMessageSent })
     const token = localStorage.getItem(role === 'workshop' ? "workshopToken" : "token") || localStorage.getItem("token");
     
     // Setup the WebSocket connection with the correct parameters
-    const socketUrl = `ws://${window.location.hostname}:8000/ws/chat/${userId}/${workshopId}/?token=${token}`;
-    
+    const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+    const socketUrl = `${protocol}://${window.location.hostname}/ws/chat/${userId}/${workshopId}/?token=${token}`;
+        
     try {
       socketRef.current = new WebSocket(socketUrl);
 
