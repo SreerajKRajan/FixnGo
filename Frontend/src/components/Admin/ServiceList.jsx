@@ -17,16 +17,15 @@ import { toast } from "sonner";
 import { FiEdit } from "react-icons/fi";
 import { Pagination } from "@nextui-org/pagination";
 
-
 export function ServiceList() {
   const [services, setServices] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedService, setSelectedService] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(() =>{
-      // Try to get the page number from localStorage (if any)
-  const savedPage = localStorage.getItem("currentPage");
-  return savedPage ? parseInt(savedPage) : 1;  // Default to page 1 if not found
+  const [currentPage, setCurrentPage] = useState(() => {
+    // Try to get the page number from localStorage (if any)
+    const savedPage = localStorage.getItem("currentPage");
+    return savedPage ? parseInt(savedPage) : 1; // Default to page 1 if not found
   });
   const [totalPages, setTotalPages] = useState(1); // For total pages
 
@@ -37,11 +36,11 @@ export function ServiceList() {
         setServices(response.data.results); // Update the list with current page data
         const totalItems = response.data.count; // Total count of items
         const pageSize = 5; // Number of items per page (set by your backend)
-  
+
         // Calculate the total pages dynamically, ensuring no extra page
         const totalPages = Math.max(1, Math.ceil(totalItems / pageSize)); // Ensure at least 1 page
-        setTotalPages(totalPages);  // Set total pages
-        setLoading(false);  // Set loading to false after data fetch
+        setTotalPages(totalPages); // Set total pages
+        setLoading(false); // Set loading to false after data fetch
       } catch (error) {
         console.error("Failed to fetch services:", error);
         toast.error("Failed to fetch services. Please try again.");
@@ -53,8 +52,8 @@ export function ServiceList() {
   }, [currentPage]);
 
   useEffect(() => {
-  localStorage.setItem("currentPage", currentPage);
-}, [currentPage]);
+    localStorage.setItem("currentPage", currentPage);
+  }, [currentPage]);
 
   const handleAddService = () => {
     setSelectedService(null);
@@ -121,10 +120,6 @@ export function ServiceList() {
     return <p>Loading services...</p>;
   }
 
-  if (services.length === 0) {
-    return <p>No services found.</p>;
-  }
-
   return (
     <div className="p-6 bg-gray-100 rounded-lg shadow-md">
       <div className="flex justify-between items-center mb-6">
@@ -134,69 +129,77 @@ export function ServiceList() {
         </Button>
       </div>
 
-      <Table
-        aria-label="Service Table"
-        shadow={true}
-        selectionMode="none"
-        className="max-w-full bg-white rounded-lg overflow-hidden shadow-lg"
-      >
-        <TableHeader>
-          <TableColumn>Name</TableColumn>
-          <TableColumn>Description</TableColumn>
-          <TableColumn>Base Price</TableColumn>
-          <TableColumn>Status</TableColumn>
-          <TableColumn>Actions</TableColumn>
-        </TableHeader>
-        <TableBody>
-          {services.map((service) => (
-            <TableRow key={service.id} className="hover:bg-gray-100">
-              <TableCell className="text-gray-800 font-medium">
-                {service.name}
-              </TableCell>
-              <TableCell className="text-gray-600 max-w-md">
-                {service.description}
-              </TableCell>
-              <TableCell className="text-gray-600">
-                ₹{service.base_price}
-              </TableCell>
-              <TableCell>
-                <Chip
-                  color={service.status === "available" ? "success" : "danger"}
-                >
-                  {service.status === "available" ? "Available" : "Unavailable"}
-                </Chip>
-              </TableCell>
-              <TableCell>
-                <div className="flex gap-2">
-                  <FiEdit
-                    className="text-black cursor-pointer"
-                    size={27}
-                    onClick={() => handleEditService(service)}
-                  />
-                  <Button
-                    color={
-                      service.status === "available" ? "danger" : "success"
-                    }
-                    size="sm"
-                    onPress={() => toggleServiceStatus(service)}
-                  >
-                    {service.status === "available" ? "Block" : "Unblock"}
-                  </Button>
-                </div>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+      {services.length === 0 ? (
+        <div className="text-center py-8">
+          <p className="text-gray-600 text-lg">No services found.</p>
+        </div>
+      ) : (
+        <>
+          <Table
+            aria-label="Service Table"
+            shadow={true}
+            selectionMode="none"
+            className="max-w-full bg-white rounded-lg overflow-hidden shadow-lg"
+          >
+            <TableHeader>
+              <TableColumn>Name</TableColumn>
+              <TableColumn>Description</TableColumn>
+              <TableColumn>Base Price</TableColumn>
+              <TableColumn>Status</TableColumn>
+              <TableColumn>Actions</TableColumn>
+            </TableHeader>
+            <TableBody>
+              {services.map((service) => (
+                <TableRow key={service.id} className="hover:bg-gray-100">
+                  <TableCell className="text-gray-800 font-medium">
+                    {service.name}
+                  </TableCell>
+                  <TableCell className="text-gray-600 max-w-md">
+                    {service.description}
+                  </TableCell>
+                  <TableCell className="text-gray-600">
+                    ₹{service.base_price}
+                  </TableCell>
+                  <TableCell>
+                    <Chip
+                      color={service.status === "available" ? "success" : "danger"}
+                    >
+                      {service.status === "available" ? "Available" : "Unavailable"}
+                    </Chip>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex gap-2">
+                      <FiEdit
+                        className="text-black cursor-pointer"
+                        size={27}
+                        onClick={() => handleEditService(service)}
+                      />
+                      <Button
+                        color={
+                          service.status === "available" ? "danger" : "success"
+                        }
+                        size="sm"
+                        onPress={() => toggleServiceStatus(service)}
+                      >
+                        {service.status === "available" ? "Block" : "Unblock"}
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
 
-      <div className="mt-6 flex justify-center">
-      <Pagination
-        total={totalPages}
-        initialPage={1}
-        page={currentPage}
-        onChange={(page) => setCurrentPage(page)}
-      />
-    </div>
+          <div className="mt-6 flex justify-center">
+            <Pagination
+              total={totalPages}
+              initialPage={1}
+              page={currentPage}
+              onChange={(page) => setCurrentPage(page)}
+            />
+          </div>
+        </>
+      )}
 
       {isModalOpen && (
         <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
