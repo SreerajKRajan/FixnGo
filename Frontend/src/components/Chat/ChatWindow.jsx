@@ -84,9 +84,9 @@ const ChatWindow = ({ chat, roomId, role, chatPartner, onClose, onMessageSent })
     const token = localStorage.getItem(role === 'workshop' ? "workshopToken" : "token") || localStorage.getItem("token");
     
     // Setup the WebSocket connection with the correct parameters
- const websocketDomain = "chat.fixngo.site";  // Your backend websocket nginx domain
-const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-const socketUrl = `${protocol}://${websocketDomain}/ws/chat/${userId}/${workshopId}/?token=${token}`;
+    const websocketDomain = "chat.fixngo.site";  // backend websocket nginx domain
+    const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+    const socketUrl = `${protocol}://${websocketDomain}/ws/chat/${userId}/${workshopId}/?token=${token}`;
 
         
     try {

@@ -39,6 +39,8 @@ const UserRequestsPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [additionalCost, setAdditionalCost] = useState("");
+  const [rejectionReason, setRejectionReason] = useState("");
+  const [showRejectionInput, setShowRejectionInput] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const handleLogout = () => {
@@ -94,7 +96,7 @@ const UserRequestsPage = () => {
     setCurrentPage(page);
   };
 
-  const updateRequestStatus = async (requestId, status) => {
+  const updateRequestStatus = async (requestId, status, reason = "") => {
     // Don't close modal immediately - show loading state instead
     const originalRequests = [...requests]; // Keep copy of original state for rollback
     
@@ -110,7 +112,7 @@ const UserRequestsPage = () => {
       // Make API call
       await axiosInstance.post(
         `/workshop/service-requests/${requestId}/update/`,
-        { status }
+        { status, rejection_reason: reason }
       );
   
       // On success, close modal and show success message
@@ -135,6 +137,8 @@ const UserRequestsPage = () => {
     setSelectedRequest(null);
     setIsModalOpen(false);
     setAdditionalCost("");
+    setShowRejectionInput(false);
+    setRejectionReason("");
   };
 
   const handleSendPaymentRequest = async (requestId) => {
@@ -271,22 +275,41 @@ const UserRequestsPage = () => {
 
     const { status, id } = selectedRequest;
 
-    // For pending requests - show accept/reject buttons
     if (status === "PENDING") {
       return (
-        <div className="mt-4 flex space-x-4">
-          <button
-            className="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600"
-            onClick={() => updateRequestStatus(id, "accepted")}
-          >
-            Accept Request
-          </button>
-          <button
-            className="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600"
-            onClick={() => updateRequestStatus(id, "rejected")}
-          >
-            Reject Request
-          </button>
+        <div className="mt-4 space-y-4">
+          <div className="flex space-x-4">
+            <button
+              className="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600"
+              onClick={() => updateRequestStatus(id, "accepted")}
+            >
+              Accept Request
+            </button>
+            <button
+              className="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600"
+              onClick={() => setShowRejectionInput(true)}
+            >
+              Reject Request
+            </button>
+          </div>
+
+          {showRejectionInput && (
+            <div className="space-y-2">
+              <textarea
+                className="w-full border border-gray-300 rounded-md p-2"
+                rows={3}
+                placeholder="Enter rejection reason..."
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+              />
+              <button
+                className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700"
+                onClick={() => updateRequestStatus(id, "rejected", rejectionReason)}
+              >
+                Confirm Reject
+              </button>
+            </div>
+          )}
         </div>
       );
     }
@@ -294,7 +317,7 @@ const UserRequestsPage = () => {
     // For accepted requests - show payment request form
     if (status === "accepted") {
       return (
-        <>
+        <div className="mt-4">
           <p className="mb-2 flex items-center">
             <strong>Base Price:</strong>&nbsp;
             <MdOutlineCurrencyRupee className="mt-1" />
@@ -319,7 +342,7 @@ const UserRequestsPage = () => {
           >
             Send Payment Request
           </Button>
-        </>
+        </div>
       );
     }
 

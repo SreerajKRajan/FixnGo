@@ -68,9 +68,10 @@ class ServiceRequestSerializer(serializers.ModelSerializer):
     workshop_name = serializers.CharField(source="workshop.name", read_only=True)
     workshop_service_name = serializers.CharField(source="workshop_service.name", read_only=True)
     base_price = serializers.CharField(source="workshop_service.base_price", read_only=True)
+    rejection_reason = serializers.CharField(read_only=True)
     class Meta:
         model = ServiceRequest
-        fields = ['id', 'user', 'workshop', 'workshop_service', 'user_name', 'workshop_name', 'workshop_service_name', 'base_price', 'total_cost', 'vehicle_type', 'description', 'status', 'created_at', 'updated_at']
+        fields = ['id', 'user', 'workshop', 'workshop_service', 'user_name', 'workshop_name', 'workshop_service_name', 'base_price', 'rejection_reason', 'total_cost', 'vehicle_type', 'description', 'status', 'created_at', 'updated_at']
         read_only_fields = ['id', 'status', 'created_at', 'updated_at']
 
 class PaymentSerializer(serializers.ModelSerializer):

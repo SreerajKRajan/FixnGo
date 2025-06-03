@@ -435,15 +435,32 @@ class UpdateServiceRequestStatusAPIView(APIView):
         status = request.data.get("status")
         if status not in ["accepted", "rejected"]:
             return Response({"error": "Invalid status"}, status=400)
-
+        
+        if status == "rejected":
+            rejection_reason = request.data.get("rejection_reason")
+            if not rejection_reason:
+                return Response({"error": "Rejection reason is required"}, status=400)
+            service_request.rejection_reason = rejection_reason
+        else:
+            service_request.rejection_reason = None
+            
         # Update the status
         service_request.status = status
         service_request.save()
 
         # Send a real-time notification to the user
         user_id = service_request.user.id
-        message = f"Your service request for {service_request.workshop_service.name} has been {status}."
-        
+        service_name = service_request.workshop_service.name
+        workshop_name = service_request.workshop.name
+
+        if status == "accepted":
+            message = f"Your request for {service_name} at {workshop_name} has been accepted. The workshop will reach out to you shortly."
+        elif status == "rejected":
+            message = (
+                f"Unfortunately, your request for {service_name} at {workshop_name} has been rejected.\n"
+                f"Reason: {rejection_reason}"
+            )
+                    
         try:
             response = requests.post(
                 "https://ws.fixngo.site/notification",
