@@ -51,11 +51,12 @@ class UserLoginSerializer(serializers.Serializer):
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'phone', 'profile_image_url', 'created_at', 'updated_at', 'is_active']
-        read_only_fields = ['created_at', 'updated_at']
+        fields = ['id', 'username', 'email', 'phone', 'profile_image_url', 'pending_email', 'created_at', 'updated_at', 'is_active']
+        read_only_fields = ['created_at', 'updated_at', 'pending_email']
 
     def update(self, instance, validated_data):
         # Only update allowed fields
+        validated_data.pop('email', None)
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()

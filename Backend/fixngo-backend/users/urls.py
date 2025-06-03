@@ -21,6 +21,8 @@ from .views import (
     UserChatThreadsAPIView,
     UserChatHistoryAPIView,
     UserMarkMessagesReadView,
+    VerifyEmailOTPView,
+    ResendEmailOTPView,
 )
 
 urlpatterns = [
@@ -30,6 +32,8 @@ urlpatterns = [
     path('login/', UserLoginView.as_view(), name='user-login'),
     path('logout/', UserLogoutView.as_view(), name='user-logout'),
     path('profile/', UserProfileView.as_view(), name='user-profile'),
+    path('verify-email-otp/', VerifyEmailOTPView.as_view(), name='verify-email-otp'),
+    path('resend-email-otp/', ResendEmailOTPView.as_view(), name='resend-email-otp'),
     path('workshops/nearby/', NearbyWorkshopsView.as_view(), name='nearby-workshops'),
     path('forgot-password/', UserForgotPasswordView.as_view(), name='user-forgot-password'),
     path('reset-password/<uidb64>/<token>/', ResetPasswordView.as_view(), name='reset-password'),

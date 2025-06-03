@@ -21,6 +21,8 @@ from .views import (
     WorkshopChatThreadsAPIView,
     WorkshopChatHistoryAPIView,
     WorkshopMarkMessagesReadView,
+    WorkshopVerifyEmailOTPView,
+    WorkshopResendEmailOTPView,
 )
 
 urlpatterns = [
@@ -31,6 +33,8 @@ urlpatterns = [
     path('forgot-password/', WorkshopForgotPasswordView.as_view(), name='workshop-forgot-password'),
     path('reset-password/<uidb64>/<token>/', WorkshopResetPasswordView.as_view(), name='workshop-reset-password'),
     path('profile/', WorkshopProfileView.as_view(), name='workshop-profile'),
+    path('verify-email-otp/', WorkshopVerifyEmailOTPView.as_view(), name='workshop-verify-email-otp'),
+    path('resend-email-otp/', WorkshopResendEmailOTPView.as_view(), name='workshop-resend-email-otp'),
     
     path('services/', WorkshopServiceCreateAPIView.as_view(), name='workshop-service-create'),
     path('services/list/', WorkshopServiceListAPIView.as_view(), name='workshop-service-list'),

@@ -34,6 +34,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_staff    = models.BooleanField(default=False)
     is_superuser = models.BooleanField(default=False)  # This field is inherited from PermissionsMixin, but adding explicitly if needed
     is_verified = models.BooleanField(default=False)
+    pending_email = models.EmailField(null=True, blank=True)
     created_at  = models.DateTimeField(default=timezone.now)
     updated_at  = models.DateTimeField(auto_now=True)
 
@@ -48,7 +49,11 @@ class User(AbstractBaseUser, PermissionsMixin):
 class Otp(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     otp_code = models.CharField(max_length=4)
+    email = models.EmailField()
     otp_created_at = models.DateTimeField(auto_now_add=True)
+    
+    def is_expired(self):
+        return timezone.now() > self.otp_created_at + timezone.timedelta(minutes=10)
     
     def __str__(self):
         return f"OTP for {self.user.email}"

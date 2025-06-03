@@ -806,7 +806,65 @@ class WorkshopServicesAPIView(APIView):
         
         return Response(result)
     
+def send_workshop_email_verification_otp(workshop, new_email):
+    # Delete any existing OTPs for this workshop and email
+    WorkshopOtp.objects.filter(workshop=workshop, email=new_email).delete()
     
+    otp_code = random.randint(1000, 9999)
+    WorkshopOtp.objects.create(workshop=workshop, otp_code=otp_code, email=new_email)
+
+    subject = "Your FixnGo Workshop Email Verification OTP"
+    text_content = f"""
+    Hello {workshop.name},
+
+    You requested to change your workshop email address on FixnGo.
+
+    Your OTP code is: {otp_code}
+    It will expire in 10 minutes. Please use this code to verify your new email address.
+
+    If you didn't request this change, please ignore this email.
+
+    Best regards,  
+    The FixnGo Team
+    """
+
+    html_content = f"""
+    <html>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6;">
+            <div style="max-width: 600px; margin: auto; border: 1px solid #ddd; padding: 20px; border-radius: 8px;">
+                <h2 style="color: #4CAF50; text-align: center;">FixnGo Workshop Email Verification</h2>
+                <p>Hello <strong>{workshop.name}</strong>,</p>
+                <p>You requested to change your workshop email address on <strong>FixnGo</strong>.</p>
+                <p style="font-size: 18px;">Your OTP code is:</p>
+                <div style="text-align: center; margin: 20px 0;">
+                    <span style="
+                        display: inline-block;
+                        font-size: 24px;
+                        font-weight: bold;
+                        color: #ffffff;
+                        background-color: #4CAF50;
+                        padding: 10px 20px;
+                        border-radius: 5px;
+                        border: 1px solid #3e8e41;
+                    ">
+                        {otp_code}
+                    </span>
+                </div>
+                <p style="color: #777;">This OTP is valid for <strong>10 minutes</strong>.</p>
+                <hr>
+                <p>If you didn't request this change, please ignore this email.</p>
+                <p>Best regards,</p>
+                <p style="font-weight: bold;">The FixnGo Team</p>
+            </div>
+        </body>
+    </html>
+    """
+
+    # Send to NEW email address
+    send_otp_email.delay(subject, text_content, html_content, new_email)
+
+
+# Updated WorkshopProfileView
 class WorkshopProfileView(APIView):
     authentication_classes = [WorkshopJWTAuthentication]
     permission_classes = [IsWorkshopUser]
@@ -827,6 +885,8 @@ class WorkshopProfileView(APIView):
 
     def put(self, request):
         workshop = request.user
+        email_changed = False
+        new_email = request.data.get("email")
 
         # Check if the workshop is approved before allowing updates
         if not workshop.is_approved:
@@ -877,14 +937,103 @@ class WorkshopProfileView(APIView):
                 workshop.save()
             except Exception as e:
                 return Response({"error": f"Failed to upload document: {str(e)}"}, status=500)
+
+        # Handle email change - DON'T update email immediately
+        if new_email and new_email != workshop.email:
+            # Check if new email is already taken by another workshop
+            if Workshop.objects.filter(email=new_email).exclude(id=workshop.id).exists():
+                return Response({"error": "This email is already registered with another workshop."}, status=400)
             
-        data = {key: value for key, value in request.data.items() if key not in ['document', 'profile_image']}
+            # Store the pending email but don't update the actual email yet
+            workshop.pending_email = new_email
+            workshop.save(update_fields=["pending_email"])
+            email_changed = True
+
+            try:
+                send_workshop_email_verification_otp(workshop, new_email)
+            except Exception as e:
+                return Response({"error": f"Failed to send verification email: {str(e)}"}, status=500)
+            
+        # Update other fields (excluding email)
+        update_data = request.data.copy()
+        if 'email' in update_data:
+            del update_data['email']  # Remove email from update data
+            
+        data = {key: value for key, value in update_data.items() if key not in ['document', 'profile_image']}
         serializer = WorkshopSerializer(workshop, data=data, partial=True)
         if serializer.is_valid():
             serializer.save()
-            return Response({"message": "Workshop profile updated successfully!"})
+            
+            if email_changed:
+                return Response({
+                    "message": "Workshop profile updated! Please check your new email for verification code.",
+                    "email_verification_required": True
+                })
+            else:
+                return Response({"message": "Workshop profile updated successfully!"})
 
         return Response(serializer.errors, status=400)
+
+
+# Add new view for Workshop OTP verification
+class WorkshopVerifyEmailOTPView(APIView):
+    authentication_classes = [WorkshopJWTAuthentication]
+    permission_classes = [IsWorkshopUser]
+    
+    def post(self, request):
+        workshop = request.user
+        otp_code = request.data.get('otp')
+        email = request.data.get('email')  # This should be the pending email
+        
+        if not otp_code or not email:
+            return Response({"error": "OTP and email are required."}, status=400)
+        
+        try:
+            # Find the OTP record
+            otp_record = WorkshopOtp.objects.get(workshop=workshop, otp_code=otp_code, email=email)
+            
+            if otp_record.is_expired():
+                otp_record.delete()
+                return Response({"error": "OTP has expired. Please request a new one."}, status=400)
+            
+            # Verify that this email matches the pending email
+            if workshop.pending_email != email:
+                return Response({"error": "Invalid email for verification."}, status=400)
+            
+            # Update the actual email and clear pending email
+            workshop.email = email
+            workshop.pending_email = None
+            workshop.save(update_fields=["email", "pending_email"])
+            
+            # Delete the used OTP
+            otp_record.delete()
+            
+            return Response({"message": "Email verified and updated successfully!"})
+            
+        except WorkshopOtp.DoesNotExist:
+            return Response({"error": "Invalid OTP."}, status=400)
+        except Exception as e:
+            return Response({"error": "Verification failed. Please try again."}, status=500)
+
+
+# Add view for resending Workshop OTP
+class WorkshopResendEmailOTPView(APIView):
+    authentication_classes = [WorkshopJWTAuthentication]
+    permission_classes = [IsWorkshopUser]
+    
+    def post(self, request):
+        workshop = request.user
+        email = request.data.get('email')
+        
+        if not email or email != workshop.pending_email:
+            return Response({"error": "Invalid email."}, status=400)
+        
+        try:
+            send_workshop_email_verification_otp(workshop, email)
+            return Response({"message": "OTP resent successfully!"})
+        except Exception as e:
+            return Response({"error": "Failed to resend OTP. Please try again."}, status=500)
+
     
 class WorkshopChatHistoryAPIView(APIView):
     authentication_classes = [WorkshopJWTAuthentication]

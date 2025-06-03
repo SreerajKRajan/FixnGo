@@ -27,6 +27,7 @@ class Workshop(AbstractBaseUser):
     rejection_reason = models.TextField(blank=True, null=True)
     approval_status = models.CharField(max_length=50, default='pending', choices=[('pending', 'Pending'), ('approved', 'Approved'), ('rejected', 'Rejected')])
     is_verified = models.BooleanField(default=False)
+    pending_email = models.EmailField(blank=True, null=True)
     is_approved = models.BooleanField(default=False)
     password    = models.CharField(max_length=255)
     is_active   = models.BooleanField(default=True)
@@ -45,7 +46,13 @@ class Workshop(AbstractBaseUser):
 class WorkshopOtp(models.Model):
     workshop = models.ForeignKey(Workshop, on_delete=models.CASCADE)
     otp_code = models.CharField(max_length=4)
+    email = models.EmailField()
     otp_created_at = models.DateTimeField(auto_now_add=True)
+    
+    def is_expired(self):
+        """Check if OTP is expired (10 minutes)"""
+        from datetime import timedelta
+        return timezone.now() > self.otp_created_at + timedelta(minutes=10)
     
     def __str__(self):
         return f"OTP for {self.workshop.email}"
