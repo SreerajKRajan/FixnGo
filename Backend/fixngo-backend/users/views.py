@@ -379,7 +379,10 @@ class UserProfileView(APIView):
         email_changed = False
         new_email = request.data.get("email")
 
-        # Handle profile image upload
+        # Copy request.data at the very beginning to avoid accessing closed files later
+        update_data = request.data.copy()
+
+        # Handle profile image upload first before mutating or reading any data
         if 'profile_image' in request.FILES:
             profile_image = request.FILES['profile_image']
 
@@ -397,11 +400,9 @@ class UserProfileView(APIView):
 
         # Handle email change - DON'T update email immediately
         if new_email and new_email != user.email:
-            # Check if new email is already taken by another user
             if User.objects.filter(email=new_email).exclude(id=user.id).exists():
                 return Response({"error": "This email is already registered with another account."}, status=400)
-            
-            # Store the pending email but don't update the actual email yet
+
             user.pending_email = new_email
             user.save(update_fields=["pending_email"])
             email_changed = True
@@ -411,15 +412,15 @@ class UserProfileView(APIView):
             except Exception as e:
                 return Response({"error": f"Failed to send verification email: {str(e)}"}, status=500)
 
-        # Update other fields (excluding email)
-        update_data = request.data.copy()
+        # Remove 'email' field from update_data before serializer update
         if 'email' in update_data:
-            del update_data['email']  # Remove email from update data
-            
+            del update_data['email']
+
+        # Update remaining fields
         serializer = UserSerializer(user, data=update_data, partial=True)
         if serializer.is_valid():
             serializer.save()
-            
+
             if email_changed:
                 return Response({
                     "message": "Profile updated! Please check your new email for verification code.",
@@ -427,8 +428,9 @@ class UserProfileView(APIView):
                 })
             else:
                 return Response({"message": "Profile updated successfully!"})
-        
+
         return Response(serializer.errors, status=400)
+
 
 # Add new view for OTP verification
 class VerifyEmailOTPView(APIView):
