@@ -49,7 +49,7 @@ export default function WorkshopServiceManagement() {
     try {
       await axiosInstance.post("/workshop/services/", {
         admin_service_id: service.id,
-        base_price: 100, // Example base price
+        base_price: service.base_price, // Example base price
       });
       toast({
         title: "Service added successfully!",
