@@ -16,17 +16,12 @@ import {
   Avatar,
   Badge,
 } from "@nextui-org/react";
-import { Modal, ModalHeader, ModalBody, ModalFooter } from "../uis/modal";
 import { toast } from "sonner";
 import axiosInstance from "../../utils/axiosInstance";
-import { Formik, Form, Field, ErrorMessage } from "formik";
-import * as Yup from "yup";
 
 export function WorkshopServiceList() {
   const [workshops, setWorkshops] = useState([]);
   const [services, setServices] = useState([]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedService, setSelectedService] = useState(null);
   const [selectedWorkshop, setSelectedWorkshop] = useState(null);
   const [loading, setLoading] = useState(true);
   const [servicesLoading, setServicesLoading] = useState(false);
@@ -111,6 +106,25 @@ export function WorkshopServiceList() {
     } catch (error) {
       console.error("Failed to approve service:", error);
       toast.error("Failed to approve service. Please try again.");
+    }
+  };
+
+  const rejectService = async (serviceId) => {
+    try {
+      await axiosInstance.delete(
+        `/service/workshop/${serviceId}/approve/`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
+          },
+        }
+      );
+      setServices((prev) => prev.filter((s) => s.id !== serviceId));
+      setTotalServices((prev) => prev - 1);
+      toast.success("Service rejected successfully.");
+    } catch (error) {
+      console.error("Failed to reject service:", error);
+      toast.error("Failed to reject service. Please try again.");
     }
   };
 
@@ -339,10 +353,7 @@ export function WorkshopServiceList() {
                                   color="danger"
                                   size="sm"
                                   variant="flat"
-                                  onPress={() => {
-                                    setSelectedService(service);
-                                    setIsModalOpen(true);
-                                  }}
+                                  onPress={() => rejectService(service.id)}
                                   className="font-medium"
                                 >
                                   Reject
@@ -377,106 +388,6 @@ export function WorkshopServiceList() {
               </CardBody>
             </Card>
           </div>
-        )}
-
-        {/* Rejection Modal */}
-        {isModalOpen && (
-          <Modal 
-            isOpen={isModalOpen} 
-            onClose={() => setIsModalOpen(false)}
-            className="max-w-lg"
-          >
-            <Formik
-              initialValues={{ rejection_reason: "" }}
-              validationSchema={Yup.object({
-                rejection_reason: Yup.string()
-                  .min(10, "Reason must be at least 10 characters")
-                  .required("Rejection reason is required"),
-              })}
-              onSubmit={async (values, { setSubmitting }) => {
-                try {
-                  await axiosInstance.request({
-                    url: `/service/workshop/${selectedService.id}/reject/`,
-                    method: "DELETE",
-                    headers: {
-                      Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
-                    },
-                    data: { rejection_reason: values.rejection_reason },
-                  });
-                  setServices((prev) =>
-                    prev.filter((s) => s.id !== selectedService.id)
-                  );
-                  setTotalServices((prev) => prev - 1);
-                  setIsModalOpen(false);
-                  toast.success("Service rejected successfully.");
-                } catch (error) {
-                  console.error("Failed to reject service:", error);
-                  toast.error("Failed to reject service. Please try again.");
-                } finally {
-                  setSubmitting(false);
-                }
-              }}
-            >
-              {({ isSubmitting }) => (
-                <Form>
-                  <ModalHeader className="pb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
-                        <span className="text-red-600 text-lg">⚠️</span>
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-semibold text-gray-900">
-                          Reject Service
-                        </h3>
-                        <p className="text-sm text-gray-600">
-                          {selectedService?.name}
-                        </p>
-                      </div>
-                    </div>
-                  </ModalHeader>
-                  <ModalBody className="py-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Reason for Rejection *
-                      </label>
-                      <Field
-                        name="rejection_reason"
-                        as="textarea"
-                        rows={4}
-                        placeholder="Please provide a detailed reason for rejecting this service..."
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
-                      />
-                      <ErrorMessage
-                        name="rejection_reason"
-                        component="div"
-                        className="text-red-500 text-sm mt-1"
-                      />
-                    </div>
-                  </ModalBody>
-                  <ModalFooter className="pt-4">
-                    <div className="flex gap-3 w-full">
-                      <Button 
-                        color="default" 
-                        variant="light"
-                        onPress={() => setIsModalOpen(false)}
-                        className="flex-1"
-                      >
-                        Cancel
-                      </Button>
-                      <Button 
-                        type="submit" 
-                        color="danger" 
-                        disabled={isSubmitting}
-                        className="flex-1 font-medium"
-                      >
-                        {isSubmitting ? "Rejecting..." : "Reject Service"}
-                      </Button>
-                    </div>
-                  </ModalFooter>
-                </Form>
-              )}
-            </Formik>
-          </Modal>
         )}
       </div>
     </div>
